@@ -1,0 +1,61 @@
+name: mortgagelens
+x-app: &app
+  build: .
+  env_file: .env
+  environment:
+    DB_HOST: postgres
+    REDIS_HOST: redis
+    MAIL_MAILER: smtp
+    MAIL_HOST: mailpit
+    MAIL_PORT: 1025
+  volumes:
+    - private-storage:/var/www/html/storage
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+services:
+  app:
+    <<: *app
+    ports: ["127.0.0.1:8000:8000"]
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-mortgagelens}
+      POSTGRES_USER: ${DB_USERNAME:-mortgagelens}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Run bin/setup-env first}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/init-test-db.sh:/docker-entrypoint-initdb.d/20-test-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      retries: 20
+  redis:
+    image: redis:7.4-bookworm
+    command: redis-server --appendonly yes
+    volumes: ["redis-data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+  worker:
+    <<: *app
+    command: ["php", "artisan", "horizon"]
+  scheduler:
+    <<: *app
+    command: ["php", "artisan", "schedule:work"]
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ["127.0.0.1:8025:8025"]
+  document-worker:
+    build: ./python-worker
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health')"]
+      interval: 10s
+      retries: 5
+volumes:
+  postgres-data:
+  redis-data:
+  private-storage:

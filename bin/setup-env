@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+"""Generate local-only runtime secrets without printing them or replacing existing work."""
+import base64
+import secrets
+from pathlib import Path
+p=Path('.env')
+if p.exists():
+    raise SystemExit('.env already exists; preserved. Configure it manually if needed.')
+s=Path('.env.example').read_text().replace('APP_KEY=\n','APP_KEY=base64:'+base64.b64encode(secrets.token_bytes(32)).decode()+'\n').replace('DB_PASSWORD=\n','DB_PASSWORD='+secrets.token_urlsafe(32)+'\n')
+p.write_text(s)
+p.chmod(0o600)
+print('Local .env generated. Secrets were not displayed. Register your own development account.')

@@ -1,0 +1,2 @@
+# MortgageLens contributor instructions
+Work on develop. Run PostgreSQL integration tests and npm run build. Preserve original document bytes and append-only audit evidence. Never add credentials or financial documents. Analysis is fictional in Phase 1. All resource access requires organization membership, file policy, and role. Never add a platform-admin document bypass or weaken Broker serializers. See docs/architecture.md.

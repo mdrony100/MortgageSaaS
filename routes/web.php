@@ -1,0 +1,48 @@
+<?php
+
+use App\Http\Controllers\AnalysisController as A;
+use App\Http\Controllers\DocumentController as D;
+use App\Http\Controllers\FileController as F;
+use App\Http\Controllers\OrganizationController as O;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/api/me', fn (Request $r) => ['user' => $r->user(), 'memberships' => $r->user()->memberships()->with('organization.plan')->get()])->middleware('auth:sanctum');
+Route::middleware(['auth:sanctum', 'verified', 'throttle:workspace'])->prefix('api')->group(function () {
+    Route::get('organizations', [O::class, 'index']);
+    Route::get('organizations/{organization}', [O::class, 'show']);
+    Route::get('organizations/{organization}/audit', [O::class, 'audit']);
+    Route::get('organizations/{organization}/usage', [O::class, 'usage']);
+    Route::patch('organizations/{organization}', [O::class, 'update']);
+    Route::post('organizations/{organization}/invitations', [O::class, 'invite']);
+    Route::delete('organizations/{organization}/invitations/{invitation}', [O::class, 'revokeInvite']);
+    Route::post('invitations/accept', [O::class, 'accept']);
+    Route::patch('organizations/{organization}/members/{membership}', [O::class, 'member']);
+    Route::delete('organizations/{organization}/members/{membership}', [O::class, 'removeMember']);
+    Route::get('plans', [O::class, 'plans']);
+    Route::get('platform', [O::class, 'platform']);
+    Route::get('organizations/{organization}/borrowers', [F::class, 'borrowers']);
+    Route::post('organizations/{organization}/borrowers', [F::class, 'borrower']);
+    Route::patch('organizations/{organization}/borrowers/{borrower}', [F::class, 'updateBorrower']);
+    Route::get('files', [F::class, 'index']);
+    Route::post('organizations/{organization}/files', [F::class, 'store']);
+    Route::get('files/{file}', [F::class, 'show']);
+    Route::patch('files/{file}', [F::class, 'update']);
+    Route::get('files/{file}/share-candidates', [F::class, 'shareCandidates']);
+    Route::post('files/{file}/shares', [F::class, 'share']);
+    Route::delete('files/{file}/shares/{share}', [F::class, 'revoke']);
+    Route::post('files/{file}/notes', [F::class, 'note']);
+    Route::get('files/{file}/activity', [F::class, 'activity']);
+    Route::post('files/{file}/documents', [D::class, 'store'])->middleware('throttle:uploads');
+    Route::post('documents/{document}/versions', [D::class, 'replace'])->middleware('throttle:uploads');
+    Route::get('document-versions/{version}/content', [D::class, 'content']);
+    Route::post('files/{file}/sample-analysis', [A::class, 'load']);
+    Route::get('files/{file}/analysis', [A::class, 'show']);
+    Route::get('files/{file}/analysis/restricted/{section}', [A::class, 'restricted']);
+    Route::post('files/{file}/overrides', [A::class, 'override']);
+    Route::get('files/{file}/review-history', [A::class, 'history']);
+    Route::get('files/{file}/reports/{module}', [A::class, 'report']);
+    Route::get('files/{file}/export', [A::class, 'export']);
+    Route::get('rulesets', [A::class, 'rules']);
+});
+Route::get('/{path?}', fn () => view('app'))->where('path', '^(?!api/|sanctum/|horizon).*$')->name('spa');
