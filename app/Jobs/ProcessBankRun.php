@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Bank\Pipeline;
 use App\Bank\ProcessingException;
+use App\Billing\Usage;
 use App\Models\Bank\Run;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -42,11 +43,16 @@ class ProcessBankRun implements ShouldQueue
         }
         $r->increment('attempts');
         try {
+            app(Usage::class)->reserve($r->organization_id, 'bank:'.$r->idempotency_key);
             $pipeline->execute($r);
+            app(Usage::class)->finish($r->organization_id, 'bank:'.$r->idempotency_key, 'completed');
         } catch (\Throwable $e) {
             if ($r->fresh()->status === 'Cancelled') {
+                app(Usage::class)->finish($r->organization_id, 'bank:'.$r->idempotency_key, 'cancelled');
+
                 return;
             }
+            app(Usage::class)->finish($r->organization_id, 'bank:'.$r->idempotency_key, 'failed');
             $message = $e instanceof ProcessingException ? $e->getMessage() : 'Processing error; internal details redacted';
             $r->update(['status' => 'Failed', 'stage' => 'Failed', 'error_code' => mb_substr($message, 0, 240)]);
             // A sanitized exception avoids raw provider/document data in failed_jobs logs.
@@ -56,6 +62,13 @@ class ProcessBankRun implements ShouldQueue
 
     public function failed(?\Throwable $exception): void
     {
-        Run::whereKey($this->runId)->where('status', '!=', 'Cancelled')->update(['status' => 'Failed', 'stage' => 'Failed', 'error_code' => 'Bounded attempts exhausted; review source and provider status']);
+        $r = Run::find($this->runId);
+        if (! $r || in_array($r->status, ['Completed', 'PartiallyCompleted', 'NeedsReview'], true)) {
+            return;
+        }
+        if ($r->status !== 'Cancelled') {
+            $r->update(['status' => 'Failed', 'stage' => 'Failed', 'error_code' => 'Bounded attempts exhausted; review source and provider status']);
+        }
+        app(Usage::class)->finish($r->organization_id, 'bank:'.$r->idempotency_key, $r->status === 'Cancelled' ? 'cancelled' : 'failed');
     }
 }

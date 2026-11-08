@@ -71,8 +71,8 @@ def register(client, address, name, password):
     check("SMTP verification + signed link for " + name, bool(client.call("/api/me")["user"]["email_verified_at"]))
     return user["memberships"][0]["organization_id"], user["user"]["id"]
 
-def sample_pdf():
-    lines = ["FICTIONAL BANK STATEMENT - SYNTHETIC NATIVE HTTP TEST ONLY",
+def sample_pdf(lines=None):
+    lines = lines or ["FICTIONAL BANK STATEMENT - SYNTHETIC NATIVE HTTP TEST ONLY",
              "Institution: FICTIONAL Test Bank", "Holder: Fictional Example LLC", "Account: ****1111",
              "Currency: USD", "Designation: business", "Period start: 2025-01-01", "Period end: 2025-01-31",
              "Opening balance: 10000.00", "Closing balance: 11000.00", "Total credits: 1000.00",
@@ -146,6 +146,25 @@ def main():
     for fmt, magic in [("xlsx",b"PK"),("pdf",b"%PDF-"),("csv",b'"Transaction ID"')]:
         check("Actual native workflow downloadable " + fmt.upper(), owner.call(run + "/reports/"+str(issued["id"])+"/"+fmt, raw=True).startswith(magic))
     owner.call(run + "/conditions", "POST", {"text":"Please provide the missing statement months.","status":"open","public_acknowledgement":True}, expect=201)
+    # Phase3 uses the SAME upload/scanner/source/file system and real native queue.
+    appraisal_bytes = sample_pdf(["FICTIONAL APPRAISAL HTTP ONLY", "classification | | appraisal", "form | | 1004", "form_version | | 2005", "address | | 1 Fictional Example Street", "units | | 1", "appraised_value | | 330000.00"])
+    appraisal_body = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"fictional_sample\"\r\n\r\n1\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"FICTIONAL-appraisal.pdf\"\r\nContent-Type: application/pdf\r\n\r\n").encode()+appraisal_bytes+f"\r\n--{boundary}--\r\n".encode()
+    appraisal_version=owner.call(endpoint+"/documents","POST",appraisal_body,expect=201,content_type="multipart/form-data; boundary="+boundary)["version"]["id"]
+    review=endpoint+"/appraisal"
+    rq=owner.call(review+"/runs","POST",{"document_version_ids":[appraisal_version],"context":{"loan_occupancy":"primary","transaction":"purchase","units":1},"idempotency_key":"review-http-"+suffix},expect=202)
+    for _ in range(100):
+        rs=owner.call(review)
+        if rs.get("run",{}).get("status") in ["NeedsReview","Failed"]:break
+        time.sleep(.2)
+    check("Actual appraisal Redis/Horizon native processing, no fixture extractor",rs["run"]["status"]=="NeedsReview" and len(rs["facts"])>=5)
+    def confirmed(value):return {"value":value,"source":"FICTIONAL source, reviewer verified","basis":"TEST explicit reviewer choice","confirmed":True}
+    ri={"units":[{"id":"1","inspection_occupancy":"unknown","current_occupancy":"occupied","lease_status":"executed","rent_method":"long_term","is_adu":False,"market":confirmed("3300.00"),"qualifying":confirmed("2850.00")}],"payment":{"mode":"total","total":confirmed("3000.00")},"loan":confirmed("250000.00"),"value_basis":confirmed("325000.00"),"appraised_value":"330000.00"}
+    rp=review+"/runs/"+rq["run_id"]
+    rc=owner.call(rp+"/inputs","POST",{"input":ri,"notes":"TEST financial source confirmation"},expect=201)
+    check("Real backend market1.10 / qualifying0.95 / LTV76.92",rc["data"]["market_dscr"]["display"]=="1.10" and rc["data"]["qualifying_dscr"]["display"]=="0.95" and rc["data"]["ltv"]["display_percent"]=="76.92")
+    report=owner.call(rp+"/report","POST",{"notes":"TEST review report with open findings"},expect=201)
+    for fmt,magic in [("pdf",b"%PDF-"),("xlsx",b"PK")]:check("Actual appraisal open-findings "+fmt.upper()+" export",owner.call(rp+"/reports/"+str(report["id"])+"/"+fmt,raw=True).startswith(magic))
+    check("Unconfigured billing never fabricates checkout",owner.call(f"/api/organizations/{org}/billing")["provider"]=="disabled")
     broker.call(endpoint, expect=403)
     owner.call(f"/api/organizations/{org}/invitations", "POST", {"email": broker_email, "role": "broker"}, expect=201)
     invitation = mail_link(broker_email, r"http[^\s<>]+/invitations/accept\?token=[A-Za-z0-9]+")

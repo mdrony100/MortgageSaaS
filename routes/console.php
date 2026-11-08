@@ -1,5 +1,6 @@
 <?php
 
+use App\Appraisal\FictionalDocuments;
 use App\Models\Borrower;
 use App\Models\LoanFile;
 use App\Models\Membership;
@@ -37,12 +38,17 @@ Artisan::command('mortgage:dev-account', function () {
     file_put_contents($path, json_encode(['email' => $email, 'password' => $password, 'notice' => 'Local fictional account only. Delete this credential file after saving securely.'], JSON_PRETTY_PRINT));
     chmod($path, 0600);
     $this->info('Local fictional account created. Credentials are saved privately at: '.$path);
-    $this->line('No analysis was run. Use the separate Load sample analysis action.');
+    $this->line('No analysis was run. Use real private upload processing; sample analysis is a separate explicitly fictional action.');
 })->purpose('Generate a private local-only fictional review account; never an impersonation shortcut.');
 
 // Only transient working directories and encrypted replay cache expire. Original evidence,
 // normalized ledgers, decisions and issued reports are never purged by this command.
-Artisan::command('bank:purge-transient', function () {
+Artisan::command('bank:purge-transient {--execute}', function () {
+    if (! $this->option('execute') || ! config('review.retention.approved')) {
+        $this->info('DRY RUN: transient bank cleanup requires approved retention policy and explicit --execute; no data deleted.');
+
+        return;
+    }
     $expired = DB::table('bank_provider_calls')->where('provider', 'openai')->where('updated_at', '<', now()->subDays(config('bank.cache_days')))->get();
     $count = 0;
     foreach ($expired as $call) {
@@ -65,3 +71,30 @@ Artisan::command('bank:purge-transient', function () {
     $this->info('Expired transient replay caches: '.$count.'. Original evidence untouched.');
 });
 Schedule::command('bank:purge-transient')->daily()->withoutOverlapping();
+
+Artisan::command('retention:review', function () {
+    $this->line(json_encode(['mode' => 'dry_run_only', 'policy' => config('review.retention'), 'inventory' => ['originals' => DB::table('document_versions')->count(), 'reviews' => DB::table('review_runs')->count(), 'original_revisions' => DB::table('document_versions')->where('version', '>', 1)->count(), 'review_artifacts' => DB::table('review_records')->whereIn('kind', ['page', 'image'])->count(), 'issued_review_reports' => DB::table('review_records')->where('kind', 'report')->count(), 'stored_report_artifacts' => DB::table('review_records')->where('kind', 'report_artifact')->count(), 'review_database_records' => DB::table('review_records')->count()], 'provider_copies' => 'Operator/vendor agreement required', 'backups' => 'External backup inventory/restore acceptance required', 'deletion_executed' => false]));
+});
+
+Artisan::command('review:purge-replay {--execute}', function () {
+    if (! $this->option('execute') || ! config('review.retention.approved')) {
+        $this->info('DRY RUN: replay cleanup requires approved retention policy and explicit --execute; no data deleted.');
+
+        return;
+    }
+    $count = 0;
+    foreach (DB::table('review_calls')->where('data->status', 'completed')->get() as $row) {
+        $d = json_decode($row->data, true);
+        if (isset($d['cache']) && strtotime($d['cache_expires_at'] ?? '1970-01-01') < time()) {
+            unset($d['cache']);
+            DB::table('review_calls')->where('id', $row->id)->update(['data' => json_encode($d)]);
+            $count++;
+        }
+    }$this->info('Expired encrypted replay caches: '.$count.'. Original evidence/reports untouched.');
+});
+Schedule::command('review:purge-replay')->daily();
+
+Artisan::command('mortgage:fictional-review-documents', function () {
+    $this->info('Private FICTIONAL labeled-layout PDFs generated at: '.app(FictionalDocuments::class)->generate());
+    $this->line('Not supplied client templates or real financial documents. No analysis or external call performed.');
+});

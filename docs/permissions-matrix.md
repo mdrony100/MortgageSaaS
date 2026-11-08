@@ -1,32 +1,29 @@
-# Permissions and assumptions
+# Current permissions matrix
 
-All rows concerning a file additionally require current membership **and** a file grant. A grant means creator, active individual same-organization share, or explicit organization-wide access on an Owner/Admin membership. No organization-wide grant is inferred solely from the Admin role. Registration creates the Owner's explicit grant; invitations default to no wide access, and an admin must deliberately select it.
+Every file operation requires **current org membership AND creator/active individual share/explicit Owner-Admin-wide grant**. Role alone is not a file grant. Platform administrator flag is metadata/Horizon access, never customer impersonation or a file bypass. Revoking a share does not revoke an independent creator/wide grant; UI explains this. No widening was made to resolve ambiguous client sharing wording.
 
-| Capability | Owner / Admin | Underwriter | Processor | Broker | Viewer | Platform admin only |
-|---|---|---|---|---|---|---|
-| Create borrower / file | Yes in own org | Yes | Yes | No | No | No |
-| View accessible file/original/preview | Yes with grant | With grant | With grant | With grant | With grant | No bypass |
-| Edit/archive/upload versions/draft inputs | With grant | With grant | With grant | No | No | No bypass |
-| Individual file sharing / revocation | With file grant | Own-created files only | No | No | No | No bypass |
-| Shared notes | With grant | With grant | With grant | With grant | Read only | No bypass |
-| Internal notes/restricted audit | With grant | With grant | No | No | No | No bypass |
-| Integrity/fraud/sustainability sample data | With grant | With grant | No | No | No | No bypass |
-| Classify/override/review-history | With grant | With grant | No | No | No | No bypass |
-| Role-scoped sample reports | With grant | With grant | Redacted | Redacted | Redacted | No bypass |
-| Real financial export | Disabled for all | Disabled | Disabled | Disabled | Disabled | Disabled |
-| Invite/revoke/member roles/branding | Own org only | No | No | No | No | No bypass |
-| Metadata platform view / Horizon | Only if platform flag | Only if platform flag | Only if platform flag | Only if platform flag | Only if platform flag | Yes, verified |
+| Capability | Owner/Admin with file grant | Underwriter with grant | Processor with grant | Broker with grant | Viewer with grant |
+|---|---|---|---|---|---|
+| Accessible file metadata | Yes | Yes | Yes | Yes | Yes |
+| Create/edit/archive accessible file | Yes | Yes | Yes | No | No |
+| New original/explanation upload | Yes | Yes | Yes | Yes, no replacement override | No |
+| Replace logical original with new immutable version | Yes | Yes | Yes | No | No |
+| Original preview/content | After clean verdict | After clean verdict | After clean verdict | Only own uploaded version after clean verdict | After clean verdict |
+| Individual same-org sharing/revoke | Yes | Own-created file only | No | No | No |
+| Shared notes | Read/write | Read/write | Read/write | Read/write | Read |
+| Internal notes/audit | Yes | Yes | No | No | No |
+| Bank source correction/classification/transfer/input overrides | Yes | Yes | No | No | No |
+| Bank fraud/integrity/sustainability/internal snapshots/exports | Yes | Yes | No | No | No |
+| Bank deliberately public final income/conditions/reports | Yes | Yes | Allowlisted only | Allowlisted only | Allowlisted only |
+| Appraisal internal extraction/photos/derivatives/lease match/rent/calcs/findings/revisions/reports | Yes | Yes | No | No | No |
+| Appraisal guideline draft/retirement | Yes | No | No | No | No |
+| Production guideline approval | Designated client reviewer id AND admin/file access | No | No | No | No |
+| Organization billing/member management | Own-org admin | No | No | No | No |
 
-Owner cannot be removed or demoted through ordinary member management; own membership cannot be changed. Ownership transfer is an open administrative workflow, not an insecure shortcut. Admins without a file grant cannot browse that file. File shares never turn a Broker into an Underwriter. Role changes/removal are evaluated on the next API request. Member removal removes obsolete shares. Revocation does not revoke an independent creator/admin-wide grant; the UI explicitly explains this.
+An authorized user may see all three module tabs but internal appraisal endpoints/derivatives remain reviewer-only. Nonreviewers receive an explicit restricted notice, not internal observations/calculations. Historical sample previews remain role-projected and visibly separate. Sharing never grants transaction classification override, fraud/sustainability access or internal export.
 
-Broker restrictions are enforced on the server, not CSS: analysis projection, report projection, notes visibility, activity visibility, review-history/direct restricted routes and write policies. No export endpoint returns sensitive data; it authorizes first, then returns an explicit 501 not-configured response. No global customer document search, impersonation, customer-login link or restricted-data notification exists.
+`LoanFilePolicy`, `DocumentPolicy`, `Access`, `Present`, Bank/Appraisal controllers and background stage checks establish boundaries. Original uploader checks are version-specific. All original/page/image/report streams reauthorize and use private/no-store. Searches are accessible-file metadata only. Generic notifications contain no financial payload and recheck reviewer access before submission; opening their link reauthorizes.
 
-Initial product assumptions: processors can maintain accessible files but not adjudicate classifications; shared notes are visible to every authorized file user; viewers cannot add notes. Final lender/shared-file permission policy requires sign-off before Phase 2. Arbitrary user-authored shared notes are not automated fraud findings; users must follow their organization's information-sharing policy.
+Tests cover cross-org IDs/parents/records, shared Broker restrictions/revocation, private source/derivative/report endpoints, polling projections and revoked background requester roles. Revocation affects subsequent requests, not previously downloaded copies. User-authored shared notes are not automatically sanitized into approved public fraud wording; organizations remain responsible for what they intentionally share.
 
-## Phase 2 stricter bank boundary (supersedes weaker Phase 1 sample fields)
-
-All file endpoints first require current membership AND creator/share/explicit admin-wide file grant. Owner/Admin/Underwriter additionally require file access for bank review, transaction/source corrections, policies, allocations, risk, history, internal reports and processing controls. Approved policy creation is Owner/Admin only, still file constrained. Sharing never elevates a role; platform admin has no bypass.
-
-Broker/other nonreviewer bank responses are allowlisted final public income/monthly summaries plus deliberately public conditions/explanations/review requests. Broker cannot read policy, transaction, fraud/integrity, sustainability, reviewer decisions/overrides, internal run data or internal reports by API/legacy preview/search/poll/export/audit/cache. Their original-source stream is restricted to their own uploaded versions and a successful scan. Brokers can upload new explanations/documents without replacing reviewer originals, submit explanation/review requests, and download only final independently generated Broker reports. All downloads reauthorize and are private/no-store. No internal finding is copied automatically into public wording.
-
-Broker source exception is version-specific: their own clean explanation/upload version only. Uploading one version never exposes reviewer-owned versions of that document. New bank polling, report metadata, CSV/XLSX/PDF, audit and legacy routes use final-only public allowlists; sharing never elevates role. No bank notifications/websockets are implemented that bypass these resources. Only Owner/Admin may approve a policy, and both role and file access are still required.
+Open policy: whether particular Broker/processor appraisal editing/public appraisal exports should exist. Existing conservative restrictions remain until explicit client decision. No auto-approval, condition clearance or underwriting role is created.

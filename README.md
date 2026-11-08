@@ -1,6 +1,6 @@
-# MortgageLens — Phase 1 foundation + Phase 2 bank processing
+# MortgageLens — integrated final-development release
 
-Existing Laravel/PHP, Vue 3/TypeScript, PostgreSQL, Redis/Horizon, Python, PDF.js, private S3-compatible storage, OpenAI Responses, PhpSpreadsheet and PDF-report stack. The Bank workspace now runs a real pinned asynchronous processing/review/export path. Phase 3 appraisal/lease/photo/DSCR/LTV screens and draft state remain separate and unimplemented; Plaid remains future. No deployment or live paid-provider success is implied.
+Existing Laravel/PHP, Vue 3/TypeScript, PostgreSQL, Redis/Horizon, Python, PDF.js, private S3-compatible storage, OpenAI Responses, PhpSpreadsheet and PDF-report stack. All three modules now use actual pinned private ingestion, asynchronous review and versioned exports: Bank Statement Income & Integrity; Appraisal Review; Rental Income / DSCR–LTV. Appraisal vision has real pixel-input/schema/provider adapters, verified with HTTP mocks only; native labeled-layout/manual fallback is explicitly incomplete. Official-source guidelines remain draft until designated client approval. Billing is provider-neutral, disabled by default, with isolated local/testing fake flows. Plaid remains future. This is locally verified development, **not production approval, deployment or live paid-provider success**.
 
 ## Local setup (not deployment)
 
@@ -41,11 +41,11 @@ Real documents require working ClamAV and current signatures. Missing/unavailabl
 
 Missing essential policy/evidence withholds the figure or permits an explicitly provisional observed-only figure under the selected profile; missing months are not silently zero and never change the 12/24 denominator. Development examples are not lender policies. Actual client workbook matching is pending: the implemented XLSX is visibly marked FALLBACK with backend-checked selected-period totals and detail overflow sheets.
 
-Phase 1 sample bank analysis remains only an explicitly separate fictional demo toggle. It is not upload processing. Existing Phase 3 sample/draft interfaces are unchanged.
+Phase 1 sample bank analysis remains only an explicitly separate fictional demo toggle. It is not upload processing. Historical appraisal/DSCR sample previews remain separately labeled; ordinary uploads use the actual API-connected review workflow.
 
 ## Verification
 
-Create private `.env.testing` using `DB_DATABASE=mortgagelens_test`, `APP_ENV=testing`, `QUEUE_CONNECTION=sync`, `MAIL_MAILER=array`, `CACHE_STORE=array`, `SESSION_DRIVER=array` and the actual parser venv. Never point tests at real data. PostgreSQL is required, not SQLite.
+Create private `.env.testing` using `DB_DATABASE=mortgagelens_test`, `APP_ENV=testing`, `QUEUE_CONNECTION=sync`, `MAIL_MAILER=array`, `CACHE_STORE=array`, `SESSION_DRIVER=array` and the actual parser venv. Never point tests at real data. PostgreSQL is required, not SQLite. The test bootstrap refuses non-testing/non-PostgreSQL connections and actual database names not ending `_test` before migrations.
 
 ```sh
 php artisan test
@@ -60,10 +60,22 @@ python3 tests/smoke_http.py
 php artisan bank:purge-transient
 ```
 
-Synthetic fixtures/TEST extraction and HTTP-mocked provider contracts are labeled and do not measure OCR accuracy or prove live integrations. Native processing and the real HTTP queue/export smoke are separately verified. See [verification record](docs/phase2-verification.md).
+Synthetic fixtures/TEST extraction and HTTP-mocked provider contracts are labeled and do not measure OCR accuracy or prove live integrations. Native processing and the real HTTP queue/export smoke are separately verified. See [final executed acceptance record](docs/acceptance-test-results.md) and the historical [Phase 2 record](docs/phase2-verification.md).
+
+## Appraisal / rental review and client demo
+
+1. Create an appraisal or DSCR file and upload the relevant original appraisals, schedules, leases and supporting evidence. Select exact original versions, context and classifications; start a review. Native mode does not fabricate vision results.
+2. Review coverage, evidence/pages/photos, classification, conflicts and proposed lease-unit matches. Confirm facts separately from AI suggestions. Keep loan/inspection/current occupancy and lease status distinct.
+3. Record source/basis/confirmation for each selected rent, monthly payment, requested loan and chosen positive value basis. Decimal-safe backend snapshots show both DSCRs, LTV and missing/provisional items; no loan decision is issued.
+4. Resolve/follow-up/reopen with reasons, preserve revisions and prior confirmed inputs, issue actual private PDF/XLSX even with open findings, and share/revoke using existing conservative roles.
+5. Organization settings show usage, entitlement and subscription state. No unapproved prices are advertised; no live payment provider is selected. Redirects never grant paid access.
+
+For an entirely fictional local walkthrough, `php artisan mortgage:dev-account` saves generated credentials privately, and `php artisan mortgage:fictional-review-documents` saves eight explicitly fictional native-layout PDFs privately. Neither command runs analysis or calls external providers. Follow [the three-module client walkthrough](docs/client-demo-walkthrough.md); never enable demo scan bypass for real files.
 
 ## Handoff
 
-[23-section acceptance checklist](docs/phase-2-checklist.md) · [architecture](docs/architecture.md) · [data model](docs/data-model.md) · [permissions](docs/permissions-matrix.md) · [provider setup](docs/provider-setup.md) · [rules](docs/ruleset-guide.md) · [calculation specification](docs/calculation-specification.md) · [Excel mapping](docs/excel-mapping.md) · [fixture coverage](docs/phase2-fixture-coverage.md) · [release limitations](docs/phase2-limitations.md) · [Phase 3](docs/phase-3-appraisal-dscr.md).
+[All 25 requirements](docs/final-phase-checklist.md) · [executed acceptance results](docs/acceptance-test-results.md) · [architecture](docs/architecture.md) · [permissions](docs/permissions-matrix.md) · [appraisal review](docs/appraisal-review.md) · [DSCR/LTV](docs/rental-dscr-ltv-calculations.md) · [guideline approval](docs/guideline-checklist-approval.md) · [provider/privacy configuration](docs/provider-configuration.md) · [report mapping](docs/report-mapping.md) · [retention/backups](docs/retention-and-backups.md) · [release readiness](docs/release-readiness.md) · [open client decisions](docs/open-decisions.md) · [future deployment runbook](docs/deployment-runbook.md).
 
-No borrower documents, credentials or client workbooks are committed. No AWS resources, paid OCR, provider submissions, production deployment or main-branch changes are part of local acceptance.
+Historical Bank references: [Phase 2 checklist](docs/phase-2-checklist.md), [calculation specification](docs/calculation-specification.md), [Excel mapping](docs/excel-mapping.md). Actual supplied report/workbook matching and approved anonymized sample acceptance remain pending; no client template was fabricated.
+
+No real borrower documents, credentials or private client workbooks are committed. No AWS resources, live paid-provider submissions, production deployment or main-branch changes are part of local acceptance. No approval/decline, automatic ineligibility, lender condition clearance, underwriting sign-off or fraud/regulatory guarantees.

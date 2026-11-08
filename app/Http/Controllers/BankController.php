@@ -11,6 +11,7 @@ use App\Bank\Reports\ReportService;
 use App\Bank\ReviewState;
 use App\Bank\RuleProfile;
 use App\Bank\TransferEngine;
+use App\Billing\Usage;
 use App\Jobs\ProcessBankRun;
 use App\Models\Bank\Run;
 use App\Models\DocumentVersion;
@@ -97,6 +98,7 @@ class BankController extends Controller
 
                 return $old;
             }
+            app(Usage::class)->reserve($file->organization_id, 'bank:'.$key);
             $run = Run::create(['id' => (string) Str::uuid(), 'organization_id' => $file->organization_id, 'loan_file_id' => $file->id, 'requested_by' => $r->user()->id, 'rule_id' => $d['rule_id'] ?? null, 'idempotency_key' => $key, 'status' => 'Queued', 'stage' => 'Queued', 'options' => $options, 'input_hash' => Ledger::hash($versions->sortBy('id')->map(fn ($v) => [$v->id, $v->sha256])->values()->all())]);
             foreach ($versions as $v) {
                 DB::table('bank_inputs')->insert(Ledger::scope($run) + ['document_version_id' => $v->id, 'sha256' => $v->sha256, 'created_at' => now()]);
@@ -116,11 +118,13 @@ class BankController extends Controller
         $run = $this->run($file, $runId);
         if ($action === 'cancel') {
             $run->update(['cancel_requested' => true]);
+            app(Usage::class)->finish($run->organization_id, 'bank:'.$run->idempotency_key, 'cancelled');
             if (in_array($run->status, ['Queued', 'Failed'], true)) {
                 $run->update(['status' => 'Cancelled', 'stage' => 'Cancelled', 'completed_at' => now()]);
             }
         } elseif ($action === 'retry') {
             abort_unless(in_array($run->status, ['Failed', 'PartiallyCompleted'], true) && ! $run->cancel_requested && $run->attempts < 6, 422, 'Run is not retryable or retry limit reached');
+            app(Usage::class)->reserve($run->organization_id, 'bank:'.$run->idempotency_key);
             $run->update(['status' => 'Queued', 'stage' => 'Queued', 'error_code' => null]);
             ProcessBankRun::dispatch($run->id)->afterCommit();
         } else {

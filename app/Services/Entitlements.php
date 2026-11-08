@@ -29,8 +29,9 @@ class Entitlements
 
     public static function storage(Organization $org, int $bytes): void
     {
+        $reviewDerived = DB::table('review_records')->where('organization_id', $org->id)->whereIn('kind', ['page', 'image', 'report_artifact'])->selectRaw("COALESCE(SUM((data->>'artifact_bytes')::bigint),0) as bytes")->value('bytes');
         $derived = DB::table('bank_pages')->where('organization_id', $org->id)->selectRaw("COALESCE(SUM((data->>'artifact_bytes')::bigint),0) as bytes")->value('bytes');
-        if (DocumentVersion::where('organization_id', $org->id)->sum('bytes') + (int) $derived + $bytes > $org->plan->storage_limit_bytes) {
+        if (DocumentVersion::where('organization_id', $org->id)->sum('bytes') + (int) $derived + (int) $reviewDerived + $bytes > $org->plan->storage_limit_bytes) {
             throw ValidationException::withMessages(['plan' => 'Storage limit reached.']);
         }
     }

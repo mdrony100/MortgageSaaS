@@ -2,14 +2,19 @@
 
 namespace App\Providers;
 
+use App\Appraisal\Extractor;
+use App\Appraisal\VisionExtractor;
 use App\Bank\Providers\HybridExtractor;
 use App\Bank\Providers\IntegrityProvider;
 use App\Bank\Providers\NativeExtractor;
 use App\Bank\Providers\OcrolusDetect;
 use App\Bank\Providers\OpenAIExtractor;
 use App\Bank\StatementExtractor;
+use App\Billing\FakeProvider;
+use App\Billing\UnavailableProvider;
 use App\Contracts\EmailDelivery;
 use App\Contracts\PrivateFileStorage;
+use App\Contracts\SubscriptionBilling;
 use App\Models\Document;
 use App\Models\LoanFile;
 use App\Policies\DocumentPolicy;
@@ -35,7 +40,9 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        foreach (['DocumentExtraction', 'OpenAIAnalysis', 'FraudDetection', 'SubscriptionBilling', 'PlaidImport', 'DocumentClassification', 'MalwareScanner'] as $contract) {
+        $this->app->bind(Extractor::class, VisionExtractor::class);
+        $this->app->bind(SubscriptionBilling::class, fn () => config('billing.provider') === 'fake' ? new FakeProvider : new UnavailableProvider);
+        foreach (['DocumentExtraction', 'OpenAIAnalysis', 'FraudDetection', 'PlaidImport', 'DocumentClassification', 'MalwareScanner'] as $contract) {
             $this->app->bind('App\\Contracts\\'.$contract, DisabledProvider::class);
         }
         $this->app->bind(StatementExtractor::class, fn () => match (config('bank.extractor')) {

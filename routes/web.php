@@ -1,11 +1,14 @@
 <?php
 
 use App\Http\Controllers\AnalysisController as A;
+use App\Http\Controllers\AppraisalController;
 use App\Http\Controllers\BankController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\DocumentController as D;
 use App\Http\Controllers\FileController as F;
 use App\Http\Controllers\OrganizationController as O;
 use App\Http\Middleware\SerializeBankReview;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -46,6 +49,15 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:workspace'])->prefix('a
     Route::get('files/{file}/reports/{module}', [A::class, 'report']);
     Route::get('files/{file}/export', [A::class, 'export']);
     Route::get('rulesets', [A::class, 'rules']);
+    $a = AppraisalController::class;
+    Route::get('files/{file}/appraisal', [$a, 'show']);
+    Route::post('files/{file}/appraisal/runs', [$a, 'start']);
+    Route::post('files/{file}/appraisal/guidelines', [$a, 'guideline']);
+    Route::post('files/{file}/appraisal/runs/{runId}/{action}', [$a, 'action']);
+    Route::get('files/{file}/appraisal/runs/{runId}/artifacts/{recordId}', [$a, 'artifact']);
+    Route::get('files/{file}/appraisal/runs/{runId}/reports/{recordId}/{format}', [$a, 'download']);
+    Route::get('organizations/{organization}/billing', [BillingController::class, 'show']);
+    Route::post('organizations/{organization}/billing', [BillingController::class, 'change']);
     $b = BankController::class;
     Route::get('files/{file}/bank', [$b, 'show']);
     Route::post('files/{file}/bank/rules', [$b, 'rule']);
@@ -61,4 +73,5 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:workspace'])->prefix('a
     Route::post('files/{file}/bank/runs/{runId}/reports', [$b, 'issue'])->middleware(SerializeBankReview::class);
     Route::get('files/{file}/bank/runs/{runId}/reports/{reportId}/{format}', [$b, 'download']);
 });
+Route::post('/api/billing/test-webhook', [BillingController::class, 'webhook'])->withoutMiddleware(ValidateCsrfToken::class)->middleware('throttle:workspace');
 Route::get('/{path?}', fn () => view('app'))->where('path', '^(?!api/|sanctum/|horizon).*$')->name('spa');

@@ -10,6 +10,8 @@ class Plan extends Model
 
     protected $guarded = [];
 
+    protected $hidden = ['provisional_monthly_price'];
+
     protected function casts(): array
     {
         return ['provisional_monthly_price' => 'decimal:2'];

@@ -20,6 +20,7 @@ use App\Bank\RuleProfile;
 use App\Bank\Scanner;
 use App\Bank\StatementExtractor;
 use App\Bank\TransferEngine;
+use App\Billing\Usage;
 use App\Jobs\ProcessBankRun;
 use App\Models\Bank\Run;
 use App\Models\Borrower;
@@ -1111,5 +1112,27 @@ class PhaseTwoTest extends TestCase
         $this->assertSame(3500, $m['cumulative']['nsf_fee_minor']);
         $this->assertSame(['2025-01'], array_keys($m['monthly']));
         $this->assertSame(100, $m['lowest_observed_balance_minor']);
+    }
+
+    public function test_timeout_failure_updates_usage_without_reverting_cancelled_or_completed_results(): void
+    {
+        $r = $this->start([$this->upload(F::statement())]);
+        $usage = app(Usage::class);
+        $key = 'bank:'.$r->idempotency_key;
+        $usage->reserve($r->organization_id, $key);
+        $job = new ProcessBankRun($r->id);
+        $job->failed(new \RuntimeException('FICTIONAL private document content must not be logged'));
+        $this->assertSame('Failed', $r->fresh()->status);
+        $this->assertDatabaseHas('usage_operations', ['operation_key' => $key, 'status' => 'failed']);
+        $this->assertStringNotContainsString('private document', $r->fresh()->error_code);
+        $r->update(['status' => 'Cancelled']);
+        $job->failed(null);
+        $this->assertSame('Cancelled', $r->fresh()->status);
+        $this->assertDatabaseHas('usage_operations', ['operation_key' => $key, 'status' => 'cancelled']);
+        $r->update(['status' => 'Completed']);
+        $usage->finish($r->organization_id, $key, 'completed');
+        $job->failed(null);
+        $this->assertSame('Completed', $r->fresh()->status);
+        $this->assertDatabaseHas('usage_operations', ['operation_key' => $key, 'status' => 'completed']);
     }
 }

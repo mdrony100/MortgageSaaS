@@ -138,7 +138,7 @@ class OrganizationController extends Controller
 
     public function plans()
     {
-        return ['plans' => Plan::all(), 'pricing_notice' => 'Provisional sample pricing. Checkout is not configured.'];
+        return ['plans' => Plan::all()->makeHidden('provisional_monthly_price'), 'pricing_notice' => 'Client-approved prices and live provider selection pending; legacy sample prices are not offered.'];
     }
 
     public function platform(Request $r)

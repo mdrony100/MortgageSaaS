@@ -24,7 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo('/login');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $financial = fn (Request $r) => $r->is('api/files/*', 'api/document-versions/*', 'api/documents/*');
+        $financial = fn (Request $r) => $r->is('api/files/*', 'api/document-versions/*', 'api/documents/*', 'api/organizations/*/billing', 'api/billing/*');
         $exceptions->report(function (Throwable $e) use ($financial) {
             if ($e instanceof QueryException || (! app()->runningInConsole() && $financial(request()))) {
                 Log::error('Financial workflow exception; source details deliberately omitted', ['exception_type' => get_class($e)]);
@@ -37,7 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->json(['message' => $e instanceof ProcessingException ? $e->getMessage() : 'Financial workflow could not complete; sensitive diagnostics are redacted.'], 500);
             }
         });
-        $exceptions->dontFlash(['password', 'password_confirmation', 'token', 'text', 'notes', 'policy', 'correction', 'statement_correction']);
+        $exceptions->dontFlash(['password', 'password_confirmation', 'token', 'text', 'notes', 'policy', 'correction', 'statement_correction', 'input', 'value', 'address_evidence', 'context', 'classifications']);
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
