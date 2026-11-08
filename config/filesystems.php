@@ -29,7 +29,7 @@ return [
     */
 
     'disks' => [
-        'private' => ['driver' => 'local', 'root' => storage_path('app/private-documents'), 'visibility' => 'private', 'throw' => true, 'serve' => false],
+        'private' => ['driver' => 'local', 'root' => storage_path('app/private-documents'), 'visibility' => 'private', 'permissions' => ['file' => ['private' => 0600], 'dir' => ['private' => 0700]], 'throw' => true, 'serve' => false],
 
         'local' => [
             'driver' => 'local',
@@ -50,6 +50,8 @@ return [
 
         's3' => [
             'driver' => 's3',
+            'visibility' => 'private',
+            'options' => ['ServerSideEncryption' => env('AWS_SERVER_SIDE_ENCRYPTION', 'AES256')],
             'key' => env('AWS_ACCESS_KEY_ID'),
             'secret' => env('AWS_SECRET_ACCESS_KEY'),
             'region' => env('AWS_DEFAULT_REGION'),
@@ -57,7 +59,7 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
+            'throw' => true,
             'report' => false,
         ],
 

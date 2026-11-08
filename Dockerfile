@@ -7,9 +7,12 @@ COPY tsconfig.json vite.config.ts ./
 RUN npm run build
 
 FROM php:8.4-cli-bookworm
-RUN apt-get update && apt-get install -y --no-install-recommends git unzip libpq-dev libzip-dev libpng-dev libonig-dev libxml2-dev libicu-dev libfreetype6-dev libjpeg62-turbo-dev && docker-php-ext-configure gd --with-freetype --with-jpeg && docker-php-ext-install pdo_pgsql mbstring bcmath pcntl zip gd intl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends git unzip python3 python3-venv clamav bubblewrap libpq-dev libzip-dev libpng-dev libonig-dev libxml2-dev libicu-dev libfreetype6-dev libjpeg62-turbo-dev && docker-php-ext-configure gd --with-freetype --with-jpeg && docker-php-ext-install pdo_pgsql mbstring bcmath pcntl zip gd intl && rm -rf /var/lib/apt/lists/*
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY docker/php.ini /usr/local/etc/php/conf.d/mortgagelens.ini
+COPY python-worker/requirements.txt /tmp/document-requirements.txt
+RUN python3 -m venv /opt/document-parser && /opt/document-parser/bin/pip install --no-cache-dir -r /tmp/document-requirements.txt
+ENV BANK_PYTHON=/opt/document-parser/bin/python
 WORKDIR /var/www/html
 COPY . .
 RUN composer install --no-interaction --prefer-dist && mkdir -p storage/app/private-documents storage/framework/sessions storage/framework/views storage/framework/cache bootstrap/cache && chown -R www-data:www-data storage bootstrap/cache

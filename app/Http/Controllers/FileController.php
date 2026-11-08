@@ -6,6 +6,7 @@ use App\Models\AuditEvent;
 use App\Models\Borrower;
 use App\Models\FileShare;
 use App\Models\LoanFile;
+use App\Models\Membership;
 use App\Models\Note;
 use App\Models\Organization;
 use App\Services\Access;
@@ -28,7 +29,7 @@ class FileController extends Controller
             $q->where('name', 'ilike', '%'.substr($r->string('q'), 0, 100).'%');
         }
 
-        return $q->paginate(30);
+        return $q->paginate(30)->through(fn ($f) => ['id' => $f->id, 'organization_id' => $f->organization_id, 'name' => $f->name, 'reference' => $f->reference, 'module' => $f->module, 'status' => $f->status, 'is_demo' => $f->is_demo, 'archived_at' => $f->archived_at, 'borrower' => ['id' => $f->borrower->id, 'name' => $f->borrower->name], 'updated_at' => $f->updated_at]);
     }
 
     public function borrowers(Request $r, Organization $organization)

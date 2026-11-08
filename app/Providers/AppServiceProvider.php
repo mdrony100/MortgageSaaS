@@ -2,6 +2,12 @@
 
 namespace App\Providers;
 
+use App\Bank\Providers\HybridExtractor;
+use App\Bank\Providers\IntegrityProvider;
+use App\Bank\Providers\NativeExtractor;
+use App\Bank\Providers\OcrolusDetect;
+use App\Bank\Providers\OpenAIExtractor;
+use App\Bank\StatementExtractor;
 use App\Contracts\EmailDelivery;
 use App\Contracts\PrivateFileStorage;
 use App\Models\Document;
@@ -32,6 +38,10 @@ class AppServiceProvider extends ServiceProvider
         foreach (['DocumentExtraction', 'OpenAIAnalysis', 'FraudDetection', 'SubscriptionBilling', 'PlaidImport', 'DocumentClassification', 'MalwareScanner'] as $contract) {
             $this->app->bind('App\\Contracts\\'.$contract, DisabledProvider::class);
         }
+        $this->app->bind(StatementExtractor::class, fn () => match (config('bank.extractor')) {
+            'openai' => new OpenAIExtractor,'native' => new NativeExtractor,default => new HybridExtractor
+        });
+        $this->app->bind(IntegrityProvider::class, OcrolusDetect::class);
         $this->app->bind(PrivateFileStorage::class, PrivateStorage::class);
         $this->app->bind(EmailDelivery::class, SmtpEmail::class);
     }

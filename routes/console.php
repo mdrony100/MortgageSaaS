@@ -8,6 +8,8 @@ use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Str;
 
 Artisan::command('mortgage:dev-account', function () {
@@ -29,7 +31,7 @@ Artisan::command('mortgage:dev-account', function () {
             LoanFile::create(['organization_id' => $org->id, 'borrower_id' => $b->id, 'created_by' => $u->id, 'name' => 'Fictional '.strtoupper($module).' review', 'module' => $module, 'is_demo' => true]);
         }
 
-return $u;
+        return $u;
     });
     $path = storage_path('app/dev-account-'.Str::uuid().'.json');
     file_put_contents($path, json_encode(['email' => $email, 'password' => $password, 'notice' => 'Local fictional account only. Delete this credential file after saving securely.'], JSON_PRETTY_PRINT));
@@ -37,3 +39,29 @@ return $u;
     $this->info('Local fictional account created. Credentials are saved privately at: '.$path);
     $this->line('No analysis was run. Use the separate Load sample analysis action.');
 })->purpose('Generate a private local-only fictional review account; never an impersonation shortcut.');
+
+// Only transient working directories and encrypted replay cache expire. Original evidence,
+// normalized ledgers, decisions and issued reports are never purged by this command.
+Artisan::command('bank:purge-transient', function () {
+    $expired = DB::table('bank_provider_calls')->where('provider', 'openai')->where('updated_at', '<', now()->subDays(config('bank.cache_days')))->get();
+    $count = 0;
+    foreach ($expired as $call) {
+        $data = json_decode($call->data, true);
+        if (isset($data['encrypted_extraction'])) {
+            unset($data['encrypted_extraction']);
+            $data['extraction_cache_expired'] = true;
+            DB::table('bank_provider_calls')->where('id', $call->id)->update(['data' => json_encode($data, JSON_THROW_ON_ERROR)]);
+            $count++;
+        }
+    }
+    $work = storage_path('app/bank-work');
+    if (is_dir($work)) {
+        foreach (new DirectoryIterator($work) as $item) {
+            if ($item->isDir() && ! $item->isDot() && $item->getMTime() < time() - 86400) {
+                File::deleteDirectory($item->getPathname());
+            }
+        }
+    }
+    $this->info('Expired transient replay caches: '.$count.'. Original evidence untouched.');
+});
+Schedule::command('bank:purge-transient')->daily()->withoutOverlapping();

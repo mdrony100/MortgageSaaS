@@ -73,6 +73,9 @@ class AnalysisController extends Controller
     {
         Gate::authorize('view', $file);
         abort_unless(in_array($module, ['bank', 'appraisal', 'dscr'], true), 404);
+        if ($module === 'bank') {
+            Gate::authorize('review', $file);
+        }
         $a = Present::analysis($r->user(), $file);
         abort_unless($a, 422, 'Load sample analysis first.');
         Audit::record('sample_report.previewed', $file->organization_id, $file->id, [], 'shared');
@@ -90,7 +93,7 @@ class AnalysisController extends Controller
     public function rules(Request $r)
     {
         $org = $r->integer('organization_id');
-        abort_unless(Access::membership($r->user(), $org), 403);
+        abort_unless(Access::reviewer($r->user(), $org), 403);
 
         return ['notice' => 'Fictional draft guidelines only. No approved investor rules or Fannie Mae checks configured.', 'rulesets' => Ruleset::where('organization_id', $org)->get()];
     }

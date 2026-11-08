@@ -7,6 +7,7 @@ use App\Models\Invitation;
 use App\Models\LoanFile;
 use App\Models\Membership;
 use App\Models\Organization;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class Entitlements
@@ -28,7 +29,8 @@ class Entitlements
 
     public static function storage(Organization $org, int $bytes): void
     {
-        if (DocumentVersion::where('organization_id', $org->id)->sum('bytes') + $bytes > $org->plan->storage_limit_bytes) {
+        $derived = DB::table('bank_pages')->where('organization_id', $org->id)->selectRaw("COALESCE(SUM((data->>'artifact_bytes')::bigint),0) as bytes")->value('bytes');
+        if (DocumentVersion::where('organization_id', $org->id)->sum('bytes') + (int) $derived + $bytes > $org->plan->storage_limit_bytes) {
             throw ValidationException::withMessages(['plan' => 'Storage limit reached.']);
         }
     }

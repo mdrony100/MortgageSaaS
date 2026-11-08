@@ -1,0 +1,41 @@
+<?php
+
+return [
+    'sandbox' => env('BANK_PARSER_SANDBOX'),
+    'transfer_window_days' => (int) env('BANK_TRANSFER_WINDOW_DAYS', 3),
+    'transfer_comparison_limit' => 100000,
+    'transfer_candidate_limit' => 5000,
+    'cache_days' => 7,
+    'python' => env('BANK_PYTHON', 'python3'),
+    'parser_timeout' => 60,
+    'max_pages' => 120,
+    'max_run_bytes' => 100 * 1024 * 1024,
+    'max_run_pages' => 600,
+    'max_run_transactions' => 50000,
+    'max_pixels' => 20000000,
+    'max_render_pixels' => 4000000,
+    'max_bytes' => 20 * 1024 * 1024,
+    'clamav' => env('BANK_CLAMAV', 'clamscan'),
+    'fictional_scan_bypass' => (bool) env('BANK_FICTIONAL_SCAN_BYPASS', false),
+    'extractor' => env('BANK_EXTRACTOR', 'hybrid'),
+    'openai' => [
+        'approved' => (bool) env('BANK_OPENAI_APPROVED', false),
+        'key' => env('OPENAI_API_KEY'),
+        'model' => env('BANK_OPENAI_MODEL'),
+        'secondary_model' => env('BANK_OPENAI_SECONDARY_MODEL'),
+        'pages_per_group' => 3,
+        'max_output_tokens' => 12000,
+        // Conservative, operator-approved reservation, not a claimed provider price.
+        'reservation_micro_usd_per_group' => (int) env('BANK_OPENAI_RESERVATION_MICRO_USD', 0),
+        'timeout' => 90,
+    ],
+    'integrity' => [
+        'provider' => env('BANK_INTEGRITY_PROVIDER', 'disabled'),
+        'approved' => (bool) env('BANK_INTEGRITY_APPROVED', false),
+        'token' => env('OCROLUS_ACCESS_TOKEN'),
+        'reservation_micro_usd_per_document' => (int) env('BANK_OCROLUS_RESERVATION_MICRO_USD', 0),
+    ],
+    'reason_codes' => ['source_verified', 'extraction_correction', 'policy_application', 'duplicate_artifact', 'relationship_verified', 'explanation_received', 'review_complete', 'other'],
+    'reason_version' => 'review-reasons-v1',
+    'categories' => ['business_revenue', 'payroll_income', 'owner_distribution', 'own_transfer', 'loan_proceeds', 'refund', 'cash_deposit', 'other_deposit', 'unresolved'],
+];

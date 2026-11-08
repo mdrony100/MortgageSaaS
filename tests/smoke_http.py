@@ -72,7 +72,15 @@ def register(client, address, name, password):
     return user["memberships"][0]["organization_id"], user["user"]["id"]
 
 def sample_pdf():
-    stream = b"BT /F1 12 Tf 40 740 Td (FICTIONAL SAMPLE ONLY - MortgageLens smoke test.) Tj ET"
+    lines = ["FICTIONAL BANK STATEMENT - SYNTHETIC NATIVE HTTP TEST ONLY",
+             "Institution: FICTIONAL Test Bank", "Holder: Fictional Example LLC", "Account: ****1111",
+             "Currency: USD", "Designation: business", "Period start: 2025-01-01", "Period end: 2025-01-31",
+             "Opening balance: 10000.00", "Closing balance: 11000.00", "Total credits: 1000.00",
+             "Total debits: 0.00", "Fees: 0.00", "Fees separate: no",
+             "Date | Description | Credit | Debit | Balance | Reference",
+             "2025-01-02 | Merchant sales | 1000.00 | 0.00 | 11000.00 | TEST-M1"]
+    escaped = [line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)") for line in lines]
+    stream = ("BT /F1 8 Tf 10 TL 40 740 Td " + " T* ".join("(" + line + ") Tj" for line in escaped) + " ET").encode()
     objects = [b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
                b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
                b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
@@ -86,6 +94,7 @@ def sample_pdf():
     pdf += b"xref\n0 6\n0000000000 65535 f \n"
     pdf += b"".join(f"{o:010d} 00000 n \n".encode() for o in offsets)
     return pdf + f"trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{start}\n%%EOF".encode()
+
 
 def main():
     suffix = secrets.token_hex(5)
@@ -108,8 +117,35 @@ def main():
     body = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"fictional_sample\"\r\n\r\n1\r\n--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"fictional.pdf\"\r\nContent-Type: application/pdf\r\n\r\n").encode() + pdf + f"\r\n--{boundary}--\r\n".encode()
     uploaded = owner.call(endpoint + "/documents", "POST", body, expect=201, content_type="multipart/form-data; boundary=" + boundary)
     version = uploaded["version"]["id"]
-    check("Private upload exact pending status and no false clean", uploaded["message"] == "Uploaded — analysis integration pending." and uploaded["version"]["scan_status"] == "not_configured")
-    check("Preserved original bytes", owner.call(f"/api/document-versions/{version}/content?download=1", raw=True) == pdf)
+    check("Private upload quarantined and never falsely clean", uploaded["version"]["scan_status"] != "Clean")
+    owner.call(f"/api/document-versions/{version}/content?download=1", expect=423)
+    bank = endpoint + "/bank"
+    policy = {"workflow":"business","eligible_categories":["business_revenue"],"expense_treatment":"remaining_percent",
+              "remaining_percent":"50.00","ownership_required":True,"fixed_ownership_percent":None,"rounding":"HALF_UP",
+              "required_evidence":["full_selected_months","verified_accounts","reviewed_transactions"],"allow_provisional":True,
+              "approval_reference":None,"require_external_integrity":True,"require_no_open_findings":True,"approved_thresholds":False,
+              "nsf_counting_mode":"reference_per_day","nsf_convention":"TEST ONLY explicit non-fee rows"}
+    rule = owner.call(bank + "/rules", "POST", {"name":"FICTIONAL HTTP example, not lender policy", "status":"example", "policy":policy}, expect=201)
+    queued = owner.call(bank + "/runs", "POST", {"idempotency_key":"native-http-"+suffix,"document_version_ids":[version],
+                       "workflow":"business","months":12,"end_month":"2025-01","rule_id":rule["id"]}, expect=202)
+    for _ in range(100):
+        state = owner.call(bank)
+        if state["run"]["status"] in ["Completed","PartiallyCompleted","NeedsReview","Failed"]:
+            break
+        time.sleep(0.2)
+    check("Actual Redis/Horizon bank job + Python native extraction finished", state["run"]["status"] == "PartiallyCompleted" and state["run"]["attempts"] > 0 and len(state["transactions"]) == 1)
+    check("Native statement reconciled without invented data", not any(f["data"]["category"] in ["financial_inconsistency","extraction_uncertainty"] for f in state["findings"]))
+    check("Preserved exact original bytes after explicit fictional scan", owner.call(f"/api/document-versions/{version}/content?download=1", raw=True) == pdf)
+    run = bank + "/runs/" + queued["run_id"]
+    account, tx = state["accounts"][0], state["transactions"][0]
+    owner.call(run + "/reviews", "POST", {"kind":"account","account_key":account["account_key"],"designation":"business","verified":True,"reason_code":"source_verified","notes":"TEST actual source account checked"}, expect=201)
+    owner.call(run + "/reviews", "POST", {"kind":"transaction","transaction_ids":[tx["id"]],"category":"business_revenue","include":None,"reason_code":"source_verified","notes":"TEST source classification checked"}, expect=201)
+    calculation = owner.call(run + "/calculate", "POST", {"account_keys":[account["account_key"]],"ownership_percent":"100.00","reason_code":"source_verified","notes":"TEST financial inputs confirmed against fictional source"}, expect=201)
+    check("Observed-only provisional numerator retains exact 12-month denominator", calculation["data"]["status"] == "provisional" and calculation["data"]["monthly_display"] == "41.67")
+    issued = owner.call(run + "/reports", "POST", {"calculation_id":calculation["id"],"final":False}, expect=201)[0]
+    for fmt, magic in [("xlsx",b"PK"),("pdf",b"%PDF-"),("csv",b'"Transaction ID"')]:
+        check("Actual native workflow downloadable " + fmt.upper(), owner.call(run + "/reports/"+str(issued["id"])+"/"+fmt, raw=True).startswith(magic))
+    owner.call(run + "/conditions", "POST", {"text":"Please provide the missing statement months.","status":"open","public_acknowledgement":True}, expect=201)
     broker.call(endpoint, expect=403)
     owner.call(f"/api/organizations/{org}/invitations", "POST", {"email": broker_email, "role": "broker"}, expect=201)
     invitation = mail_link(broker_email, r"http[^\s<>]+/invitations/accept\?token=[A-Za-z0-9]+")
@@ -125,9 +161,15 @@ def main():
             break
         time.sleep(0.2)
     check("Real Redis/Horizon sample job completed", bool(analysis and analysis["is_demo"]))
-    for module in ["bank", "appraisal", "dscr"]:
+    for module in ["appraisal", "dscr"]:
         report = broker.call(endpoint + "/reports/" + module)
         check("Role-scoped " + module + " sample preview", report["title"].startswith("SAMPLE"))
+    broker.call(endpoint + "/reports/bank", expect=403)
+    broker.call(run + "/reports/"+str(issued["id"])+"/pdf", expect=403)
+    broker.call(f"/api/document-versions/{version}/content", expect=403)
+    public = broker.call(bank)
+    check("Broker bank API is final-only and contains deliberate public conditions", public["final_income"] is None and len(public["conditions"]) == 1 and "sustainability" not in json.dumps(public) and "transactions" not in public)
+    broker.call(bank + "/messages", "POST", {"text":"Fictional review request only.","kind":"review_request"}, expect=201)
     source = analysis["data"]["appraisal"]["findings"][0]["source"]
     check("Finding beside authenticated source boundary", owner.call("/api/document-versions/" + str(source["document_version_id"]) + "/content", raw=True).startswith(b"%PDF"))
     broker_analysis = broker.call(endpoint + "/analysis")
@@ -148,7 +190,7 @@ def main():
     broker.call("/api/auth/reset-password", "POST", {"token": query["token"][0], "email": broker_email, "password": new_password, "password_confirmation": new_password})
     broker.call("/api/auth/login", "POST", {"email":broker_email,"password":new_password})
     check("Actual SMTP password reset + new-password login flow", bool(broker.call("/api/me")["user"]["email_verified_at"]))
-    print(json.dumps({"result": "passed", "checks": len(checks), "transport": "HTTP + PostgreSQL + Redis/Horizon + SMTP/Mailpit", "visual_browser_test": "not performed"}))
+    print(json.dumps({"result": "passed", "checks": len(checks), "transport": "HTTP + PostgreSQL + Redis/Horizon bank and default queues + Python native parser + real exports + SMTP/Mailpit", "visual_browser_test": "not performed"}))
 
 if __name__ == "__main__":
     main()

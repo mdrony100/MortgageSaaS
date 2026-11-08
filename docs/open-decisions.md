@@ -13,3 +13,8 @@
 11. Sample pricing and final plan/entitlement semantics; billing provider/checkout intentionally deferred.
 12. Antivirus/sandbox vendor, scan-verdict retention, quarantined-original release policy and incident response before any real document ingestion.
 13. Production domains/hosting, HTTPS/session settings, secrets manager, queues/alerts/backups, SMTP/S3 verification, accessibility, browser coverage and penetration-test ownership. No deployment is included in Phase 1.
+
+## Phase 2 current decisions
+See `phase2-limitations.md` for live credentials/approval, missing client workbook, confirmed lender policies, scanner/sandbox/cloud/browser release acceptance and retention/vendor deletion requirements. These are not disguised as completed live integrations.
+
+Phase2 local implementation is complete subject to the current verification record; historical Phase1 bank-integration blockers are superseded. Remaining release decisions: actual workbook, approved lender inputs/rules/thresholds/evidence/final gates, provider/model/Book/commercial/privacy approvals, scanner signatures, real S3/container acceptance, licensing/retention and supported desktop port allowance.

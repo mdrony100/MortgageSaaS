@@ -71,6 +71,7 @@ class PhaseOneTest extends TestCase
         $pdf = SampleData::pdf().$text;
         $r = $this->actingAs($this->owner)->post('/api/files/'.$this->file->id.'/documents', ['file' => UploadedFile::fake()->createWithContent('fictional.pdf', $pdf), 'fictional_sample' => true], ['Accept' => 'application/json']);
         $r->assertCreated();
+        DB::table('bank_scans')->insert(['organization_id' => $this->org->id, 'document_version_id' => $r->json('version.id'), 'sha256' => $r->json('version.sha256'), 'status' => 'Clean', 'adapter' => 'TEST MOCK — no malware accuracy claim', 'data' => '{}', 'created_at' => now()]);
 
         return $r->json();
     }
@@ -182,8 +183,8 @@ class PhaseOneTest extends TestCase
         $s = $this->share($u);
         $v = $upload['version']['id'];
         $this->actingAs($u)->getJson('/api/files/'.$this->file->id)->assertOk();
-        $this->get('/api/document-versions/'.$v.'/content')->assertOk();
-        $this->getJson('/api/files/'.$this->file->id.'/reports/bank')->assertOk();
+        $this->get('/api/document-versions/'.$v.'/content')->assertForbidden();
+        $this->getJson('/api/files/'.$this->file->id.'/reports/bank')->assertForbidden();
         $this->actingAs($this->owner)->deleteJson('/api/files/'.$this->file->id.'/shares/'.$s->id)->assertNoContent();
         $this->actingAs($u)->getJson('/api/files/'.$this->file->id)->assertForbidden();
         $this->getJson('/api/document-versions/'.$v.'/content')->assertForbidden();
@@ -241,7 +242,7 @@ class PhaseOneTest extends TestCase
         $this->actingAs($this->owner)->postJson('/api/files/'.$this->file->id.'/notes', ['body' => 'RESTRICTED INTERNAL SECRET', 'visibility' => 'internal'])->assertCreated();
         $this->postJson('/api/files/'.$this->file->id.'/overrides', ['target_id' => 'bank-1', 'kind' => 'finding', 'value' => 'resolved', 'reason' => 'Fictional review decision'])->assertCreated();
         $this->actingAs($u);
-        foreach (['/api/files/'.$this->file->id, '/api/files/'.$this->file->id.'/analysis', '/api/files/'.$this->file->id.'/reports/bank', '/api/files/'.$this->file->id.'/activity', '/api/files?q=fraud'] as $url) {
+        foreach (['/api/files/'.$this->file->id, '/api/files/'.$this->file->id.'/analysis', '/api/files/'.$this->file->id.'/activity', '/api/files?q=fraud'] as $url) {
             $json = $this->getJson($url)->assertOk()->getContent();
             foreach (['typeface inconsistency', 'deposit_trend', 'sustainability', 'RESTRICTED INTERNAL SECRET', 'reviewer.override'] as $secret) {
                 $this->assertStringNotContainsString($secret, $json);
@@ -302,7 +303,7 @@ class PhaseOneTest extends TestCase
         $this->assertNotSame($v1->storage_key, $v2->storage_key);
         $this->get('/api/document-versions/'.$v1->id.'/content?download=1')->assertOk()->assertHeader('Cache-Control', 'max-age=0, no-store, private');
         $this->assertDatabaseHas('audit_events', ['action' => 'document.version_added', 'loan_file_id' => $this->file->id]);
-        $this->assertSame('not_configured', $v1->scan_status);
+        $this->assertSame('Pending', $v1->scan_status);
     }
 
     public function test_immutable_versions_and_audit_enforced_in_database(): void
@@ -319,15 +320,16 @@ class PhaseOneTest extends TestCase
         DB::table('audit_events')->delete();
     }
 
-    public function test_invalid_mime_extension_size_and_missing_fictional_ack_rejected(): void
+    public function test_invalid_mime_extension_size_rejected_and_nonfictional_upload_stays_quarantined(): void
     {
         $this->actingAs($this->owner);
         $url = '/api/files/'.$this->file->id.'/documents';
         $this->post($url, ['file' => UploadedFile::fake()->createWithContent('fake.pdf', '<?php echo 123;'), 'fictional_sample' => true], ['Accept' => 'application/json'])->assertUnprocessable();
         $this->post($url, ['file' => UploadedFile::fake()->createWithContent('fake.exe', SampleData::pdf()), 'fictional_sample' => true], ['Accept' => 'application/json'])->assertUnprocessable();
         $this->post($url, ['file' => UploadedFile::fake()->create('huge.pdf', 20481, 'application/pdf'), 'fictional_sample' => true], ['Accept' => 'application/json'])->assertUnprocessable();
-        $this->post($url, ['file' => UploadedFile::fake()->createWithContent('sample.pdf', SampleData::pdf())], ['Accept' => 'application/json'])->assertUnprocessable();
-        $this->assertDatabaseCount('document_versions', 0);
+        $this->post($url, ['file' => UploadedFile::fake()->createWithContent('sample.pdf', SampleData::pdf())], ['Accept' => 'application/json'])->assertCreated();
+        $this->assertDatabaseCount('document_versions', 1);
+        $this->getJson('/api/document-versions/'.DocumentVersion::first()->id.'/content')->assertStatus(423);
     }
 
     public function test_unauthorized_document_preview_and_exports_require_file_policy(): void

@@ -18,6 +18,11 @@ class LoanFilePolicy
         return $this->view($u, $f) && in_array(Access::role($u, $f->organization_id), ['owner', 'admin', 'underwriter', 'processor'], true);
     }
 
+    public function upload(User $u, LoanFile $f): bool
+    {
+        return $this->view($u, $f) && in_array(Access::role($u, $f->organization_id), ['owner', 'admin', 'underwriter', 'processor', 'broker'], true);
+    }
+
     public function share(User $u, LoanFile $f): bool
     {
         return $this->view($u, $f) && (Access::admin($u, $f->organization_id) || ($f->created_by === $u->id && Access::role($u, $f->organization_id) === 'underwriter'));

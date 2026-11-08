@@ -11,3 +11,7 @@ Real appraisal/lease extraction, photo review, comparable reasoning, approved in
 - Guidelines are fictional drafts, tenant/version-scoped, not invented Fannie Mae or investor-approved rules.
 
 Release gates: approved lender rules and full scenario edge cases, form/unit/occupancy matrix, lease evidence/expiry/renewals, DSCR zero and rounding cases, LTV boundaries, revision/source consistency, role-scoped report/export leak tests, accessibility/browser/device acceptance, load/retry/failure recovery, security/pentest, backup/restore/retention and operational runbooks.
+
+## Phase 2 handoff
+
+Bank processing now lives under `app/Bank`, normalized `bank_*` tables and `BankWorkspace.vue`; do not repurpose its income/risk rules for appraisal or DSCR. Existing Phase 3 tab state/screens and fictional fixtures were preserved. Reuse tenant/file/role policy patterns, immutable originals, separate suggestions/decisions/snapshots and Broker-safe publication principles when Phase 3 is explicitly authorized. Plaid remains a future adapter.

@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\AnalysisController as A;
+use App\Http\Controllers\BankController;
 use App\Http\Controllers\DocumentController as D;
 use App\Http\Controllers\FileController as F;
 use App\Http\Controllers\OrganizationController as O;
+use App\Http\Middleware\SerializeBankReview;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -44,5 +46,19 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:workspace'])->prefix('a
     Route::get('files/{file}/reports/{module}', [A::class, 'report']);
     Route::get('files/{file}/export', [A::class, 'export']);
     Route::get('rulesets', [A::class, 'rules']);
+    $b = BankController::class;
+    Route::get('files/{file}/bank', [$b, 'show']);
+    Route::post('files/{file}/bank/rules', [$b, 'rule']);
+    Route::post('files/{file}/bank/runs', [$b, 'start']);
+    Route::post('files/{file}/bank/messages', [$b, 'message']);
+    Route::post('files/{file}/bank/runs/{runId}/control/{action}', [$b, 'control'])->middleware(SerializeBankReview::class);
+    Route::post('files/{file}/bank/runs/{runId}/reviews', [$b, 'review'])->middleware(SerializeBankReview::class);
+    Route::post('files/{file}/bank/runs/{runId}/relationships', [$b, 'relationship'])->middleware(SerializeBankReview::class);
+    Route::post('files/{file}/bank/runs/{runId}/transfers/{matchId}', [$b, 'transfer'])->middleware(SerializeBankReview::class);
+    Route::post('files/{file}/bank/runs/{runId}/findings/{findingId}', [$b, 'finding'])->middleware(SerializeBankReview::class);
+    Route::post('files/{file}/bank/runs/{runId}/calculate', [$b, 'calculate'])->middleware(SerializeBankReview::class);
+    Route::post('files/{file}/bank/runs/{runId}/conditions', [$b, 'condition'])->middleware(SerializeBankReview::class);
+    Route::post('files/{file}/bank/runs/{runId}/reports', [$b, 'issue'])->middleware(SerializeBankReview::class);
+    Route::get('files/{file}/bank/runs/{runId}/reports/{reportId}/{format}', [$b, 'download']);
 });
 Route::get('/{path?}', fn () => view('app'))->where('path', '^(?!api/|sanctum/|horizon).*$')->name('spa');

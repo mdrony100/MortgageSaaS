@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class DocumentVersion extends Model
 {
@@ -13,6 +14,13 @@ class DocumentVersion extends Model
     protected function casts(): array
     {
         return [];
+    }
+
+    protected $appends = ['latest_scan_status'];
+
+    public function getLatestScanStatusAttribute(): string
+    {
+        return DB::table('bank_scans')->where('document_version_id', $this->id)->where('organization_id', $this->organization_id)->latest('id')->value('status') ?? $this->scan_status;
     }
 
     protected $hidden = ['disk', 'storage_key'];
