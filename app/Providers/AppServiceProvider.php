@@ -59,6 +59,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Document::class, DocumentPolicy::class);
         RateLimiter::for('auth-general', fn (Request $r) => Limit::perMinute(30)->by($r->ip()));
         RateLimiter::for('workspace', fn (Request $r) => Limit::perMinute(120)->by($r->user()?->id ?: $r->ip()));
+        RateLimiter::for('website-inquiry', fn (Request $r) => [
+            Limit::perMinute(max(1, (int) config('website.inquiry_rate_limit.per_minute')))->by('inquiry-m:'.$r->ip())->response(fn () => back()->withInput()->withErrors(['form' => 'Too many requests. Please wait a few minutes and try again.'])),
+            Limit::perDay(max(1, (int) config('website.inquiry_rate_limit.per_day')))->by('inquiry-d:'.$r->ip())->response(fn () => back()->withInput()->withErrors(['form' => 'Too many requests. Please try again later.'])),
+        ]);
         RateLimiter::for('uploads', fn (Request $r) => Limit::perMinute(10)->by($r->user()?->id ?: $r->ip()));
         ResetPassword::createUrlUsing(fn ($user, $token) => config('app.url').'/reset-password?token='.$token.'&email='.urlencode($user->email));
         foreach (['TwoFactorAuthenticationEnabled', 'TwoFactorAuthenticationConfirmed', 'TwoFactorAuthenticationDisabled', 'RecoveryCodesGenerated', 'RecoveryCodeReplaced', 'PasswordUpdatedViaController'] as $event) {

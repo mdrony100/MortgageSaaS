@@ -7,10 +7,26 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\DocumentController as D;
 use App\Http\Controllers\FileController as F;
 use App\Http\Controllers\OrganizationController as O;
+use App\Http\Controllers\PublicSiteController as Site;
+use App\Http\Controllers\WebsiteInquiryController as Inquiries;
 use App\Http\Middleware\SerializeBankReview;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+// Public marketing website (server-rendered Blade, separate from the dashboard SPA).
+Route::get('/', [Site::class, 'page'])->name('site.home');
+Route::get('/features', [Site::class, 'page'])->name('site.features');
+Route::get('/how-it-works', [Site::class, 'page'])->name('site.how');
+Route::get('/pricing', [Site::class, 'page'])->name('site.pricing');
+Route::get('/security', [Site::class, 'page'])->name('site.security');
+Route::get('/faq', [Site::class, 'page'])->name('site.faq');
+Route::get('/contact', [Site::class, 'page'])->name('site.contact');
+Route::post('/contact', [Site::class, 'submit'])->middleware('throttle:website-inquiry')->name('site.contact.submit');
+Route::get('/privacy', [Site::class, 'legal'])->name('site.privacy');
+Route::get('/terms', [Site::class, 'legal'])->name('site.terms');
+Route::get('/sitemap.xml', [Site::class, 'sitemap'])->name('seo.sitemap');
+Route::get('/robots.txt', [Site::class, 'robots'])->name('seo.robots');
 
 Route::get('/api/me', fn (Request $r) => ['user' => $r->user(), 'memberships' => $r->user()->memberships()->with('organization.plan')->get()])->middleware('auth:sanctum');
 Route::middleware(['auth:sanctum', 'verified', 'throttle:workspace'])->prefix('api')->group(function () {
@@ -26,6 +42,10 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:workspace'])->prefix('a
     Route::delete('organizations/{organization}/members/{membership}', [O::class, 'removeMember']);
     Route::get('plans', [O::class, 'plans']);
     Route::get('platform', [O::class, 'platform']);
+    Route::get('platform/inquiries', [Inquiries::class, 'index']);
+    Route::get('platform/inquiries/{id}', [Inquiries::class, 'show'])->whereNumber('id');
+    Route::patch('platform/inquiries/{id}', [Inquiries::class, 'update'])->whereNumber('id');
+    Route::post('platform/inquiries/{id}/notes', [Inquiries::class, 'note'])->whereNumber('id');
     Route::get('organizations/{organization}/borrowers', [F::class, 'borrowers']);
     Route::post('organizations/{organization}/borrowers', [F::class, 'borrower']);
     Route::patch('organizations/{organization}/borrowers/{borrower}', [F::class, 'updateBorrower']);

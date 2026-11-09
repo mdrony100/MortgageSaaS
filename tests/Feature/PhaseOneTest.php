@@ -112,7 +112,7 @@ class PhaseOneTest extends TestCase
         $this->owner->forceFill(['email_verified_at' => null])->save();
         $this->actingAs($this->owner)->getJson('/api/files')->assertForbidden();
         $url = URL::temporarySignedRoute('verification.verify', now()->addMinutes(60), ['id' => $this->owner->id, 'hash' => sha1($this->owner->email)]);
-        $this->get($url)->assertRedirect('/?verified=1');
+        $this->get($url)->assertRedirect('/dashboard?verified=1');
         $this->assertNotNull($this->owner->fresh()->email_verified_at);
         $this->getJson('/api/files')->assertOk();
     }
