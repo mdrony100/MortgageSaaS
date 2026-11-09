@@ -14,7 +14,7 @@ class WebsiteInquiry extends Model
 
     protected function casts(): array
     {
-        return ['is_spam' => 'boolean', 'notified_at' => 'datetime'];
+        return ['is_spam' => 'boolean', 'notified_at' => 'datetime', 'converted_at' => 'datetime'];
     }
 
     public function notes()

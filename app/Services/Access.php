@@ -35,8 +35,8 @@ class Access
 
     public static function visible(User $user)
     {
-        return LoanFile::query()->whereHas('organization.memberships', fn ($m) => $m->where('user_id', $user->id))->where(function ($q) use ($user) {
-            $q->where('created_by', $user->id)->orWhereHas('shares', fn ($s) => $s->where('user_id', $user->id)->whereNull('revoked_at'))->orWhereHas('organization.memberships', fn ($m) => $m->where('user_id', $user->id)->where('org_wide_access', true)->whereIn('role',['owner', 'admin']));
+        return LoanFile::query()->whereHas('organization', fn ($o) => $o->whereNull('suspended_at')->where('approval_status', 'approved'))->whereHas('organization.memberships', fn ($m) => $m->where('user_id', $user->id))->where(function ($q) use ($user) {
+            $q->where('created_by', $user->id)->orWhereHas('shares', fn ($s) => $s->where('user_id', $user->id)->whereNull('revoked_at'))->orWhereHas('organization.memberships', fn ($m) => $m->where('user_id', $user->id)->where('org_wide_access', true)->whereIn('role', ['owner', 'admin']));
         });
     }
 }

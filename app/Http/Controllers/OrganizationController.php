@@ -9,11 +9,9 @@ use App\Models\LoanFile;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Plan;
-use App\Models\User;
 use App\Services\Access;
 use App\Services\Audit;
 use App\Services\Entitlements;
-use App\Services\Providers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -75,7 +73,7 @@ class OrganizationController extends Controller
             abort_if($i->accepted_at || $i->revoked_at || $i->expires_at->isPast(), 410);
             abort_unless(hash_equals($i->email, strtolower($r->user()->email)), 403);
             $org = Organization::lockForUpdate()->findOrFail($i->organization_id);
-            abort_if(Membership::where('organization_id', $org->id)->count() >= $org->plan->member_limit, 422, 'Member limit reached.');
+            abort_if(Membership::where('organization_id', $org->id)->count() >= $org->memberLimit(), 422, 'Member limit reached.');
             $m = Membership::firstOrCreate(['organization_id' => $i->organization_id, 'user_id' => $r->user()->id], ['role' => $i->role, 'org_wide_access' => $i->org_wide_access]);
             $i->update(['accepted_at' => now()]);
             Audit::record('invitation.accepted', $org->id);
@@ -133,18 +131,11 @@ class OrganizationController extends Controller
     {
         abort_unless(Access::admin($r->user(), $organization->id), 403);
 
-        return ['files' => LoanFile::where('organization_id', $organization->id)->count(), 'members' => Membership::where('organization_id', $organization->id)->count(), 'pending_invitations' => Invitation::where('organization_id', $organization->id)->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->count(), 'storage_bytes' => (int) DocumentVersion::where('organization_id', $organization->id)->sum('bytes')];
+        return ['files' => LoanFile::where('organization_id', $organization->id)->count(), 'members' => Membership::where('organization_id', $organization->id)->count(), 'pending_invitations' => Invitation::where('organization_id', $organization->id)->whereNull('accepted_at')->whereNull('revoked_at')->where('expires_at', '>', now())->count(), 'storage_bytes' => (int) DocumentVersion::where('organization_id', $organization->id)->sum('bytes'), 'limits' => ['files' => $organization->fileLimit(), 'members' => $organization->memberLimit(), 'storage_bytes' => $organization->storageLimitBytes()]];
     }
 
     public function plans()
     {
         return ['plans' => Plan::all()->makeHidden('provisional_monthly_price'), 'pricing_notice' => 'Client-approved prices and live provider selection pending; legacy sample prices are not offered.'];
-    }
-
-    public function platform(Request $r)
-    {
-        abort_unless($r->user()->platform_admin, 403);
-
-        return ['organizations' => Organization::with('plan')->get(['id', 'name', 'plan_id', 'subscription_status', 'created_at']), 'counts' => ['organizations' => Organization::count(), 'users' => User::count(), 'files' => LoanFile::count()], 'integrations' => app(Providers::class)->states()];
     }
 }

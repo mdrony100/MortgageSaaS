@@ -4,3 +4,27 @@
 @media(min-width:1450px){.review-layout.with-source{grid-template-columns:minmax(0,1fr) minmax(440px,1fr)}}@media(max-width:1150px){.app-shell>aside{width:215px;padding:25px 15px}.main-shell{margin-left:215px;width:calc(100% - 215px)}main{padding:28px 25px}header{padding:0 25px}.brand{font-size:18px}.review-layout.with-source{grid-template-columns:1fr}.source-pane{position:static}.module-card{padding:20px}.page-heading{align-items:start}.page-heading h1{font-size:25px}}@media(max-width:800px){.app-shell>aside{transform:translateX(-100%)}.app-shell>aside.open{transform:translateX(0);box-shadow:10px 0 60px #071c3870}.main-shell{margin-left:0;width:100%}.mobile-menu{display:inline-flex}.breadcrumb{font-size:10px;margin-right:auto}.breadcrumb span{display:none}.header-user>div{display:none}header{height:65px;padding:0 18px}.stat-grid{gap:10px}.stat{padding:15px}.stat strong{font-size:25px}.module-grid{grid-template-columns:1fr}.module-card{display:grid;grid-template-columns:50px 1fr;gap:0 12px}.module-card>svg{grid-row:1/4}.module-card h3{margin:0 0 5px}.module-card p{margin:0 0 10px}.module-card button{justify-self:start}.page-heading{flex-direction:column;gap:15px}.form-grid,.settings-grid{grid-template-columns:1fr}.section-heading{flex-wrap:wrap}.module-switch{overflow:auto}.module-switch button{min-width:150px;font-size:11px;padding:13px 10px}.content-card{padding:20px}.version-row{flex-wrap:wrap}.data-grid{grid-template-columns:1fr}main{padding:25px 18px}footer{padding:20px 18px;gap:10px}.auth-card{padding:30px}.auth-shell{padding:18px}.modal{padding:24px}.modal-backdrop{padding:12px}.notice{padding:14px}.stat small{font-size:9px}.stat span{font-size:10px}}@media print{aside,header,footer,.modal-backdrop button{display:none!important}.main-shell{margin:0;width:100%}.modal-backdrop{position:static;background:white}.modal{max-height:none;max-width:none;box-shadow:none}.app-shell{display:none}.modal-backdrop .report-modal{display:block}}
 
 .pdf-page{position:relative}.source-highlight{position:absolute;border:2px solid #e3ae39;background:#ffdd7024;pointer-events:none;border-radius:3px}
+
+/* Readability floor (owner requirement): body copy >= 15px, labels/badges/captions >= 13px. */
+:root{font-size:15px}
+.app-shell :is(p,li,td,dd,blockquote,figcaption),.auth-shell :is(p,li,td,dd){font-size:15px}
+.auth-shell .auth-card>.muted,.app-shell .empty-state p,.app-shell .notice p,.app-shell .module-card p,.app-shell .finding-card p{font-size:15px}
+.notice,.alert,.activity-row,.check,.empty-state,table,.data-grid dd,.version-row strong{font-size:15px}
+label,small,.micro,.badge,.eyebrow,code,.stat span,th,.data-grid dt,.workspace-switch label,.header-user small,.sidebar-foot,.sidebar-foot p,.breadcrumb,.header-user,footer,.viewer-toolbar,.auth-links,.back-link,.text-button,.search input,.search button,.member-row select{font-size:13px}
+.app-shell .sidebar-foot p{font-size:15px;line-height:1.45}
+.stat small,.auth-card .eyebrow,th{font-size:13px}
+nav a,.workspace-switch select,.tabs button,.module-switch button,.actions button,.actions a,ol li{font-size:15px}
+.module-card h3{font-size:17px}
+.eyebrow{letter-spacing:1.2px}
+.badge{padding:3px 9px}
+@media(max-width:1150px){.breadcrumb,.stat span{font-size:13px}.module-switch button{font-size:14px}}
+/* Owner console link and owner support session banner */
+.owner-link{display:flex;align-items:center;gap:8px;margin:14px 0 0;padding:9px 12px;border:1px dashed #4b5f78;border-radius:8px;color:#c7d2fe;font-size:13px;font-weight:600;text-decoration:none}.owner-link:hover{background:#1f3046;text-decoration:none}
+.support-banner{position:fixed;top:0;left:0;right:0;min-height:var(--support-h);z-index:60;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:10px 20px;background:#b45309;color:#fff;font-size:15px;font-weight:600;box-shadow:0 2px 10px #0004}
+.support-banner strong{font-weight:800}.support-banner span{font-weight:500}
+.support-banner button{margin-left:auto;min-height:40px;padding:6px 16px;border-radius:8px;border:2px solid #fff;background:#fff;color:#7c2d12;font-weight:800;font-size:15px;cursor:pointer}
+.support-banner button:focus-visible{outline:3px solid #1e293b;outline-offset:2px}
+.blocked-org{max-width:620px;margin:60px auto;text-align:center}.blocked-org h1{font-size:28px}.blocked-org p{font-size:16px}
+
+.with-support{--support-h:58px}.with-support>aside{top:var(--support-h)!important}.with-support .main-shell{padding-top:var(--support-h)}
+@media(max-width:700px){.with-support{--support-h:104px}.support-banner{padding:8px 14px}.support-banner button{margin-left:0}}

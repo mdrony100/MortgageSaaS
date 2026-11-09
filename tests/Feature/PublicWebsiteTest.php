@@ -75,11 +75,13 @@ class PublicWebsiteTest extends TestCase
     {
         $this->get('/')->assertOk()->assertSee('Request a Demo')->assertSee('See How It Works')->assertSee('Sample data')
             ->assertSee('Turn bank statements into a clear income summary.')->assertSee('Spot document issues that need a closer look.')->assertSee('Review property and rental income details together.');
-        foreach (['/dashboard', '/login', '/register', '/files/1', '/settings/profile', '/platform', '/platform/inquiries'] as $path) {
+        foreach (['/dashboard', '/login', '/register', '/files/1', '/settings/profile'] as $path) {
             $r = $this->get($path)->assertOk();
             $this->assertStringContainsString('<div id="app"></div>', $r->getContent(), $path);
             $r->assertHeader('X-Robots-Tag', 'noindex, nofollow');
         }
+        $this->get('/platform')->assertRedirect('/admin');
+        $this->get('/platform/inquiries')->assertRedirect('/admin/inquiries');
         $this->assertSame('/dashboard', config('fortify.home'));
     }
 
@@ -239,17 +241,17 @@ class PublicWebsiteTest extends TestCase
     {
         $inquiry = WebsiteInquiry::create($this->valid() + ['status' => 'new']);
         unset($inquiry->homepage_url);
-        $this->getJson('/api/platform/inquiries')->assertUnauthorized();
+        $this->getJson('/api/admin/inquiries')->assertUnauthorized();
         foreach (['owner', 'admin', 'underwriter', 'processor', 'broker'] as $role) {
             $u = $this->orgUser($role);
-            $this->actingAs($u)->getJson('/api/platform/inquiries')->assertForbidden();
-            $this->actingAs($u)->getJson('/api/platform/inquiries/'.$inquiry->id)->assertForbidden();
-            $this->actingAs($u)->getJson('/api/platform/inquiries/999999')->assertForbidden();
-            $this->actingAs($u)->patchJson('/api/platform/inquiries/'.$inquiry->id, ['status' => 'closed'])->assertForbidden();
-            $this->actingAs($u)->postJson('/api/platform/inquiries/'.$inquiry->id.'/notes', ['body' => 'x'])->assertForbidden();
+            $this->actingAs($u)->getJson('/api/admin/inquiries')->assertForbidden();
+            $this->actingAs($u)->getJson('/api/admin/inquiries/'.$inquiry->id)->assertForbidden();
+            $this->actingAs($u)->getJson('/api/admin/inquiries/999999')->assertForbidden();
+            $this->actingAs($u)->patchJson('/api/admin/inquiries/'.$inquiry->id, ['status' => 'closed'])->assertForbidden();
+            $this->actingAs($u)->postJson('/api/admin/inquiries/'.$inquiry->id.'/notes', ['body' => 'x'])->assertForbidden();
         }
         $unverified = User::factory()->create(['platform_admin' => true, 'email_verified_at' => null]);
-        $this->actingAs($unverified)->getJson('/api/platform/inquiries')->assertForbidden();
+        $this->actingAs($unverified)->getJson('/api/admin/inquiries')->assertForbidden();
         $this->assertSame('new', $inquiry->fresh()->status);
     }
 
@@ -262,21 +264,21 @@ class PublicWebsiteTest extends TestCase
         $s = WebsiteInquiry::create($base + ['is_spam' => true, 'spam_reason' => 'honeypot']);
         $staff = User::factory()->create(['platform_admin' => true]);
         $this->actingAs($staff);
-        $ids = fn ($q) => collect($this->getJson('/api/platform/inquiries'.$q)->assertOk()->json('inquiries.data'))->pluck('id')->sort()->values()->all();
+        $ids = fn ($q) => collect($this->getJson('/api/admin/inquiries'.$q)->assertOk()->json('inquiries.data'))->pluck('id')->sort()->values()->all();
         $this->assertSame([$a->id, $b->id], $ids(''));
         $this->assertSame([$b->id], $ids('?type=pricing'));
         $this->assertSame([$b->id], $ids('?status=closed'));
         $this->assertSame([$s->id], $ids('?spam=only'));
         $this->assertSame([$a->id, $b->id, $s->id], $ids('?spam=all'));
-        $this->getJson('/api/platform/inquiries?status=bogus')->assertUnprocessable();
-        $this->assertArrayNotHasKey('source_hash', $this->getJson('/api/platform/inquiries/'.$a->id)->assertOk()->json('inquiry'));
-        $this->patchJson('/api/platform/inquiries/'.$a->id, ['status' => 'in_progress'])->assertOk()->assertJsonPath('inquiry.status', 'in_progress');
-        $this->patchJson('/api/platform/inquiries/'.$a->id, ['status' => 'archived'])->assertUnprocessable();
-        $this->patchJson('/api/platform/inquiries/'.$a->id, ['is_spam' => true])->assertOk()->assertJsonPath('inquiry.spam_reason', 'staff_marked');
-        $this->patchJson('/api/platform/inquiries/'.$s->id, ['is_spam' => false])->assertOk()->assertJsonPath('inquiry.is_spam', false);
-        $this->postJson('/api/platform/inquiries/'.$b->id.'/notes', ['body' => 'Called back; demo scheduled.'])->assertCreated()->assertJsonPath('inquiry.notes.0.body', 'Called back; demo scheduled.')->assertJsonPath('inquiry.notes.0.author.name', $staff->name);
-        $this->postJson('/api/platform/inquiries/'.$b->id.'/notes', ['body' => ''])->assertUnprocessable();
-        $this->getJson('/api/platform/inquiries/999999')->assertNotFound();
+        $this->getJson('/api/admin/inquiries?status=bogus')->assertUnprocessable();
+        $this->assertArrayNotHasKey('source_hash', $this->getJson('/api/admin/inquiries/'.$a->id)->assertOk()->json('inquiry'));
+        $this->patchJson('/api/admin/inquiries/'.$a->id, ['status' => 'in_progress'])->assertOk()->assertJsonPath('inquiry.status', 'in_progress');
+        $this->patchJson('/api/admin/inquiries/'.$a->id, ['status' => 'archived'])->assertUnprocessable();
+        $this->patchJson('/api/admin/inquiries/'.$a->id, ['is_spam' => true])->assertOk()->assertJsonPath('inquiry.spam_reason', 'staff_marked');
+        $this->patchJson('/api/admin/inquiries/'.$s->id, ['is_spam' => false])->assertOk()->assertJsonPath('inquiry.is_spam', false);
+        $this->postJson('/api/admin/inquiries/'.$b->id.'/notes', ['body' => 'Called back; demo scheduled.'])->assertCreated()->assertJsonPath('inquiry.notes.0.body', 'Called back; demo scheduled.')->assertJsonPath('inquiry.notes.0.author.name', $staff->name);
+        $this->postJson('/api/admin/inquiries/'.$b->id.'/notes', ['body' => ''])->assertUnprocessable();
+        $this->getJson('/api/admin/inquiries/999999')->assertNotFound();
         $this->assertDatabaseHas('audit_events', ['action' => 'website_inquiry.updated', 'actor_id' => $staff->id]);
     }
 

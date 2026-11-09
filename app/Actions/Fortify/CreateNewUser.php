@@ -5,6 +5,7 @@ namespace App\Actions\Fortify;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Plan;
+use App\Models\PlatformRequest;
 use App\Models\User;
 use App\Services\Audit;
 use Illuminate\Support\Facades\DB;
@@ -24,9 +25,13 @@ class CreateNewUser implements CreatesNewUsers
         return DB::transaction(function () use ($input) {
             $user = User::create(['name' => $input['name'], 'email' => $input['email'], 'password' => $input['password']]);
             $plan = Plan::firstOrCreate(['name' => 'Starter'], ['file_limit' => 25, 'member_limit' => 5, 'storage_limit_bytes' => 1073741824, 'provisional_monthly_price' => '49.00']);
-            $org = Organization::create(['name' => $input['organization_name'], 'plan_id' => $plan->id, 'branding' => ['product_name' => config('app.name'), 'accent' => '#0f766e'], 'preferences' => ['timezone' => 'America/New_York', 'currency' => 'USD']]);
+            $pending = (bool) config('platform.signup_approval');
+            $org = Organization::create(['name' => $input['organization_name'], 'plan_id' => $plan->id, 'approval_status' => $pending ? 'pending' : 'approved', 'branding' => ['product_name' => config('app.name'), 'accent' => '#0f766e'], 'preferences' => ['timezone' => 'America/New_York', 'currency' => 'USD']]);
             Membership::create(['organization_id' => $org->id, 'user_id' => $user->id, 'role' => 'owner', 'org_wide_access' => true]);
             Audit::record('organization.created', $org->id);
+            if ($pending) {
+                PlatformRequest::create(['type' => 'signup', 'organization_id' => $org->id, 'requested_by' => $user->id, 'payload' => ['plan_id' => $plan->id]]);
+            }
 
             return $user;
         });

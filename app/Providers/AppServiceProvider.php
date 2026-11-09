@@ -16,11 +16,13 @@ use App\Contracts\EmailDelivery;
 use App\Contracts\PrivateFileStorage;
 use App\Contracts\SubscriptionBilling;
 use App\Models\Document;
+use App\Models\ImpersonationSession;
 use App\Models\LoanFile;
 use App\Policies\DocumentPolicy;
 use App\Policies\LoanFilePolicy;
 use App\Services\Audit;
 use App\Services\DisabledProvider;
+use App\Services\Impersonation;
 use App\Services\PrivateStorage;
 use App\Services\SmtpEmail;
 use Illuminate\Auth\Events\Login;
@@ -63,13 +65,32 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(max(1, (int) config('website.inquiry_rate_limit.per_minute')))->by('inquiry-m:'.$r->ip())->response(fn () => back()->withInput()->withErrors(['form' => 'Too many requests. Please wait a few minutes and try again.'])),
             Limit::perDay(max(1, (int) config('website.inquiry_rate_limit.per_day')))->by('inquiry-d:'.$r->ip())->response(fn () => back()->withInput()->withErrors(['form' => 'Too many requests. Please try again later.'])),
         ]);
+        RateLimiter::for('owner-console', fn (Request $r) => Limit::perMinute(180)->by('owner:'.($r->user()?->id ?: $r->ip())));
+        RateLimiter::for('owner-actions', fn (Request $r) => Limit::perMinute(30)->by('owner-act:'.($r->user()?->id ?: $r->ip())));
+        RateLimiter::for('impersonation', fn (Request $r) => Limit::perMinute(10)->by('imp:'.($r->user()?->id ?: $r->ip())));
         RateLimiter::for('uploads', fn (Request $r) => Limit::perMinute(10)->by($r->user()?->id ?: $r->ip()));
         ResetPassword::createUrlUsing(fn ($user, $token) => config('app.url').'/reset-password?token='.$token.'&email='.urlencode($user->email));
         foreach (['TwoFactorAuthenticationEnabled', 'TwoFactorAuthenticationConfirmed', 'TwoFactorAuthenticationDisabled', 'RecoveryCodesGenerated', 'RecoveryCodeReplaced', 'PasswordUpdatedViaController'] as $event) {
             Event::listen('Laravel\\Fortify\\Events\\'.$event, fn ($e) => Audit::record('auth.'.class_basename($e)));
         }
-        Event::listen(Login::class, fn ($e) => Audit::record('auth.login'));
-        Event::listen(Logout::class, fn ($e) => Audit::record('auth.logout'));
+        Event::listen(Login::class, function ($e) {
+            if (Impersonation::$switching) {
+                return; // identity switch for an owner support session is audited separately
+            }
+            $e->user->forceFill(['last_login_at' => now()])->saveQuietly();
+            Audit::record('auth.login');
+        });
+        Event::listen(Logout::class, function ($e) {
+            if (Impersonation::$switching) {
+                return;
+            }
+            $imp = Impersonation::current();
+            if ($imp) {
+                ImpersonationSession::whereKey($imp['id'])->update(['ended_at' => now(), 'end_reason' => 'logout']);
+                Audit::record('impersonation.ended', null, null, ['admin_id' => $imp['admin_id'], 'target_user_id' => $imp['target_id'], 'support_session_id' => $imp['id'], 'end_reason' => 'logout'], 'internal', (int) $imp['admin_id']);
+            }
+            Audit::record('auth.logout');
+        });
         Event::listen(Verified::class, fn ($e) => Audit::record('auth.email_verified'));
         Event::listen(PasswordReset::class, function ($e) {
             DB::table('sessions')->where('user_id', $e->user->id)->delete();

@@ -7,6 +7,7 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\User;
+use App\Services\Audit;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -40,6 +41,33 @@ Artisan::command('mortgage:dev-account', function () {
     $this->info('Local fictional account created. Credentials are saved privately at: '.$path);
     $this->line('No analysis was run. Use real private upload processing; sample analysis is a separate explicitly fictional action.');
 })->purpose('Generate a private local-only fictional review account; never an impersonation shortcut.');
+
+// Operator-only: platform admin is never granted from the web UI. Safe in local and production.
+Artisan::command('mortgage:platform-admin {email} {--revoke}', function (string $email) {
+    $user = User::where('email', strtolower(trim($email)))->first();
+    if (! $user) {
+        $this->error('No user with that email address. The person must register (and verify their email) first.');
+
+        return 1;
+    }
+    $grant = ! $this->option('revoke');
+    if ($user->platform_admin === $grant) {
+        $this->info($grant ? 'This user is already a platform admin.' : 'This user is not a platform admin.');
+
+        return 0;
+    }
+    $user->forceFill(['platform_admin' => $grant])->save();
+    Audit::record($grant ? 'platform.admin_granted' : 'platform.admin_revoked', null, null, ['target_user_id' => $user->id, 'via' => 'cli']);
+    $this->info(($grant ? 'Granted' : 'Revoked').' platform admin for user #'.$user->id.'.');
+    if ($grant && ! $user->hasVerifiedEmail()) {
+        $this->warn('This user has not verified their email yet; the owner console stays closed until they do.');
+    }
+    if ($grant && config('platform.console_require_2fa') && ! $user->hasConfirmedTwoFactor()) {
+        $this->warn('Two-factor sign-in is required for the owner console. They must turn it on in My account first.');
+    }
+
+    return 0;
+})->purpose('Grant (or --revoke) MortgageLens platform admin / owner console access for an existing user.');
 
 // Only transient working directories and encrypted replay cache expire. Original evidence,
 // normalized ledgers, decisions and issued reports are never purged by this command.

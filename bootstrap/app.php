@@ -1,6 +1,10 @@
 <?php
 
 use App\Bank\ProcessingException;
+use App\Http\Middleware\BlockInactiveOrganization;
+use App\Http\Middleware\EnsureAccountActive;
+use App\Http\Middleware\ImpersonationGuard;
+use App\Http\Middleware\OwnerConsole;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -9,6 +13,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -21,6 +26,12 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(SecurityHeaders::class);
+        $middleware->appendToGroup('web', [EnsureAccountActive::class, ImpersonationGuard::class]);
+        // Run right after the session starts, before route-model binding, so blocked support-session
+        // actions and disabled accounts are rejected before any resource lookup.
+        $middleware->appendToPriorityList(StartSession::class, ImpersonationGuard::class);
+        $middleware->appendToPriorityList(StartSession::class, EnsureAccountActive::class);
+        $middleware->alias(['owner.console' => OwnerConsole::class, 'org.active' => BlockInactiveOrganization::class]);
         $middleware->redirectGuestsTo('/login');
     })
     ->withExceptions(function (Exceptions $exceptions): void {

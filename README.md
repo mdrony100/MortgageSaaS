@@ -82,13 +82,13 @@ Server-rendered Blade pages (`resources/views/site`) with their own small Vite e
 
 **Rendered browser checks:** `tests/browser_website.py` (Playwright, not a project dependency — install it in a throwaway venv) checks every public page at 375/768/1280/1440px for horizontal overflow, 44px targets, ≥14px text, console errors and third-party requests, exercises tabs/walkthrough/calculator/FAQ/mobile menu, reduced motion and JavaScript-disabled rendering, and saves screenshots to `SCREENSHOT_DIR`.
 
-**Public routes:** `/` (home), `/features`, `/how-it-works`, `/pricing`, `/security`, `/faq`, `/contact` (GET form, POST submit), `/privacy`, `/terms`, `/sitemap.xml`, `/robots.txt`. The authenticated dashboard moved from `/` to **`/dashboard`** (Fortify `home` and SPA redirects updated; all other app routes such as `/login`, `/files/{id}`, `/settings/*`, `/platform` are unchanged). Signed-in visitors see **Open Dashboard** on the public site.
+**Public routes:** `/` (home), `/features`, `/how-it-works`, `/pricing`, `/security`, `/faq`, `/contact` (GET form, POST submit), `/privacy`, `/terms`, `/sitemap.xml`, `/robots.txt`. The authenticated dashboard moved from `/` to **`/dashboard`** (Fortify `home` and SPA redirects updated; all other app routes such as `/login`, `/files/{id}`, `/settings/*` are unchanged; `/platform` now redirects to the owner console at `/admin`). Signed-in visitors see **Open Dashboard** on the public site.
 
 **Website settings** (`config/website.php`, env in `.env.example`): `WEBSITE_PRODUCT_NAME` (defaults to `APP_NAME`, currently MortgageLens), `WEBSITE_URL` (canonical base, defaults to `APP_URL`), `WEBSITE_INDEXING` (indexing only when also `APP_ENV=production`; everything else sends `noindex` meta + `X-Robots-Tag`, and `robots.txt` disallows all), `WEBSITE_CONTACT_EMAIL` / `WEBSITE_CONTACT_PHONE` (shown only when set), rate limits, legal approval flags. No analytics or trackers are included.
 
 **Contact notification setup:** submissions are validated (name, work email, company, optional role, inquiry type, message; no attachments), rate limited per IP (`WEBSITE_INQUIRY_PER_MINUTE`/`_PER_DAY`), honeypot-protected and **saved before success is shown**. When `WEBSITE_INQUIRY_NOTIFY_EMAIL` is set, a queued job (`SendWebsiteInquiryNotification`, 3 tries) emails the inbox through the existing `MAIL_*` SMTP + Redis/Horizon queue; status is tracked per inquiry (`queued`, `sent`, `failed`, `dispatch_failed`, `not_configured`, `skipped_spam`). Failures are logged without content and never shown to visitors. **Pending:** production SMTP and the business inbox address are not configured; until then inquiries are only visible in the admin area. Locally, Mailpit receives the mail.
 
-**Website Inquiries admin:** `/platform/inquiries` (and the API under `/api/platform/inquiries`) is restricted to verified users with `users.platform_admin = true` — the same platform-staff flag already used for Horizon and Platform administration. Organization roles, including owners/admins, receive 403. Filters by type/status/spam, statuses New/In Progress/Closed, internal notes, mark/unmark spam; changes are audited. Grant staff access with `php artisan tinker` → `User::where('email', '...')->update(['platform_admin' => true])` (operator action, not self-service).
+**Website Inquiries admin:** moved into the owner console at `/admin/inquiries` (API `/api/admin/inquiries`). The old `/platform/inquiries` URL redirects there. Access requires a verified platform admin (see below); organization roles, including owners/admins, receive 403. Filters by type/status/spam, statuses New/In Progress/Closed, internal notes, mark/unmark spam, and **Convert to organization invite**. All changes are audited.
 
 **Pricing publication steps:** pricing is **contact-only** because no client-approved prices exist (`config('billing.catalog')` is empty and the legacy `provisional_monthly_price` is never shown). To publish: (1) obtain written approval of plan names, price labels and included items; (2) add them to `config/website.php` → `pricing.plans` with `'approved' => true`; (3) set `WEBSITE_PRICING_PUBLISHED=true`; (4) separately configure the approved billing catalog/provider before any plan is sold online — the public page never offers checkout.
 
@@ -96,9 +96,29 @@ Server-rendered Blade pages (`resources/views/site`) with their own small Vite e
 
 **Remaining public-launch blockers:** approved legal text and company identity; genuine approved customer reviews (optional — section stays hidden without them); approved brand assets and product photography choice; approved contact details and notification inbox with production SMTP; pricing decision; production domain/HTTPS and `WEBSITE_URL`; enabling `WEBSITE_INDEXING` in production only; manual acceptance on real devices/browsers and assistive technology (automated headless Chrome checks only so far); optional social share image and brand assets approval; retention period for stored inquiries.
 
+## Owner console (`/admin`)
+
+A separate platform-owner back office with its own URL, bundle and dark navy/indigo design: Overview, Analytics, Revenue, Approvals, Organizations, Users, Plans & billing, Website inquiries, Reports (CSV/XLSX), Audit log and System status. Customers never see it. Platform admins get a small **Owner console** link in the customer sidebar. Full details, including the safeguards for **Login as customer** support sessions: [docs/owner-console.md](docs/owner-console.md).
+
+- **Access:** verified + `users.platform_admin` + not disabled, plus confirmed 2FA when `OWNER_CONSOLE_REQUIRE_2FA=true` (default on in production). The UI can never grant the flag. Use `php artisan mortgage:platform-admin someone@example.com` (or `--revoke`); both are audited.
+- **New env:** `OWNER_CONSOLE_REQUIRE_2FA`, `PLATFORM_SIGNUP_APPROVAL` (false), `IMPERSONATION_ENABLED` (on only in local/testing by default; set it explicitly in production), `IMPERSONATION_MINUTES` (30), `IMPERSONATION_ALLOW_DOCUMENT_DOWNLOAD` (false), `APP_VERSION`.
+- **Updating an existing server** (operator steps, not automated deployment):
+
+```bash
+git pull origin develop
+composer install --no-dev --optimize-autoloader
+php artisan migrate --force          # adds owner-console columns/tables
+npm ci && npm run build
+php artisan config:cache && php artisan route:cache   # only if you already cache them
+php artisan horizon:terminate        # Supervisor restarts Horizon with the new code
+php artisan mortgage:platform-admin admin@your-domain.example
+```
+
+The new admin then signs in, turns on two-factor authentication under **My account**, and opens `/admin`.
+
 ## Handoff
 
-[All 25 requirements](docs/final-phase-checklist.md) · [executed acceptance results](docs/acceptance-test-results.md) · [architecture](docs/architecture.md) · [permissions](docs/permissions-matrix.md) · [appraisal review](docs/appraisal-review.md) · [DSCR/LTV](docs/rental-dscr-ltv-calculations.md) · [guideline approval](docs/guideline-checklist-approval.md) · [provider/privacy configuration](docs/provider-configuration.md) · [report mapping](docs/report-mapping.md) · [retention/backups](docs/retention-and-backups.md) · [release readiness](docs/release-readiness.md) · [open client decisions](docs/open-decisions.md) · [future deployment runbook](docs/deployment-runbook.md).
+[All 25 requirements](docs/final-phase-checklist.md) · [executed acceptance results](docs/acceptance-test-results.md) · [architecture](docs/architecture.md) · [permissions](docs/permissions-matrix.md) · [owner console](docs/owner-console.md) · [appraisal review](docs/appraisal-review.md) · [DSCR/LTV](docs/rental-dscr-ltv-calculations.md) · [guideline approval](docs/guideline-checklist-approval.md) · [provider/privacy configuration](docs/provider-configuration.md) · [report mapping](docs/report-mapping.md) · [retention/backups](docs/retention-and-backups.md) · [release readiness](docs/release-readiness.md) · [open client decisions](docs/open-decisions.md) · [future deployment runbook](docs/deployment-runbook.md).
 
 Historical Bank references: [Phase 2 checklist](docs/phase-2-checklist.md), [calculation specification](docs/calculation-specification.md), [Excel mapping](docs/excel-mapping.md). Actual supplied report/workbook matching and approved anonymized sample acceptance remain pending; no client template was fabricated.
 

@@ -1,5 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\ApprovalController as AdminApprovals;
+use App\Http\Controllers\Admin\AuditController as AdminAudit;
+use App\Http\Controllers\Admin\ConsoleController as Console;
+use App\Http\Controllers\Admin\OrganizationAdminController as AdminOrgs;
+use App\Http\Controllers\Admin\ReportController as AdminReports;
+use App\Http\Controllers\Admin\UserAdminController as AdminUsers;
 use App\Http\Controllers\AnalysisController as A;
 use App\Http\Controllers\AppraisalController;
 use App\Http\Controllers\BankController;
@@ -7,9 +13,12 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\DocumentController as D;
 use App\Http\Controllers\FileController as F;
 use App\Http\Controllers\OrganizationController as O;
+use App\Http\Controllers\PlanRequestController;
 use App\Http\Controllers\PublicSiteController as Site;
 use App\Http\Controllers\WebsiteInquiryController as Inquiries;
 use App\Http\Middleware\SerializeBankReview;
+use App\Models\User;
+use App\Services\Impersonation;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -28,8 +37,51 @@ Route::get('/terms', [Site::class, 'legal'])->name('site.terms');
 Route::get('/sitemap.xml', [Site::class, 'sitemap'])->name('seo.sitemap');
 Route::get('/robots.txt', [Site::class, 'robots'])->name('seo.robots');
 
-Route::get('/api/me', fn (Request $r) => ['user' => $r->user(), 'memberships' => $r->user()->memberships()->with('organization.plan')->get()])->middleware('auth:sanctum');
-Route::middleware(['auth:sanctum', 'verified', 'throttle:workspace'])->prefix('api')->group(function () {
+Route::get('/api/me', function (Request $r) {
+    $imp = Impersonation::current($r);
+
+    return ['user' => $r->user(), 'memberships' => $r->user()->memberships()->with('organization.plan')->get(), 'impersonation' => $imp ? ['admin_name' => User::find($imp['admin_id'])?->name, 'expires_at' => date(DATE_ATOM, (int) $imp['expires_at'])] : null];
+})->middleware('auth:sanctum');
+Route::post('/api/impersonation/stop', function (Request $r) {
+    abort_unless(Impersonation::current($r), 409, 'No support session is active.');
+    $restored = Impersonation::stop($r, 'returned');
+
+    return ['redirect' => $restored ? '/admin/users' : '/login'];
+})->middleware('auth:sanctum');
+
+// Owner console (platform staff only). Old in-workspace URLs redirect here.
+Route::redirect('/platform', '/admin');
+Route::get('/platform/inquiries', fn (Request $r) => redirect('/admin/inquiries'.($r->filled('id') ? '?id='.(int) $r->query('id') : '')));
+Route::middleware(['auth:sanctum', 'owner.console:api', 'throttle:owner-console'])->prefix('api/admin')->group(function () {
+    Route::get('me', [Console::class, 'me']);
+    Route::get('overview', [Console::class, 'overview']);
+    Route::get('analytics', [Console::class, 'analytics']);
+    Route::get('revenue', [Console::class, 'revenue']);
+    Route::get('plans', [Console::class, 'plans']);
+    Route::get('system', [Console::class, 'system']);
+    Route::get('organizations', [AdminOrgs::class, 'index']);
+    Route::get('organizations/{id}', [AdminOrgs::class, 'show'])->whereNumber('id');
+    Route::get('users', [AdminUsers::class, 'index']);
+    Route::get('impersonations', [AdminUsers::class, 'impersonations']);
+    Route::get('approvals', [AdminApprovals::class, 'index']);
+    Route::get('audit', [AdminAudit::class, 'index']);
+    Route::get('reports', [AdminReports::class, 'index']);
+    Route::get('reports/{type}', [AdminReports::class, 'export']);
+    Route::get('inquiries', [Inquiries::class, 'index']);
+    Route::get('inquiries/{id}', [Inquiries::class, 'show'])->whereNumber('id');
+    Route::middleware('throttle:owner-actions')->group(function () {
+        Route::post('organizations/{id}/actions', [AdminOrgs::class, 'action'])->whereNumber('id');
+        Route::post('organizations/{id}/notes', [AdminOrgs::class, 'note'])->whereNumber('id');
+        Route::post('users/{id}/actions', [AdminUsers::class, 'action'])->whereNumber('id');
+        Route::post('approvals/{id}/decision', [AdminApprovals::class, 'decide'])->whereNumber('id');
+        Route::patch('inquiries/{id}', [Inquiries::class, 'update'])->whereNumber('id');
+        Route::post('inquiries/{id}/notes', [Inquiries::class, 'note'])->whereNumber('id');
+        Route::post('inquiries/{id}/convert', [Inquiries::class, 'convert'])->whereNumber('id');
+    });
+    Route::post('impersonation', [AdminUsers::class, 'impersonate'])->middleware('throttle:impersonation');
+});
+Route::get('/admin/{path?}', [Console::class, 'shell'])->where('path', '.*')->middleware('owner.console:web')->name('admin.console');
+Route::middleware(['auth:sanctum', 'verified', 'org.active', 'throttle:workspace'])->prefix('api')->group(function () {
     Route::get('organizations', [O::class, 'index']);
     Route::get('organizations/{organization}', [O::class, 'show']);
     Route::get('organizations/{organization}/audit', [O::class, 'audit']);
@@ -41,11 +93,8 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:workspace'])->prefix('a
     Route::patch('organizations/{organization}/members/{membership}', [O::class, 'member']);
     Route::delete('organizations/{organization}/members/{membership}', [O::class, 'removeMember']);
     Route::get('plans', [O::class, 'plans']);
-    Route::get('platform', [O::class, 'platform']);
-    Route::get('platform/inquiries', [Inquiries::class, 'index']);
-    Route::get('platform/inquiries/{id}', [Inquiries::class, 'show'])->whereNumber('id');
-    Route::patch('platform/inquiries/{id}', [Inquiries::class, 'update'])->whereNumber('id');
-    Route::post('platform/inquiries/{id}/notes', [Inquiries::class, 'note'])->whereNumber('id');
+    Route::get('organizations/{organization}/plan-requests', [PlanRequestController::class, 'index']);
+    Route::post('organizations/{organization}/plan-requests', [PlanRequestController::class, 'store'])->middleware('throttle:owner-actions');
     Route::get('organizations/{organization}/borrowers', [F::class, 'borrowers']);
     Route::post('organizations/{organization}/borrowers', [F::class, 'borrower']);
     Route::patch('organizations/{organization}/borrowers/{borrower}', [F::class, 'updateBorrower']);
@@ -94,4 +143,4 @@ Route::middleware(['auth:sanctum', 'verified', 'throttle:workspace'])->prefix('a
     Route::get('files/{file}/bank/runs/{runId}/reports/{reportId}/{format}', [$b, 'download']);
 });
 Route::post('/api/billing/test-webhook', [BillingController::class, 'webhook'])->withoutMiddleware(ValidateCsrfToken::class)->middleware('throttle:workspace');
-Route::get('/{path?}', fn () => view('app'))->where('path', '^(?!api/|sanctum/|horizon).*$')->name('spa');
+Route::get('/{path?}', fn () => view('app'))->where('path', '^(?!api/|sanctum/|horizon|admin(/|$)).*$')->name('spa');

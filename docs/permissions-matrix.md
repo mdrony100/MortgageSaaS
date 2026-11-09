@@ -1,6 +1,6 @@
 # Current permissions matrix
 
-Every file operation requires **current org membership AND creator/active individual share/explicit Owner-Admin-wide grant**. Role alone is not a file grant. Platform administrator flag is metadata/Horizon access, never customer impersonation or a file bypass. Revoking a share does not revoke an independent creator/wide grant; UI explains this. No widening was made to resolve ambiguous client sharing wording.
+Every file operation requires **current org membership AND creator/active individual share/explicit Owner-Admin-wide grant**. Role alone is not a file grant. The platform administrator flag opens the owner console (`/admin`) and Horizon. It is never a file bypass: the console shows account and operational metadata only. Customer data is reachable only through an audited, time-limited support session (see below and [owner-console.md](owner-console.md)). Revoking a share does not revoke an independent creator/wide grant; UI explains this. No widening was made to resolve ambiguous client sharing wording.
 
 | Capability | Owner/Admin with file grant | Underwriter with grant | Processor with grant | Broker with grant | Viewer with grant |
 |---|---|---|---|---|---|
@@ -27,3 +27,20 @@ An authorized user may see all three module tabs but internal appraisal endpoint
 Tests cover cross-org IDs/parents/records, shared Broker restrictions/revocation, private source/derivative/report endpoints, polling projections and revoked background requester roles. Revocation affects subsequent requests, not previously downloaded copies. User-authored shared notes are not automatically sanitized into approved public fraud wording; organizations remain responsible for what they intentionally share.
 
 Open policy: whether particular Broker/processor appraisal editing/public appraisal exports should exist. Existing conservative restrictions remain until explicit client decision. No auto-approval, condition clearance or underwriting role is created.
+
+## Owner console and support sessions
+
+| Capability | Platform admin (verified, not disabled, 2FA when required) | Platform admin in a support session | Org Owner/Admin | Other org roles |
+|---|---|---|---|---|
+| Open `/admin` and `/api/admin/*` | Yes | No (403) | No (403) | No (403) |
+| Org plan/status/trial/limits/suspend/notes | Yes, audited | No | No | No |
+| Disable/enable users, resend verification, send reset link | Yes, audited (not self, not other platform admins) | No | No | No |
+| View or set passwords | No | No | No | No |
+| Grant `platform_admin` | No (CLI `mortgage:platform-admin` only) | No | No | No |
+| Approve/reject signups and plan changes | Yes, audited | No | Request plan change (Owner only) | No |
+| CSV/XLSX reports | Yes, audited | No | No | No |
+| List customer documents/borrower data/findings in the console | No | n/a | n/a | n/a |
+| Start a support session | Yes: confirmed 2FA, reason, `IMPERSONATION_ENABLED`; not admins/disabled/self | No | No | No |
+| Act in the customer app | n/a | As the customer, limited to that customer's own access; every write audited with both IDs | Own access | Own access |
+| Password/email/2FA, billing, invitations/member roles, guideline/rule approval during a session | n/a | Blocked (403) | Own access | Per the table above |
+| Original document/artifact download during a session | n/a | Blocked unless `IMPERSONATION_ALLOW_DOCUMENT_DOWNLOAD=true` | Per file grant | Per file grant |

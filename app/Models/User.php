@@ -18,7 +18,17 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected function casts(): array
     {
-        return ['email_verified_at' => 'datetime', 'password' => 'hashed', 'platform_admin' => 'boolean', 'two_factor_confirmed_at' => 'datetime'];
+        return ['email_verified_at' => 'datetime', 'password' => 'hashed', 'platform_admin' => 'boolean', 'two_factor_confirmed_at' => 'datetime', 'disabled_at' => 'datetime', 'last_login_at' => 'datetime'];
+    }
+
+    public function isDisabled(): bool
+    {
+        return $this->disabled_at !== null;
+    }
+
+    public function hasConfirmedTwoFactor(): bool
+    {
+        return $this->two_factor_secret !== null && $this->two_factor_confirmed_at !== null;
     }
 
     public function memberships()

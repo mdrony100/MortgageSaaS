@@ -49,7 +49,7 @@ check("robots disallows all in non-production", s == 200 and "Disallow: /" in ro
 for p in ["/dashboard", "/login"]:
     s, h, body = get(p)
     check(f"{p} still serves SPA shell noindex", s == 200 and '<div id="app"></div>' in body and "noindex" in (h.get("X-Robots-Tag") or ""))
-s, h, body = get("/api/platform/inquiries", headers={"Accept": "application/json"})
+s, h, body = get("/api/admin/inquiries", headers={"Accept": "application/json"})
 check("inquiry admin API rejects guests", s == 401)
 def submit(fields):
     m = None

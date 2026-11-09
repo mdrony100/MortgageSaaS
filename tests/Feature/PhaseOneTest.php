@@ -282,10 +282,10 @@ class PhaseOneTest extends TestCase
     {
         $r = $this->upload();
         $u = User::factory()->create(['platform_admin' => true]);
-        $this->actingAs($u)->getJson('/api/platform')->assertOk();
+        $this->actingAs($u)->getJson('/api/admin/overview')->assertOk();
         $this->getJson('/api/files/'.$this->file->id)->assertForbidden();
         $this->getJson('/api/document-versions/'.$r['version']['id'].'/content')->assertForbidden();
-        $this->actingAs($this->owner)->getJson('/api/platform')->assertForbidden();
+        $this->actingAs($this->owner)->getJson('/api/admin/overview')->assertForbidden();
         $this->get('/horizon')->assertForbidden();
     }
 
