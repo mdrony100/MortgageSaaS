@@ -15,7 +15,7 @@ class Site
         $p = self::name();
 
         return [
-            'site.home' => ['/', $p.' — Mortgage document analysis with reviewer control', 'Analyze bank statements, review appraisal findings, and prepare rental income and DSCR calculations with supporting evidence and reviewer control.'],
+            'site.home' => ['/', $p.' — Mortgage document analysis with reviewer control', 'Review bank statements, spot potential document issues, and check appraisal and rental income details—all in one workspace, with supporting evidence and reviewer control.'],
             'site.features' => ['/features', 'Features — '.$p, 'Bank statement income analysis, document integrity indicators, appraisal review for forms 1004, 1025, 1007 and 216, rental/DSCR analysis and team workflow.'],
             'site.how' => ['/how-it-works', 'How It Works — '.$p, 'From organization setup and secure upload to analysis, reviewer decisions and authorized report exports in five steps.'],
             'site.pricing' => ['/pricing', 'Pricing — '.$p, 'Pricing for '.$p.' is provided on request. Request a demo or contact sales to discuss your team.'],
@@ -64,6 +64,46 @@ class Site
         }
 
         return array_values(array_filter((array) config('website.pricing.plans', []), fn ($p) => is_array($p) && ($p['approved'] ?? false) === true && filled($p['name'] ?? null) && filled($p['price_label'] ?? null)));
+    }
+
+    /** Short, plain-English FAQ used on the homepage (each answer verified against the implementation). */
+    public static function homeFaq(): array
+    {
+        $p = self::name();
+
+        return [
+            ['What documents can I upload?', 'Bank statements, appraisal reports (forms 1004, 1025, 1007 and 216), leases and other supporting documents. Files can be PDF, PNG or JPG, up to 20 MB each. Each file must pass a malware scan before anyone can open or process it.'],
+            ['Can I review and correct extracted information?', 'Yes. Reviewers can correct extracted values, change how deposits are classified, and confirm or reject possible transfers. The original value and the reason for each change are kept in the file’s history. Broker accounts can’t change results.'],
+            ['Does the platform make lending decisions?', 'No. '.$p.' organizes documents, calculations and potential issues so your team can review them. It doesn’t approve or decline loans, and it doesn’t replace underwriting judgment.'],
+            ['What reports can I export?', 'Bank statement reports as Excel (XLSX), CSV and PDF. Appraisal and rental income reviews as PDF and Excel. Reports are versioned, and broker reports leave out restricted internal findings.'],
+            ['Can my team work on the same file?', 'Yes. Invite teammates, give each person a role, and share individual files. Sharing a file never raises anyone’s role, and changes are recorded in the file’s history.'],
+        ];
+    }
+
+    /**
+     * Customer reviews for the public site. Only entries explicitly marked approved in
+     * config/website.php are ever shown. When none are approved, non-production
+     * environments show clearly labelled placeholders for design review, and production
+     * hides the section entirely.
+     *
+     * @return array{mode: 'approved'|'placeholder'|'none', items: array<int, array<string, mixed>>}
+     */
+    public static function reviews(): array
+    {
+        $approved = array_values(array_filter((array) config('website.testimonials', []), fn ($t) => is_array($t)
+            && ($t['approved'] ?? false) === true
+            && filled($t['quote'] ?? null) && filled($t['name'] ?? null) && filled($t['role'] ?? null)));
+        if ($approved) {
+            return ['mode' => 'approved', 'items' => $approved];
+        }
+        if (app()->environment('production')) {
+            return ['mode' => 'none', 'items' => []];
+        }
+
+        return ['mode' => 'placeholder', 'items' => [
+            ['quote' => 'Approved quote goes here.', 'name' => 'Approved customer name', 'role' => 'Role, Company (approved)'],
+            ['quote' => 'Approved quote goes here.', 'name' => 'Approved customer name', 'role' => 'Role, Company (approved)'],
+        ]];
     }
 
     public static function faq(): array

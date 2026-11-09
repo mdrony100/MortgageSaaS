@@ -20,7 +20,7 @@ class PublicWebsiteTest extends TestCase
     use RefreshDatabase;
 
     private const PAGES = [
-        '/' => 'Turn mortgage documents into clear, reviewable insights.',
+        '/' => 'Understand mortgage documents.',
         '/features' => 'Supports forms 1004, 1025, 1007 and 216.',
         '/how-it-works' => 'does not issue lender approvals',
         '/pricing' => 'Contact for pricing',
@@ -73,8 +73,8 @@ class PublicWebsiteTest extends TestCase
 
     public function test_root_is_homepage_and_dashboard_spa_moved_without_breaking_app_routes(): void
     {
-        $this->get('/')->assertOk()->assertSee('Request a Demo')->assertSee('Explore Features')->assertSee('FICTIONAL SAMPLE DATA')
-            ->assertSee('Bank Statement Income Analysis')->assertSee('Document Integrity and Fraud Indicators')->assertSee('Appraisal Review and Rental/DSCR Analysis');
+        $this->get('/')->assertOk()->assertSee('Request a Demo')->assertSee('See How It Works')->assertSee('Sample data')
+            ->assertSee('Turn bank statements into a clear income summary.')->assertSee('Spot document issues that need a closer look.')->assertSee('Review property and rental income details together.');
         foreach (['/dashboard', '/login', '/register', '/files/1', '/settings/profile', '/platform', '/platform/inquiries'] as $path) {
             $r = $this->get($path)->assertOk();
             $this->assertStringContainsString('<div id="app"></div>', $r->getContent(), $path);
@@ -87,7 +87,7 @@ class PublicWebsiteTest extends TestCase
     {
         $u = $this->orgUser('owner');
         $html = $this->actingAs($u)->get('/')->assertOk()->getContent();
-        $this->assertStringContainsString('href="/dashboard" class="site-btn site-btn-primary">Open Dashboard', $html);
+        $this->assertStringContainsString('href="/dashboard" class="site-btn site-btn-primary site-btn-sm">Open Dashboard', $html);
         $this->assertStringNotContainsString('>Sign In<', $html);
         $this->actingAs($u)->getJson('/api/me')->assertOk();
     }
@@ -278,5 +278,133 @@ class PublicWebsiteTest extends TestCase
         $this->postJson('/api/platform/inquiries/'.$b->id.'/notes', ['body' => ''])->assertUnprocessable();
         $this->getJson('/api/platform/inquiries/999999')->assertNotFound();
         $this->assertDatabaseHas('audit_events', ['action' => 'website_inquiry.updated', 'actor_id' => $staff->id]);
+    }
+
+    public function test_homepage_redesign_hero_tabs_walkthrough_and_stories(): void
+    {
+        $html = $this->get('/')->assertOk()->getContent();
+        $this->assertStringContainsString('Understand mortgage documents.<br> Review every detail with confidence.', $html);
+        $this->assertStringContainsString('Review bank statements, spot potential document issues, and check appraisal and rental income details—all in one workspace.', $html);
+        $this->assertStringContainsString('href="#walkthrough" class="site-btn site-btn-ghost" data-walkthrough-start>See How It Works</a>', $html);
+        $this->assertStringContainsString('href="'.route('site.contact').'?type=demo" class="site-btn site-btn-primary">Request a Demo</a>', $html);
+        // Hero preview: ARIA tabs with three panels; the first is selected server-side.
+        $this->assertSame(1, substr_count($html, 'aria-label="Product preview"'));
+        foreach (['bank' => 'Bank Statements', 'checks' => 'Document Checks', 'rental' => 'Appraisal &amp; Rental Income'] as $id => $label) {
+            $this->assertMatchesRegularExpression('~role="tab" id="hero-tab-'.$id.'" aria-controls="hero-panel-'.$id.'" aria-selected="(true|false)"[^>]*>'.preg_quote($label, '~').'</button>~', $html);
+            $this->assertStringContainsString('role="tabpanel" id="hero-panel-'.$id.'" aria-labelledby="hero-tab-'.$id.'"', $html);
+        }
+        $this->assertStringContainsString('aria-controls="hero-panel-bank" aria-selected="true"', $html);
+        $this->assertStringContainsString('Potential issue: totals don’t match', $html);
+        // Interactive walkthrough
+        $this->assertStringContainsString('Interactive sample walkthrough', $html);
+        $this->assertStringContainsString('From uploaded documents to a clear report.', $html);
+        foreach (['Upload your documents', 'Review the extracted information', 'Check flagged issues', 'Export your report'] as $i => $step) {
+            $this->assertStringContainsString('<span class="sr-only">Step '.($i + 1).': </span>'.$step, $html);
+        }
+        $this->assertStringContainsString('data-walk-prev', $html);
+        $this->assertStringContainsString('data-walk-next', $html);
+        $this->assertStringContainsString('role="progressbar"', $html);
+        // Feature stories link to matching anchors on the features page.
+        foreach (['bank-statements', 'document-integrity', 'appraisal-review'] as $anchor) {
+            $this->assertStringContainsString('href="'.route('site.features').'#'.$anchor.'"', $html);
+        }
+        $features = $this->get('/features')->getContent();
+        foreach (['bank-statements', 'document-integrity', 'appraisal-review', 'rental-dscr', 'team-workflow'] as $anchor) {
+            $this->assertStringContainsString('id="'.$anchor.'"', $features);
+        }
+        $this->assertStringContainsString('Bring 12 or 24 months of statements into one place. Review deposits, transfers, and exclusions before confirming the results.', $html);
+        $this->assertStringContainsString('See potential missing pages, inconsistent totals, and other available document checks alongside the supporting evidence.', $html);
+        $this->assertStringContainsString('Compare appraisal information, leases, and rental income inputs in one organized review.', $html);
+        $this->assertStringContainsString('compares qualifying rental income with the applicable monthly property payment.', $html);
+        foreach ([$html, $features] as $page) {
+            $this->assertStringNotContainsStringIgnoringCase('fraud confirmed', $page);
+        }
+    }
+
+    public function test_homepage_calculator_team_security_faq_and_final_cta(): void
+    {
+        $html = $this->get('/')->assertOk()->getContent();
+        // Sample DSCR calculator (illustration only, no thresholds or approvals).
+        $this->assertStringContainsString('Try a sample calculation', $html);
+        $this->assertStringContainsString('DSCR = qualifying rent ÷ monthly payment', $html);
+        $this->assertStringContainsString('<label for="dscr-rent">Illustrative monthly qualifying rent</label>', $html);
+        $this->assertStringContainsString('<label for="dscr-payment">Illustrative monthly property payment</label>', $html);
+        $this->assertStringContainsString('$3,300 ÷ $3,000 = 1.10', $html);
+        $this->assertStringContainsString('In this simplified example, rent is 1.10 times the monthly property payment.', $html);
+        $this->assertStringContainsString('Illustration only. Actual calculations depend on confirmed inputs and program requirements.', $html);
+        $this->assertMatchesRegularExpression('~id="dscr-payment-error" class="site-error" aria-live="polite"~', $html);
+        preg_match('~<form class="site-calc".*?</form>~s', $html, $calc);
+        $this->assertDoesNotMatchRegularExpression('~approv|eligib|pass|fail~i', strip_tags($calc[0]));
+        $this->assertStringNotContainsString('action=', $calc[0], 'calculator never submits anywhere');
+        // Team
+        $this->assertStringContainsString('One file. Your whole team. Clear responsibilities.', $html);
+        foreach (['Share files with the right people.', 'Keep internal findings restricted.', 'See changes and reviewer notes.', 'Owner', 'Underwriter', 'Processor', 'Broker', 'Limited view'] as $t) {
+            $this->assertStringContainsString($t, $html);
+        }
+        // Security
+        $this->assertStringContainsString('Keep sensitive files in the right hands.', $html);
+        foreach (['Private file access', 'Team permissions', 'Two-factor sign-in'] as $t) {
+            $this->assertStringContainsString($t, $html);
+        }
+        $this->assertStringContainsString('href="'.route('site.security').'"', $html);
+        // FAQ (details/summary works without JavaScript)
+        foreach (['What documents can I upload?', 'Can I review and correct extracted information?', 'Does the platform make lending decisions?', 'What reports can I export?', 'Can my team work on the same file?'] as $q) {
+            $this->assertStringContainsString('<summary>'.$q.'</summary>', $html);
+        }
+        // Final CTA
+        $this->assertStringContainsString('See how MortgageLens fits your workflow.', $html);
+        $this->assertStringContainsString('Explore bank statement analysis, document checks, and appraisal review in a guided demo.', $html);
+        $this->assertStringContainsString('href="'.route('site.contact').'?type=pricing" class="site-btn site-btn-outline-light">Contact Sales</a>', $html);
+        $this->get('/contact?type=pricing')->assertSee('<option value="pricing" selected', false);
+    }
+
+    public function test_photos_are_local_sized_and_lazy_loaded_below_the_fold(): void
+    {
+        $html = $this->get('/')->assertOk()->getContent();
+        preg_match_all('~<img [^>]*>~', $html, $imgs);
+        $this->assertNotEmpty($imgs[0]);
+        foreach ($imgs[0] as $img) {
+            $this->assertMatchesRegularExpression('~src="/images/site/[a-z0-9-]+\.jpg"~', $img, 'local images only, no hotlinking');
+            $this->assertMatchesRegularExpression('~width="\d+" height="\d+"~', $img);
+            $this->assertStringContainsString('loading="lazy"', $img);
+            $this->assertMatchesRegularExpression('~alt="[^"]{10,}"~', $img);
+        }
+        preg_match_all('~(?:src|srcset)="([^"]+)"~', $html, $refs);
+        foreach ($refs[1] as $ref) {
+            foreach (preg_split('~,\s*~', $ref) as $candidate) {
+                $path = strtok(trim($candidate), ' ');
+                if (str_starts_with($path, '/images/')) {
+                    $this->assertFileExists(public_path(ltrim($path, '/')));
+                }
+            }
+        }
+    }
+
+    public function test_review_placeholders_only_outside_production_and_never_invented(): void
+    {
+        $html = $this->get('/')->assertOk()->getContent();
+        $this->assertStringContainsString('data-review-mode="placeholder"', $html);
+        $this->assertStringContainsString('Placeholder — not a real customer review', $html);
+        $this->assertStringContainsString('Built for your workflow', $html);
+        $this->assertDoesNotMatchRegularExpression('~★|star rating|\d+\+? (customers|teams|lenders)~i', $html);
+
+        $this->app['env'] = 'production';
+        $prod = $this->get('/')->assertOk()->getContent();
+        $this->assertStringNotContainsString('Placeholder', $prod);
+        $this->assertStringNotContainsString('reviews-heading', $prod);
+        $this->assertStringNotContainsString('Approved quote goes here', $prod);
+        $this->assertStringContainsString('Built for your workflow', $prod);
+
+        config(['website.testimonials' => [
+            ['quote' => 'Unapproved quote text', 'name' => 'Unapproved Person', 'role' => 'Role', 'approved' => false],
+            ['quote' => 'Approved fixture quote', 'name' => 'Fixture Reviewer', 'role' => 'Processor, Fixture Co', 'approved' => true],
+        ]]);
+        $approved = $this->get('/')->assertOk()->getContent();
+        $this->assertStringContainsString('data-review-mode="approved"', $approved);
+        $this->assertStringContainsString('Approved fixture quote', $approved);
+        $this->assertStringContainsString('Fixture Reviewer', $approved);
+        $this->assertStringNotContainsString('Unapproved', $approved);
+        $this->assertStringNotContainsString('Placeholder', $approved);
+        $this->app['env'] = 'testing';
     }
 }

@@ -20,7 +20,7 @@ def get(path, o=opener, headers=None):
         return r.status, r.headers, r.read().decode()
     except urllib.error.HTTPError as e:
         return e.code, e.headers, e.read().decode(errors="replace")
-pages = {"/": "Turn mortgage documents into clear, reviewable insights.", "/features": "Supports forms 1004, 1025, 1007 and 216.", "/how-it-works": "does not issue lender approvals",
+pages = {"/": "Understand mortgage documents.", "/features": "Supports forms 1004, 1025, 1007 and 216.", "/how-it-works": "does not issue lender approvals",
          "/pricing": "Contact for pricing", "/security": "Private document access", "/faq": "Can I connect bank accounts directly?", "/contact": "Request a demo or ask a question",
          "/privacy": "DRAFT", "/terms": "DRAFT"}
 titles = set()

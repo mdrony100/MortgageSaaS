@@ -1,10 +1,10 @@
-<section class="bg-ink" aria-labelledby="final-cta-heading">
-    <div class="site-container flex flex-col items-start justify-between gap-6 py-14 md:flex-row md:items-center">
-        <div class="max-w-2xl">
-            <h2 id="final-cta-heading" class="text-2xl font-bold tracking-tight text-white md:text-3xl">See {{ \App\Website\Site::name() }} with your team’s workflow in mind.</h2>
-            <p class="mt-3 text-slate-300">We’ll walk through bank statement analysis, appraisal review and rental/DSCR calculations using fictional sample files.</p>
+<section class="relative overflow-hidden bg-gradient-to-br from-[#0f766e] to-[#0b3f4a]" aria-labelledby="final-cta-heading">
+    <div class="site-container relative grid grid-cols-[minmax(0,1fr)] items-center gap-8 py-16 md:py-20 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <div>
+            <h2 id="final-cta-heading" class="site-h2 !text-white">See how {{ \App\Website\Site::name() }} fits your workflow.</h2>
+            <p class="site-lead mt-4 !text-teal-50">Explore bank statement analysis, document checks, and appraisal review in a guided demo.</p>
         </div>
-        <div class="flex flex-wrap gap-3">
+        <div class="flex flex-wrap gap-3 lg:justify-end">
             <a href="{{ route('site.contact') }}?type=demo" class="site-btn site-btn-light">Request a Demo</a>
             <a href="{{ route('site.contact') }}?type=pricing" class="site-btn site-btn-outline-light">Contact Sales</a>
         </div>

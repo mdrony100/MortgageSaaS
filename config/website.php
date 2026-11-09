@@ -56,6 +56,17 @@ return [
     ],
 
     /*
+     * Customer reviews. Add ONLY genuine reviews with written customer approval.
+     * Entries without 'approved' => true are never rendered. With no approved
+     * reviews, production hides the section; other environments show clearly
+     * labelled placeholders for design review.
+     *
+     * Shape: ['quote' => '...', 'name' => '...', 'role' => 'Title, Company',
+     *         'photo' => '/images/site/reviews/name.webp' (optional, approved), 'approved' => true]
+     */
+    'testimonials' => [],
+
+    /*
      * Legal content. While 'approved' is false the Privacy Policy and Terms pages
      * render clearly labelled DRAFT development copy and are noindexed.
      */

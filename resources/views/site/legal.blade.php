@@ -1,8 +1,8 @@
 @extends('site.layout')
 @section('content')
 @php $approved = (bool) config('website.legal.approved'); $product = \App\Website\Site::name(); @endphp
-<section class="border-b border-slate-200 bg-slate-50">
-    <div class="site-container py-14">
+<section class="border-b border-[#dfece9] bg-gradient-to-b from-[#eef8f6] to-white">
+    <div class="site-container py-16 md:py-20">
         <p class="site-eyebrow">Legal</p>
         <h1 class="site-h1 mt-3">{{ $heading }}</h1>
         @if ($approved && config('website.legal.last_updated'))
@@ -10,7 +10,7 @@
         @endif
     </div>
 </section>
-<section class="py-12">
+<section class="site-section !pt-12">
     <div class="site-container max-w-3xl">
         @if ($approved && view()->exists('site.legal-approved.'.$doc))
             <div class="site-prose">@include('site.legal-approved.'.$doc)</div>

@@ -1,7 +1,10 @@
-<section class="border-b border-slate-200 bg-slate-50">
-    <div class="site-container py-14 md:py-20">
+<section class="relative overflow-hidden border-b border-[#dfece9] bg-gradient-to-b from-[#eef8f6] to-white">
+    <div class="site-container py-16 md:py-24">
         <p class="site-eyebrow">{{ $eyebrow }}</p>
-        <h1 class="site-h1 mt-3 max-w-3xl">{{ $heading }}</h1>
-        <p class="site-lead mt-4 max-w-2xl">{{ $lead }}</p>
+        <h1 class="site-h1 mt-4 max-w-4xl">{{ $heading }}</h1>
+        <p class="site-lead mt-5">{{ $lead }}</p>
+        @isset($actions)
+            <div class="mt-8 flex flex-wrap gap-3">{!! $actions !!}</div>
+        @endisset
     </div>
 </section>

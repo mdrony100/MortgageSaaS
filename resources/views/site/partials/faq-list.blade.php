@@ -1,8 +1,8 @@
-<div class="site-faq divide-y divide-slate-200 border-y border-slate-200">
+<div class="site-faq">
     @foreach ($items as [$q, $a])
         <details>
             <summary>{{ $q }}</summary>
-            <p class="pb-5 text-slate-600">{{ $a }}</p>
+            <div class="site-faq-answer"><p>{{ $a }}</p></div>
         </details>
     @endforeach
 </div>

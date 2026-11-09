@@ -1,0 +1,4 @@
+Photos in this folder are licensed under the Pexels License (https://www.pexels.com/license/).
+mortgage-review-*  RDNE Stock project  https://www.pexels.com/photo/a-person-holding-loan-documents-8292879/
+townhomes-*        Curtis Adams        https://www.pexels.com/photo/exterior-of-residential-homes-15409440/
+See docs/website-assets.md.

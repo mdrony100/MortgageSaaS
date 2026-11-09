@@ -7,13 +7,13 @@
 @endphp
 @include('site.partials.page-header', ['eyebrow' => 'Contact', 'heading' => 'Request a demo or ask a question', 'lead' => 'Tell us about your team and what you’d like to see. We’ll reply by email.'])
 
-<section class="py-14 md:py-20">
-    <div class="site-container grid gap-10 lg:grid-cols-[1.5fr_1fr]">
+<section class="site-section">
+    <div class="site-container grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <div>
             @if (session('inquiry_saved'))
                 <div class="site-card border-accent bg-accent-tint" role="status" tabindex="-1" id="inquiry-success">
                     <h2 class="site-h3 text-xl">Thank you — your message has been received.</h2>
-                    <p class="mt-2 text-slate-700">We’ve saved your request and the team will follow up by email.</p>
+                    <p class="mt-3 text-body">We’ve saved your request and the team will follow up by email.</p>
                 </div>
             @else
                 @if ($errors->any())
@@ -22,7 +22,7 @@
                         @if ($errors->has('form'))<p class="mt-1">{{ $errors->first('form') }}</p>@endif
                     </div>
                 @endif
-                <form method="POST" action="{{ route('site.contact.submit') }}" class="site-card grid gap-5" novalidate>
+                <form method="POST" action="{{ route('site.contact.submit') }}" class="site-panel grid gap-6 p-6 sm:p-8" novalidate>
                     @csrf
                     <div class="grid gap-5 md:grid-cols-2">
                         <div class="site-field">
@@ -58,22 +58,22 @@
                     <div class="site-field">
                         <label for="message">Message <span aria-hidden="true">*</span></label>
                         <textarea id="message" name="message" required minlength="10" maxlength="5000" aria-describedby="message-hint{{ $errors->has('message') ? ' message-error' : '' }}" @if($errors->has('message')) aria-invalid="true" @endif>{{ old('message') }}</textarea>
-                        <p id="message-hint" class="mt-1 text-sm text-slate-600">Please don’t include borrower documents, account numbers or other financial account information.</p>
+                        <p id="message-hint" class="site-caption mt-2">Please don’t include borrower documents, account numbers or other financial account information.</p>
                         @error('message')<p class="site-error" id="message-error">{{ $message }}</p>@enderror
                     </div>
                     <div class="site-hp" aria-hidden="true">
                         <label for="homepage_url">Leave this field empty</label>
                         <input id="homepage_url" name="homepage_url" type="text" tabindex="-1" autocomplete="off" value="">
                     </div>
-                    <p class="text-sm text-slate-600">Fields marked * are required. We use your details only to respond to this request; see the <a class="underline" href="{{ route('site.privacy') }}">Privacy Policy</a>.</p>
+                    <p class="site-caption">Fields marked * are required. We use your details only to respond to this request; see the <a class="underline" href="{{ route('site.privacy') }}">Privacy Policy</a>.</p>
                     <div><button type="submit" class="site-btn site-btn-primary cursor-pointer">Send request</button></div>
                 </form>
             @endif
         </div>
         <aside class="grid content-start gap-6">
-            <div class="site-card bg-slate-50">
+            <div class="site-card bg-tint">
                 <h2 class="site-h3">What happens next</h2>
-                <ol class="mt-3 list-decimal space-y-1 pl-5 text-slate-700">
+                <ol class="mt-4 list-decimal space-y-2 pl-5 text-body">
                     <li>Your request is saved for our team to review.</li>
                     <li>We reply by email to arrange a time.</li>
                     <li>Demos use fictional sample files only.</li>
@@ -82,7 +82,7 @@
             @if (config('website.contact.email') || config('website.contact.phone'))
                 <div class="site-card">
                     <h2 class="site-h3">Other ways to reach us</h2>
-                    <ul class="mt-3 space-y-1 text-slate-700">
+                    <ul class="mt-4 space-y-2 text-body">
                         @if (config('website.contact.email'))<li>Email: <a class="underline" href="mailto:{{ config('website.contact.email') }}">{{ config('website.contact.email') }}</a></li>@endif
                         @if (config('website.contact.phone'))<li>Phone: {{ config('website.contact.phone') }}</li>@endif
                     </ul>
@@ -90,7 +90,7 @@
             @endif
             <div class="site-card">
                 <h2 class="site-h3">Already a customer?</h2>
-                <p class="mt-2 text-slate-700"><a class="underline" href="{{ auth('web')->check() ? '/dashboard' : '/login' }}">{{ auth('web')->check() ? 'Open Dashboard' : 'Sign in' }}</a> to access your workspace.</p>
+                <p class="mt-3 text-body"><a class="underline" href="{{ auth('web')->check() ? '/dashboard' : '/login' }}">{{ auth('web')->check() ? 'Open Dashboard' : 'Sign in' }}</a> to access your workspace.</p>
             </div>
         </aside>
     </div>
