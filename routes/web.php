@@ -148,4 +148,23 @@ Route::middleware(['auth:sanctum', 'verified', 'org.active', 'throttle:workspace
     Route::get('files/{file}/bank/runs/{runId}/reports/{reportId}/{format}', [$b, 'download']);
 });
 Route::post('/api/billing/test-webhook', [BillingController::class, 'webhook'])->withoutMiddleware(ValidateCsrfToken::class)->middleware('throttle:workspace');
-Route::get('/{path?}', fn () => view('app'))->where('path', '^(?!api/|sanctum/|horizon|admin(/|$)).*$')->name('spa');
+// Fallback when a host still forwards icon requests to index.php. public/.htaccess
+// serves these files directly. Never let the SPA catch-all answer /favicon.ico with HTML.
+Route::get('/{asset}', function (string $asset) {
+    $types = [
+        'favicon.ico' => 'image/x-icon',
+        'favicon.svg' => 'image/svg+xml',
+        'favicon-32x32.png' => 'image/png',
+        'favicon-16x16.png' => 'image/png',
+        'apple-touch-icon.png' => 'image/png',
+        'site.webmanifest' => 'application/manifest+json',
+    ];
+    $path = public_path($asset);
+    abort_unless(isset($types[$asset]) && is_file($path), 404);
+
+    return response()->file($path, [
+        'Content-Type' => $types[$asset],
+        'Cache-Control' => 'public, max-age=604800',
+    ]);
+})->where('asset', 'favicon\.ico|favicon\.svg|favicon-16x16\.png|favicon-32x32\.png|apple-touch-icon\.png|site\.webmanifest');
+Route::get('/{path?}', fn () => view('app'))->where('path', '^(?!api/|sanctum/|horizon|admin(/|$)|(?:favicon(?:\.ico|\.svg|-16x16\.png|-32x32\.png)|apple-touch-icon\.png|site\.webmanifest)$).*$')->name('spa');
