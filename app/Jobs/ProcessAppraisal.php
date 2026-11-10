@@ -7,6 +7,7 @@ use App\Appraisal\Notifications;
 use App\Appraisal\Pipeline;
 use App\Bank\ProcessingException;
 use App\Billing\Usage;
+use App\Jobs\Concerns\UsesAnalysisQueue;
 use App\Models\Review\Run;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -14,7 +15,7 @@ use Illuminate\Queue\Middleware\WithoutOverlapping;
 
 class ProcessAppraisal implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, UsesAnalysisQueue;
 
     public int $tries = 3;
 
@@ -24,7 +25,7 @@ class ProcessAppraisal implements ShouldQueue
 
     public function __construct(public string $runId)
     {
-        $this->onQueue('bank');
+        $this->assignAnalysisQueue();
     }
 
     public function middleware(): array

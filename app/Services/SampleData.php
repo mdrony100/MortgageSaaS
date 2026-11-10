@@ -19,7 +19,7 @@ class SampleData
             $pdf .= sprintf('%010d 00000 n ', $o)."\n";
         }
 
-return $pdf."trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n$start\n%%EOF";
+        return $pdf."trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n$start\n%%EOF";
     }
 
     public static function all(int $source): array
@@ -33,7 +33,7 @@ return $pdf."trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n$start\n%%EOF";
                 'transfers' => [['id' => 'transfer-1', 'from' => 'Fictional savings ••0011', 'to' => 'Fictional operating ••0042', 'amount' => '2500.00', 'match' => 'suggested — sample only', 'source' => $e]],
                 'nsf' => ['events' => 1, 'fees' => 2, 'overdraft_days' => 3, 'notice' => 'An event and its fee are distinct. Counting conventions require lender approval.'],
                 'sustainability' => ['score' => 'Sample: review', 'deposit_trend' => '-8% fictional', 'concentration' => '42% fictional', 'reserve_months' => '2.4 fictional', 'notice' => 'No live sustainability model is configured.'],
-                'integrity' => [['id' => 'bank-1', 'severity' => 'high', 'status' => 'open', 'category' => 'fraud', 'title' => 'Sample typeface inconsistency', 'observation' => 'Fictional indicator, not proof of fraud. Original bytes are preserved.', 'source' => $e], ['id' => 'bank-2', 'severity' => 'medium', 'status' => 'open', 'category' => 'integrity', 'title' => 'Sample running balance discrepancy', 'observation' => 'Demonstration reconciliation difference; needs human verification.', 'source' => $e]]],
+                'integrity' => [['id' => 'bank-1', 'severity' => 'high', 'status' => 'open', 'category' => 'potential_issue', 'title' => 'Sample typeface inconsistency', 'observation' => 'Fictional indicator for a reviewer to check. Not a fraud verdict. Original bytes are preserved.', 'source' => $e], ['id' => 'bank-2', 'severity' => 'medium', 'status' => 'open', 'category' => 'integrity', 'title' => 'Sample running balance discrepancy', 'observation' => 'Demonstration reconciliation difference; needs human verification.', 'source' => $e]]],
             'appraisal' => ['overview' => ['form' => '1004', 'supported_forms' => ['1004', '1025', '1007', '216'], 'units' => 1, 'occupancy' => 'investment', 'value' => '325000.00', 'review_status' => 'Sample — unresolved findings do not block sample reports'],
                 'property' => ['address' => '100 Example Lane (fictional)', 'units' => 1, 'occupancy' => 'investment', 'condition' => 'Sample C3 — unverified', 'form' => '1004'],
                 'comparables' => [['name' => 'Comparable A (fictional)', 'price' => '318000.00', 'distance' => '0.6 mi', 'adjustment' => '4.2%'], ['name' => 'Comparable B (fictional)', 'price' => '344000.00', 'distance' => '1.2 mi', 'adjustment' => '18.5%']],

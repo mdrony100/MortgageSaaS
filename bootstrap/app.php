@@ -1,6 +1,7 @@
 <?php
 
 use App\Bank\ProcessingException;
+use App\Exceptions\MailDeliveryException;
 use App\Http\Middleware\BlockInactiveOrganization;
 use App\Http\Middleware\EnsureAccountActive;
 use App\Http\Middleware\ImpersonationGuard;
@@ -17,6 +18,7 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -41,6 +43,18 @@ return Application::configure(basePath: dirname(__DIR__))
                 Log::error('Financial workflow exception; source details deliberately omitted', ['exception_type' => get_class($e)]);
 
                 return false;
+            }
+        });
+        $exceptions->render(function (MailDeliveryException $e, Request $r) {
+            if ($r->is('api/auth/email/verification-notification', 'api/auth/user/profile-information')) {
+                return response()->json(['verification_email_sent' => false, 'message' => $e->getMessage()], 503);
+            }
+        });
+        $exceptions->render(function (TransportExceptionInterface $e, Request $r) {
+            if ($r->is('api/auth/forgot-password')) {
+                Log::warning('Password reset email could not be delivered', ['exception_type' => $e::class, 'smtp_rejected' => str_contains($e->getMessage(), '550')]);
+
+                return response()->json(['message' => 'The password reset email could not be delivered. Try again later, or ask an administrator to send a reset link. MortgageLens never sets a password for you.'], 503);
             }
         });
         $exceptions->render(function (Throwable $e, Request $r) use ($financial) {

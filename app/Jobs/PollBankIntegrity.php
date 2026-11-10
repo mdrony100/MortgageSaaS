@@ -7,6 +7,7 @@ use App\Bank\Ledger;
 use App\Bank\Pipeline;
 use App\Bank\ProcessingException;
 use App\Bank\Providers\IntegrityProvider;
+use App\Jobs\Concerns\UsesAnalysisQueue;
 use App\Models\Bank\Run;
 use App\Models\DocumentVersion;
 use App\Models\LoanFile;
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\Storage;
 
 class PollBankIntegrity implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, UsesAnalysisQueue;
 
     public int $tries = 3;
 
@@ -28,7 +29,7 @@ class PollBankIntegrity implements ShouldQueue
 
     public function __construct(public string $runId, public int $versionId, public int $poll = 0)
     {
-        $this->onQueue('bank');
+        $this->assignAnalysisQueue();
     }
 
     public function backoff(): array
