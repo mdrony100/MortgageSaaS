@@ -64,6 +64,13 @@ export const fileSteps = [
   { id: 4, label: 'Export report', hint: 'Download Excel or PDF. Open findings do not block the export.' },
 ] as const
 
+export function plainFailure(code?: string | null): string {
+  if (!code) return 'Something went wrong while reading the file. Check that it is an unlocked PDF, PNG, or JPG, then start analysis again.'
+  if (/unavailable|unscanned/i.test(code)) return 'The virus scan could not run, so this file is not certified clean. Processing stopped. Ask an administrator about scanning, or use a practice file for a fictional sample.'
+  if (/rejected|scanfailed|scan failed/i.test(code)) return 'The security scan stopped this file. Upload a different copy, then start analysis again.'
+  return code
+}
+
 export function stepFor(opts: { documents: number; runStatus?: string | null; hasReport?: boolean }): number {
   if (!opts.documents) return 1
   const status = opts.runStatus || ''

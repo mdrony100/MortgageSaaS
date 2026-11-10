@@ -1,6 +1,6 @@
 # Current permissions matrix
 
-Every file operation requires **current org membership AND creator/active individual share/explicit Owner-Admin-wide grant**. Role alone is not a file grant. The platform administrator flag opens the owner console (`/admin`) and Horizon. It is never a file bypass: the console shows account and operational metadata only. Customer data is reachable only through an audited, time-limited support session (see below and [owner-console.md](owner-console.md)). Revoking a share does not revoke an independent creator/wide grant; UI explains this. No widening was made to resolve ambiguous client sharing wording.
+Every file operation requires **current org membership AND creator/active individual share/explicit wide grant**. The wide grant can be held by an owner, an admin, or an underwriter (reviewer). Processors, brokers, and viewers cannot hold it. Role alone is not a file grant. The platform administrator flag opens the owner console (`/admin`) and Horizon. It is never a file bypass: the console shows account and operational metadata only. Customer data is reachable only through an audited, time-limited support session (see below and [owner-console.md](owner-console.md)). Revoking a share does not revoke an independent creator/wide grant; UI explains this. No widening was made to resolve ambiguous client sharing wording.
 
 | Capability | Owner/Admin with file grant | Underwriter with grant | Processor with grant | Broker with grant | Viewer with grant |
 |---|---|---|---|---|---|
