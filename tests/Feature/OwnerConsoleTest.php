@@ -488,7 +488,7 @@ class OwnerConsoleTest extends TestCase
         $this->nextRequest();
         $this->startSupport($this->admin());
         $res = $this->get('/api/document-versions/'.$r->json('version.id').'/content');
-        $this->assertNotSame('impersonation_blocked', $res->json('code'));
+        $this->assertNotSame(403, $res->getStatusCode());
     }
 
     public function test_support_session_expires_and_restores_the_admin(): void

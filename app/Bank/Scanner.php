@@ -6,6 +6,24 @@ use Symfony\Component\Process\Process;
 
 class Scanner
 {
+    public function installed(): bool
+    {
+        $bin = (string) config('bank.clamav', 'clamscan');
+        if ($bin === '') {
+            return false;
+        }
+        if (str_contains($bin, DIRECTORY_SEPARATOR)) {
+            return is_executable($bin);
+        }
+        foreach (explode(':', (string) getenv('PATH')) as $dir) {
+            if ($dir !== '' && is_executable($dir.DIRECTORY_SEPARATOR.$bin)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function scan(string $path, bool $fictional): array
     {
         if ($fictional && app()->environment(['local', 'testing']) && config('bank.fictional_scan_bypass')) {
@@ -17,10 +35,11 @@ class Scanner
             $p->run();
 
             return ['status' => match ($p->getExitCode()) {
-                0 => 'Clean',1 => 'Rejected',126,127 => 'Unavailable',default => 'ScanFailed'
-            }, 'adapter' => 'clamav'];
+                0 => 'Clean',1 => 'Rejected',126,127 => 'Unscanned',default => 'ScanFailed'
+            }, 'adapter' => 'clamav', 'clean' => $p->getExitCode() === 0];
         } catch (\Throwable) {
-            return ['status' => 'Unavailable', 'adapter' => 'clamav'];
+            // Missing binary is not a clean result. Shared hosts without ClamAV keep the original and mark it unscanned.
+            return ['status' => 'Unscanned', 'adapter' => 'clamav', 'clean' => false, 'reason' => 'Scanner unavailable; original is not certified clean'];
         }
     }
 }

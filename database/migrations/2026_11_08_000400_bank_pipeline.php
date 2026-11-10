@@ -122,7 +122,7 @@ return new class extends Migration
         });
         if (DB::getDriverName() === 'pgsql') {
             foreach (['bank_rules', 'bank_inputs', 'bank_scans', 'bank_pages', 'bank_statements', 'bank_transactions', 'bank_reviews', 'bank_relationships', 'bank_transfer_matches', 'bank_transfer_reviews', 'bank_findings', 'bank_finding_reviews', 'bank_conditions', 'bank_messages', 'bank_calculations', 'bank_reports'] as $name) {
-                DB::unprepared("CREATE TRIGGER {$name}_immutable BEFORE UPDATE OR DELETE ON {$name} FOR EACH ROW EXECUTE FUNCTION mortgage_immutable()");
+                DB::unprepared("CREATE TRIGGER {$name}_immutable BEFORE UPDATE OR DELETE ON {$name} FOR EACH ROW EXECUTE PROCEDURE mortgage_immutable()");
             }
             DB::unprepared(<<<'SQL'
 CREATE OR REPLACE FUNCTION protect_bank_run_inputs() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -130,7 +130,7 @@ BEGIN
  IF NEW.options IS DISTINCT FROM OLD.options OR NEW.input_hash IS DISTINCT FROM OLD.input_hash OR NEW.rule_id IS DISTINCT FROM OLD.rule_id OR NEW.requested_by <> OLD.requested_by OR NEW.idempotency_key <> OLD.idempotency_key OR NEW.organization_id <> OLD.organization_id OR NEW.loan_file_id <> OLD.loan_file_id THEN
  RAISE EXCEPTION 'Pinned bank run inputs cannot change'; END IF; RETURN NEW;
 END $$;
-CREATE TRIGGER bank_run_pins BEFORE UPDATE ON bank_runs FOR EACH ROW EXECUTE FUNCTION protect_bank_run_inputs();
+CREATE TRIGGER bank_run_pins BEFORE UPDATE ON bank_runs FOR EACH ROW EXECUTE PROCEDURE protect_bank_run_inputs();
 
 SQL);
         }

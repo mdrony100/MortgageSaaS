@@ -14,6 +14,7 @@ use App\Services\Audit;
 use App\Services\Entitlements;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -58,10 +59,22 @@ class OrganizationController extends Controller
             return Invitation::create($d + ['id' => (string) Str::uuid(), 'organization_id' => $org->id, 'token_hash' => hash('sha256', $token), 'invited_by' => $r->user()->id, 'expires_at' => now()->addDays(7)]);
         });
         $url = config('app.url').'/invitations/accept?token='.$token;
-        Mail::raw('You are invited to a MortgageLens workspace. Sign in with this email, then open: '.$url, fn ($m) => $m->to($d['email'])->subject('MortgageLens workspace invitation'));
-        Audit::record('invitation.created', $organization->id);
+        $delivered = true;
+        try {
+            Mail::raw('You are invited to a MortgageLens workspace. Sign in with this email, then open: '.$url, fn ($m) => $m->to($d['email'])->subject('MortgageLens workspace invitation'));
+        } catch (\Throwable $e) {
+            $delivered = false;
+            Log::warning('Invitation email could not be delivered', ['invitation_id' => $invite->id, 'exception_type' => $e::class, 'smtp_rejected' => str_contains($e->getMessage(), '550')]);
+        }
+        Audit::record('invitation.created', $organization->id, null, ['email_delivered' => $delivered]);
 
-        return response()->json(['id' => $invite->id, 'message' => 'Invitation sent to configured mail transport.'], 201);
+        return response()->json([
+            'id' => $invite->id,
+            'email_delivered' => $delivered,
+            'message' => $delivered
+                ? 'Invitation sent to the configured mail transport.'
+                : 'The invitation was saved, but the email could not be delivered. Revoke it and send a new invitation after mail is working. The previous link was not sent.',
+        ], 201);
     }
 
     public function accept(Request $r)

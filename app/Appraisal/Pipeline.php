@@ -73,9 +73,13 @@ class Pipeline
                     throw new ProcessingException('Original hash mismatch');
                 }$scan = app(Scanner::class)->scan($tmp.'/original', $file->is_demo && in_array($v->validation_status, ['fictional', 'accepted_sample'], true));
                 DB::table('bank_scans')->insert(['organization_id' => $r->organization_id, 'document_version_id' => $v->id, 'sha256' => $v->sha256, 'status' => $scan['status'], 'adapter' => $scan['adapter'], 'data' => Ledger::json($scan), 'created_at' => now()]);
-                if ($scan['status'] !== 'Clean') {
+                if (in_array($scan['status'], ['Rejected', 'ScanFailed'], true)) {
                     throw new ProcessingException('Malware scan '.$scan['status'].'; original remains quarantined');
-                }$this->stage($r, 'Extracting');
+                }
+                if ($scan['status'] !== 'Clean') {
+                    $this->finding($r, 'scan-unscanned:'.$v->id, 'missing_evidence', 'Malware scanner unavailable. Original marked unscanned, not clean. Review can continue without a virus-scan certification.', ['document_version_id' => $v->id, 'what_verify' => 'Install ClamAV before treating this original as scanned']);
+                }
+                $this->stage($r, 'Extracting');
                 $m = app(DocumentParser::class)->parse($tmp.'/original', $tmp.'/derived');
                 $pages += count($m['pages']);
                 $worker[] = $m['observed_resources'] ?? [];

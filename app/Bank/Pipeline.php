@@ -53,8 +53,12 @@ class Pipeline
                 }
                 $scan = app(Scanner::class)->scan($path, $file->is_demo && in_array($version->validation_status, ['accepted_sample', 'fictional'], true));
                 DB::table('bank_scans')->insert(['organization_id' => $run->organization_id, 'document_version_id' => $version->id, 'sha256' => $input->sha256, 'status' => $scan['status'], 'adapter' => $scan['adapter'], 'data' => Ledger::json($scan), 'created_at' => now()]);
-                if ($scan['status'] !== 'Clean') {
+                if (in_array($scan['status'], ['Rejected', 'ScanFailed'], true)) {
                     throw new RuntimeException('Malware scan '.$scan['status'].'; original remains quarantined');
+                }
+                if ($scan['status'] !== 'Clean') {
+                    $this->finding($run, 'scan-unscanned:'.$version->id, ['category' => 'missing_evidence', 'code' => 'malware_scan_unscanned', 'observation' => 'Malware scanner unavailable. Original marked unscanned, not clean. Review can continue without a virus-scan certification.', 'document_version_id' => $version->id]);
+                    $partial = true;
                 }
                 if (isset($seen[$input->sha256])) {
                     $this->finding($run, 'duplicate_original:'.$version->id, ['category' => 'missing_evidence', 'code' => 'duplicate_original', 'observation' => 'Identical original bytes already processed; duplicate extraction excluded by SHA-256 provenance', 'document_version_id' => $version->id, 'original_version_id' => $seen[$input->sha256]]);

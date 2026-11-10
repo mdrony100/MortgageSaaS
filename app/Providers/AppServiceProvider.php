@@ -15,6 +15,7 @@ use App\Billing\UnavailableProvider;
 use App\Contracts\EmailDelivery;
 use App\Contracts\PrivateFileStorage;
 use App\Contracts\SubscriptionBilling;
+use App\Exceptions\MailDeliveryException;
 use App\Models\Document;
 use App\Models\ImpersonationSession;
 use App\Models\LoanFile;
@@ -28,6 +29,7 @@ use App\Services\SmtpEmail;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -35,6 +37,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -57,6 +60,18 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // After every provider has registered listeners, keep one verification sender.
+        // An SMTP rejection must not roll the new account back into a failed registration.
+        $this->app->booted(function () {
+            Event::forget(Registered::class);
+            Event::listen(Registered::class, function (Registered $event) {
+                try {
+                    $event->user->sendEmailVerificationNotification();
+                } catch (MailDeliveryException $e) {
+                    Log::warning('Registration continued after verification email was rejected', ['user_id' => $event->user->id, 'exception_type' => $e::class]);
+                }
+            });
+        });
         Gate::policy(LoanFile::class, LoanFilePolicy::class);
         Gate::policy(Document::class, DocumentPolicy::class);
         RateLimiter::for('auth-general', fn (Request $r) => Limit::perMinute(30)->by($r->ip()));

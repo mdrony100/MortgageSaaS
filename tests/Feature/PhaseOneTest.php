@@ -303,7 +303,8 @@ class PhaseOneTest extends TestCase
         $this->assertNotSame($v1->storage_key, $v2->storage_key);
         $this->get('/api/document-versions/'.$v1->id.'/content?download=1')->assertOk()->assertHeader('Cache-Control', 'max-age=0, no-store, private');
         $this->assertDatabaseHas('audit_events', ['action' => 'document.version_added', 'loan_file_id' => $this->file->id]);
-        $this->assertSame('Pending', $v1->scan_status);
+        $this->assertContains($v1->scan_status, ['Pending', 'Unscanned']);
+        $this->assertNotSame('Clean', $v1->scan_status);
     }
 
     public function test_immutable_versions_and_audit_enforced_in_database(): void
@@ -327,9 +328,14 @@ class PhaseOneTest extends TestCase
         $this->post($url, ['file' => UploadedFile::fake()->createWithContent('fake.pdf', '<?php echo 123;'), 'fictional_sample' => true], ['Accept' => 'application/json'])->assertUnprocessable();
         $this->post($url, ['file' => UploadedFile::fake()->createWithContent('fake.exe', SampleData::pdf()), 'fictional_sample' => true], ['Accept' => 'application/json'])->assertUnprocessable();
         $this->post($url, ['file' => UploadedFile::fake()->create('huge.pdf', 20481, 'application/pdf'), 'fictional_sample' => true], ['Accept' => 'application/json'])->assertUnprocessable();
+        config(['bank.clamav' => '/nonexistent-clamscan']);
         $this->post($url, ['file' => UploadedFile::fake()->createWithContent('sample.pdf', SampleData::pdf())], ['Accept' => 'application/json'])->assertCreated();
         $this->assertDatabaseCount('document_versions', 1);
-        $this->getJson('/api/document-versions/'.DocumentVersion::first()->id.'/content')->assertStatus(423);
+        $version = DocumentVersion::first();
+        $this->assertSame('Unscanned', $version->scan_status);
+        $this->get('/api/document-versions/'.$version->id.'/content')->assertOk()->assertHeader('X-Scan-Status', 'Unscanned');
+        DB::table('bank_scans')->insert(['organization_id' => $this->org->id, 'document_version_id' => $version->id, 'sha256' => $version->sha256, 'status' => 'Rejected', 'adapter' => 'TEST rejected verdict', 'data' => '{}', 'created_at' => now()]);
+        $this->getJson('/api/document-versions/'.$version->id.'/content')->assertStatus(423);
     }
 
     public function test_unauthorized_document_preview_and_exports_require_file_policy(): void

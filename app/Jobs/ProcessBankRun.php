@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Bank\Pipeline;
 use App\Bank\ProcessingException;
 use App\Billing\Usage;
+use App\Jobs\Concerns\UsesAnalysisQueue;
 use App\Models\Bank\Run;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -12,7 +13,7 @@ use Illuminate\Queue\Middleware\WithoutOverlapping;
 
 class ProcessBankRun implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, UsesAnalysisQueue;
 
     public int $tries = 3;
 
@@ -22,7 +23,7 @@ class ProcessBankRun implements ShouldQueue
 
     public function __construct(public string $runId)
     {
-        $this->onQueue('bank');
+        $this->assignAnalysisQueue();
     }
 
     public function backoff(): array
