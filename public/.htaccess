@@ -1,9 +1,31 @@
+# cPanel's stock MIME map often omits SVG and web manifest types, so a linked
+# favicon.svg is ignored. Declare them here, before any rewrite.
+<IfModule mod_mime.c>
+    AddType image/x-icon .ico
+    AddType image/svg+xml .svg
+    AddType image/png .png
+    AddType application/manifest+json .webmanifest
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "^(favicon\.ico|favicon\.svg|favicon-16x16\.png|favicon-32x32\.png|apple-touch-icon\.png|site\.webmanifest)$">
+        Header set Cache-Control "public, max-age=604800"
+        Header set X-Content-Type-Options "nosniff"
+    </FilesMatch>
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
     </IfModule>
 
     RewriteEngine On
+
+    # Serve the brand icons as files. Without this, a missing favicon.ico is
+    # rewritten to index.php and the customer shell answers 200 text/html, which
+    # browsers cache as a broken tab icon. -MultiViews above stops favicon.ico
+    # from being negotiated into favicon.svg.
+    RewriteRule ^(?:favicon\.ico|favicon\.svg|favicon-16x16\.png|favicon-32x32\.png|apple-touch-icon\.png|site\.webmanifest)$ - [L]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .

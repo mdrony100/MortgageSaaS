@@ -24,7 +24,7 @@
     <meta name="twitter:title" content="{{ $title }}">
     <meta name="twitter:description" content="{{ $description }}">
     <meta name="theme-color" content="#102840">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    @include('partials.favicons')
     {{-- Marks JS-enhanced rendering; if site.ts fails to initialise the class is removed so all content stays visible. --}}
     <script>document.documentElement.classList.add('js');setTimeout(function(){var d=document.documentElement;if(!d.classList.contains('site-ready'))d.classList.remove('js')},4000);</script>
     @vite(['resources/css/site.css', 'resources/js/site.ts'])
