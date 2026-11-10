@@ -73,6 +73,7 @@ class Pipeline
                     throw new ProcessingException('Original hash mismatch');
                 }$scan = app(Scanner::class)->scan($tmp.'/original', $file->is_demo && in_array($v->validation_status, ['fictional', 'accepted_sample'], true));
                 DB::table('bank_scans')->insert(['organization_id' => $r->organization_id, 'document_version_id' => $v->id, 'sha256' => $v->sha256, 'status' => $scan['status'], 'adapter' => $scan['adapter'], 'data' => Ledger::json($scan), 'created_at' => now()]);
+                DB::table('document_versions')->where('id', $v->id)->where('organization_id', $r->organization_id)->update(['scan_status' => $scan['status']]);
                 if (in_array($scan['status'], ['Rejected', 'ScanFailed'], true)) {
                     throw new ProcessingException('Malware scan '.$scan['status'].'; original remains quarantined');
                 }

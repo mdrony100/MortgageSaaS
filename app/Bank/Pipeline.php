@@ -53,6 +53,7 @@ class Pipeline
                 }
                 $scan = app(Scanner::class)->scan($path, $file->is_demo && in_array($version->validation_status, ['accepted_sample', 'fictional'], true));
                 DB::table('bank_scans')->insert(['organization_id' => $run->organization_id, 'document_version_id' => $version->id, 'sha256' => $input->sha256, 'status' => $scan['status'], 'adapter' => $scan['adapter'], 'data' => Ledger::json($scan), 'created_at' => now()]);
+                DB::table('document_versions')->where('id', $version->id)->where('organization_id', $run->organization_id)->update(['scan_status' => $scan['status']]);
                 if (in_array($scan['status'], ['Rejected', 'ScanFailed'], true)) {
                     throw new RuntimeException('Malware scan '.$scan['status'].'; original remains quarantined');
                 }

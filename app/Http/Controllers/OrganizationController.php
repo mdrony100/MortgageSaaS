@@ -48,7 +48,7 @@ class OrganizationController extends Controller
         abort_unless(Access::admin($r->user(), $organization->id), 403);
         $d = $r->validate(['email' => 'required|email|max:254', 'role' => ['required', Rule::in(['admin', 'underwriter', 'processor', 'broker', 'viewer'])], 'org_wide_access' => 'sometimes|boolean']);
         $d['email'] = strtolower($d['email']);
-        abort_if(($d['org_wide_access'] ?? false) && $d['role'] !== 'admin', 422, 'Organization-wide grants require the admin role.');
+        abort_if(($d['org_wide_access'] ?? false) && ! in_array($d['role'], ['admin', 'underwriter'], true), 422, 'Organization-wide file access can be granted to an admin or a reviewer only.');
         $token = Str::random(64);
         $invite = DB::transaction(function () use ($r, $organization, $d, $token) {
             $org = Organization::lockForUpdate()->findOrFail($organization->id);
@@ -111,7 +111,7 @@ class OrganizationController extends Controller
         abort_unless($membership->organization_id === $organization->id, 404);
         abort_if($membership->role === 'owner' || $membership->user_id === $r->user()->id, 422, 'Cannot change owner or own membership.');
         $d = $r->validate(['role' => ['required', Rule::in(['admin', 'underwriter', 'processor', 'broker', 'viewer'])], 'org_wide_access' => 'required|boolean']);
-        abort_if($d['org_wide_access'] && $d['role'] !== 'admin', 422);
+        abort_if($d['org_wide_access'] && ! in_array($d['role'], ['admin', 'underwriter'], true), 422, 'Organization-wide file access can be granted to an admin or a reviewer only.');
         $membership->update($d);
         Audit::record('membership.updated', $organization->id, null, ['member_id' => $membership->id]);
 
