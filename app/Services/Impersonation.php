@@ -27,7 +27,7 @@ class Impersonation
 
     public static function start(Request $request, User $admin, User $target, string $reason): ImpersonationSession
     {
-        abort_unless(config('platform.impersonation.enabled'), 403, 'Support sessions are turned off (IMPERSONATION_ENABLED).');
+        abort_unless(config('platform.impersonation.enabled'), 403, 'Support sessions are turned off. Enable them in owner console Settings.');
         abort_unless($admin->platform_admin === true && $admin->hasConfirmedTwoFactor(), 403, 'Support sessions require a platform admin with confirmed two-factor sign-in.');
         abort_if(self::current($request) !== null, 409, 'A support session is already active.');
         if ($target->id === $admin->id || $target->platform_admin) {

@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AuditController as AdminAudit;
 use App\Http\Controllers\Admin\ConsoleController as Console;
 use App\Http\Controllers\Admin\OrganizationAdminController as AdminOrgs;
 use App\Http\Controllers\Admin\ReportController as AdminReports;
+use App\Http\Controllers\Admin\SettingsController as AdminSettings;
 use App\Http\Controllers\Admin\UserAdminController as AdminUsers;
 use App\Http\Controllers\AnalysisController as A;
 use App\Http\Controllers\AppraisalController;
@@ -46,7 +47,7 @@ Route::post('/api/impersonation/stop', function (Request $r) {
     abort_unless(Impersonation::current($r), 409, 'No support session is active.');
     $restored = Impersonation::stop($r, 'returned');
 
-    return ['redirect' => $restored ? '/admin/users' : '/login'];
+    return ['redirect' => $restored ? '/admin' : '/login'];
 })->middleware('auth:sanctum');
 
 // Owner console (platform staff only). Old in-workspace URLs redirect here.
@@ -59,6 +60,7 @@ Route::middleware(['auth:sanctum', 'owner.console:api', 'throttle:owner-console'
     Route::get('revenue', [Console::class, 'revenue']);
     Route::get('plans', [Console::class, 'plans']);
     Route::get('system', [Console::class, 'system']);
+    Route::get('settings', [AdminSettings::class, 'show']);
     Route::get('organizations', [AdminOrgs::class, 'index']);
     Route::get('organizations/{id}', [AdminOrgs::class, 'show'])->whereNumber('id');
     Route::get('users', [AdminUsers::class, 'index']);
@@ -77,6 +79,9 @@ Route::middleware(['auth:sanctum', 'owner.console:api', 'throttle:owner-console'
         Route::patch('inquiries/{id}', [Inquiries::class, 'update'])->whereNumber('id');
         Route::post('inquiries/{id}/notes', [Inquiries::class, 'note'])->whereNumber('id');
         Route::post('inquiries/{id}/convert', [Inquiries::class, 'convert'])->whereNumber('id');
+        Route::put('settings', [AdminSettings::class, 'update']);
+        Route::post('settings/test', [AdminSettings::class, 'test']);
+        Route::post('settings/test-email', [AdminSettings::class, 'testEmail']);
     });
     Route::post('impersonation', [AdminUsers::class, 'impersonate'])->middleware('throttle:impersonation');
 });

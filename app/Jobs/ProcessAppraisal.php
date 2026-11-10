@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Appraisal\ContinueReview;
 use App\Appraisal\Notifications;
 use App\Appraisal\Pipeline;
+use App\Bank\ParserConfigurationException;
 use App\Bank\ProcessingException;
 use App\Billing\Usage;
 use App\Jobs\Concerns\UsesAnalysisQueue;
@@ -66,7 +67,15 @@ class ProcessAppraisal implements ShouldQueue
                 app(Usage::class)->finish($r->organization_id, 'appraisal:'.$r->id, 'cancelled');
 
                 return;
-            }$metrics = $r->fresh()->metrics ?? [];
+            }
+            if ($e instanceof ParserConfigurationException) {
+                $r->update(['status' => 'Failed', 'error' => $e->getMessage()]);
+                app(Usage::class)->finish($r->organization_id, 'appraisal:'.$r->id, 'failed');
+                $this->fail($e);
+
+                return;
+            }
+            $metrics = $r->fresh()->metrics ?? [];
             $metrics['failure_attempts'] = ($metrics['failure_attempts'] ?? 0) + 1;
             $safe = $e instanceof ProcessingException ? $e->getMessage() : 'Review failed; sensitive diagnostics omitted';
             $r->update(['status' => 'Failed', 'error' => $safe, 'metrics' => $metrics]);
@@ -83,6 +92,12 @@ class ProcessAppraisal implements ShouldQueue
         }
         if ($r->status === 'Cancelled') {
             app(Usage::class)->finish($r->organization_id, 'appraisal:'.$r->id, 'cancelled');
+
+            return;
+        }
+        if ($e instanceof ParserConfigurationException) {
+            $r->update(['status' => 'Failed', 'error' => $e->getMessage()]);
+            app(Usage::class)->finish($r->organization_id, 'appraisal:'.$r->id, 'failed');
 
             return;
         }

@@ -30,6 +30,14 @@ class Pipeline
         $this->stage($run, 'Validating');
         $partial = false;
         $seen = [];
+        $pinned = [];
+        foreach (Ledger::query('bank_inputs', $run)->orderBy('id')->get() as $pinnedInput) {
+            $pinnedVersion = DocumentVersion::where('organization_id', $run->organization_id)->find($pinnedInput->document_version_id);
+            if ($pinnedVersion) {
+                $pinned[] = $pinnedVersion;
+            }
+        }
+        app(RunScans::class)->persist($run->organization_id, $pinned, (bool) $file->is_demo);
         $rule = $run->rule_id ? DB::table('bank_rules')->find($run->rule_id) : null;
         $policy = $rule ? json_decode($rule->policy, true) : [];
         $tolerance = (int) ($policy['reconciliation_tolerance_minor'] ?? 1);
@@ -53,7 +61,7 @@ class Pipeline
                 }
                 $scan = app(Scanner::class)->scan($path, $file->is_demo && in_array($version->validation_status, ['accepted_sample', 'fictional'], true));
                 DB::table('bank_scans')->insert(['organization_id' => $run->organization_id, 'document_version_id' => $version->id, 'sha256' => $input->sha256, 'status' => $scan['status'], 'adapter' => $scan['adapter'], 'data' => Ledger::json($scan), 'created_at' => now()]);
-                DB::table('document_versions')->where('id', $version->id)->where('organization_id', $run->organization_id)->update(['scan_status' => $scan['status']]);
+                DB::table('document_versions')->where('id', $version->id)->where('organization_id', $run->organization_id)->where('scan_status', '!=', $scan['status'])->update(['scan_status' => $scan['status']]);
                 if (in_array($scan['status'], ['Rejected', 'ScanFailed'], true)) {
                     throw new RuntimeException('Malware scan '.$scan['status'].'; original remains quarantined');
                 }

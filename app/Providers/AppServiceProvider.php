@@ -24,6 +24,7 @@ use App\Policies\LoanFilePolicy;
 use App\Services\Audit;
 use App\Services\DisabledProvider;
 use App\Services\Impersonation;
+use App\Services\PlatformSettings;
 use App\Services\PrivateStorage;
 use App\Services\SmtpEmail;
 use Illuminate\Auth\Events\Login;
@@ -45,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(PlatformSettings::class);
         $this->app->bind(Extractor::class, VisionExtractor::class);
         $this->app->bind(SubscriptionBilling::class, fn () => config('billing.provider') === 'fake' ? new FakeProvider : new UnavailableProvider);
         foreach (['DocumentExtraction', 'OpenAIAnalysis', 'FraudDetection', 'PlaidImport', 'DocumentClassification', 'MalwareScanner'] as $contract) {
@@ -60,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->applyPlatformSettings();
         // After every provider has registered listeners, keep one verification sender.
         // An SMTP rejection must not roll the new account back into a failed registration.
         $this->app->booted(function () {
@@ -111,5 +114,25 @@ class AppServiceProvider extends ServiceProvider
             DB::table('sessions')->where('user_id', $e->user->id)->delete();
             Audit::record('auth.password_reset');
         });
+    }
+
+    /**
+     * Overlay saved settings onto the already-loaded config repository.
+     * Skipped while config is being cached so the cache keeps environment
+     * fallbacks and each request applies the database values at boot.
+     */
+    private function applyPlatformSettings(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $argv = implode(' ', $_SERVER['argv'] ?? []);
+            if (str_contains($argv, 'config:cache') || str_contains($argv, 'optimize')) {
+                return;
+            }
+        }
+        try {
+            $this->app->make(PlatformSettings::class)->apply();
+        } catch (\Throwable $e) {
+            Log::warning('Platform settings were not applied', ['exception_type' => $e::class]);
+        }
     }
 }

@@ -19,7 +19,7 @@ nav a,.workspace-switch select,.tabs button,.module-switch button,.actions butto
 .badge{padding:3px 9px}
 @media(max-width:1150px){.breadcrumb,.stat span{font-size:13px}.module-switch button{font-size:14px}}
 /* Owner console link and owner support session banner */
-.owner-link{display:flex;align-items:center;gap:8px;margin:14px 0 0;padding:9px 12px;border:1px dashed #4b5f78;border-radius:8px;color:#c7d2fe;font-size:13px;font-weight:600;text-decoration:none}.owner-link:hover{background:#1f3046;text-decoration:none}
+.user-menu-admin{display:inline-flex;align-items:center;margin-right:4px;padding:6px 10px;border:1px solid #c7d2fe;border-radius:8px;background:#eef2ff;color:#312e81;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}.user-menu-admin:hover{background:#e0e7ff;text-decoration:none}
 .support-banner{position:fixed;top:0;left:0;right:0;min-height:var(--support-h);z-index:60;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:10px 20px;background:#b45309;color:#fff;font-size:15px;font-weight:600;box-shadow:0 2px 10px #0004}
 .support-banner strong{font-weight:800}.support-banner span{font-weight:500}
 .support-banner button{margin-left:auto;min-height:40px;padding:6px 16px;border-radius:8px;border:2px solid #fff;background:#fff;color:#7c2d12;font-weight:800;font-size:15px;cursor:pointer}

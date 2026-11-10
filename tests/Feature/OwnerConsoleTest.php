@@ -32,7 +32,7 @@ class OwnerConsoleTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const GET_ENDPOINTS = ['me', 'overview', 'analytics', 'revenue', 'plans', 'system', 'organizations', 'organizations/{org}', 'users', 'impersonations', 'approvals', 'audit', 'reports', 'reports/users?format=csv', 'inquiries', 'inquiries/{inquiry}'];
+    private const GET_ENDPOINTS = ['me', 'overview', 'analytics', 'revenue', 'plans', 'system', 'settings', 'organizations', 'organizations/{org}', 'users', 'impersonations', 'approvals', 'audit', 'reports', 'reports/users?format=csv', 'inquiries', 'inquiries/{inquiry}'];
 
     private User $owner;
 
@@ -94,6 +94,9 @@ class OwnerConsoleTest extends TestCase
             ['post', 'inquiries/{inquiry}/notes', ['body' => 'x']],
             ['post', 'inquiries/{inquiry}/convert', ['organization_name' => 'X', 'plan_id' => 1]],
             ['post', 'impersonation', ['user_id' => $this->owner->id, 'reason' => 'Testing authorization rules']],
+            ['put', 'settings', ['website_contact_phone' => '555-0100']],
+            ['post', 'settings/test', ['check' => 'clamav']],
+            ['post', 'settings/test-email', []],
         ];
     }
 
@@ -471,9 +474,10 @@ class OwnerConsoleTest extends TestCase
         $note = AuditEvent::where('action', 'note.added')->latest('id')->firstOrFail();
         $this->assertSame([$admin->id, $this->owner->id], [$note->metadata['impersonator_id'], $note->metadata['impersonated_user_id']]);
 
-        $this->postJson('/api/impersonation/stop')->assertOk()->assertJsonPath('redirect', '/admin/users');
+        $this->postJson('/api/impersonation/stop')->assertOk()->assertJsonPath('redirect', '/admin');
         $this->nextRequest();
         $this->assertSame($admin->id, auth()->id());
+        $this->getJson($this->url('me'))->assertOk()->assertJsonPath('user.two_factor', true);
         $this->getJson($this->url('overview'))->assertOk();
         $this->getJson('/api/me')->assertJsonPath('impersonation', null);
         $this->assertSame('returned', ImpersonationSession::first()->end_reason);
@@ -497,7 +501,7 @@ class OwnerConsoleTest extends TestCase
         $this->startSupport($admin);
         $this->getJson('/api/me')->assertJsonPath('user.id', $this->owner->id);
         $this->travel(31)->minutes();
-        $this->getJson('/api/files')->assertUnauthorized()->assertJsonPath('code', 'impersonation_ended');
+        $this->getJson('/api/files')->assertUnauthorized()->assertJsonPath('code', 'impersonation_ended')->assertJsonPath('redirect', '/admin');
         $this->nextRequest();
         $this->assertSame($admin->id, auth()->id());
         $this->assertSame('expired', ImpersonationSession::first()->end_reason);

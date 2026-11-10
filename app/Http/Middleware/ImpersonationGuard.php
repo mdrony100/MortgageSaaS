@@ -49,10 +49,10 @@ class ImpersonationGuard
         if ($expired || ! config('platform.impersonation.enabled') || (int) $request->user()?->id !== (int) $imp['target_id']) {
             Impersonation::stop($request, $expired ? 'expired' : 'invalidated');
             if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json(['message' => 'The support session has ended.', 'code' => 'impersonation_ended', 'redirect' => '/admin/users'], 401);
+                return response()->json(['message' => 'The support session has ended.', 'code' => 'impersonation_ended', 'redirect' => '/admin'], 401);
             }
 
-            return redirect('/admin/users');
+            return redirect('/admin');
         }
         if ($this->blocked($request)) {
             Audit::record('impersonation.blocked', null, null, ['admin_id' => $imp['admin_id'], 'target_user_id' => $imp['target_id'], 'method' => $request->method(), 'path' => $request->path()]);
