@@ -18,7 +18,7 @@ let t:any;watch(()=>f.q,()=>{clearTimeout(t);t=setTimeout(()=>{f.page=1;load()},
 <p>You will see the customer workspace exactly as {{target.email}} does, for up to {{d?.impersonation.minutes}} minutes. A banner stays visible the whole time. Password, email, two-factor, billing, role changes, guideline approval and original document downloads are blocked. The start, the end and every change you make are recorded with your name, and the customer's organization sees "Platform support accessed this workspace" in its audit history.</p>
 <form class="c-form" @submit.prevent="start"><label for="support-reason">Reason (required, recorded)</label><textarea id="support-reason" v-model="reason" rows="3" maxlength="500" required minlength="10" placeholder="e.g. Customer asked for help with a stuck bank statement upload (ticket 1042)"></textarea>
 <div class="c-actions"><button class="c-btn" :disabled="starting">{{starting?'Starting…':'Start support session'}}</button><button type="button" class="c-btn ghost" @click="target=null">Cancel</button></div></form></div>
-<p v-if="d&&!d.impersonation.enabled" class="c-alert info">Support sessions are turned off (IMPERSONATION_ENABLED=false).</p>
+<p v-if="d&&!d.impersonation.enabled" class="c-alert info">Support sessions are turned off. Enable them under Settings.</p>
 <p v-else-if="d&&!d.impersonation.allowed" class="c-alert info">Turn on two-factor sign-in for your account to start support sessions.</p>
 <div v-if="d" class="c-card c-flush"><div class="c-table-wrap"><table><caption class="sr-only">Users</caption><thead><tr><th scope="col">User</th><th scope="col">Organizations</th><th scope="col">Security</th><th scope="col">Last sign-in</th><th scope="col">Created</th><th scope="col">Actions</th></tr></thead><tbody>
 <tr v-for="u in d.users.data" :key="u.id"><td><strong>{{u.name}}</strong><span class="c-sub">{{u.email}}</span><Badge v-if="u.platform_admin" value="new" label="Platform admin"/><Badge v-if="u.disabled_at" value="suspended" label="Disabled"/></td>
@@ -30,7 +30,7 @@ let t:any;watch(()=>f.q,()=>{clearTimeout(t);t=setTimeout(()=>{f.page=1;load()},
 <button v-else class="c-btn small ghost" :disabled="busy===u.id" @click="act(u,'enable')">Enable sign-in</button>
 <button v-if="!u.verified" class="c-btn small ghost" :disabled="busy===u.id" @click="act(u,'resend_verification')">Resend verification</button>
 <button class="c-btn small ghost" :disabled="busy===u.id||!!u.disabled_at" @click="act(u,'send_password_reset','Email a password reset link to '+u.email+'?')">Send reset link</button>
-<button v-if="!u.platform_admin" class="c-btn small ghost" :disabled="!d.impersonation.allowed||!!u.disabled_at" @click="openSupport(u)"><Eye :size="16" aria-hidden="true"/>View as customer</button>
+<button v-if="!u.platform_admin" class="c-btn small ghost" :disabled="!d.impersonation.allowed||!!u.disabled_at" @click="openSupport(u)"><Eye :size="16" aria-hidden="true"/>Log in as customer</button>
 </div></td></tr>
 <tr v-if="!d.users.data.length"><td colspan="6" class="c-empty">No users match.</td></tr></tbody></table></div></div>
 <Pager v-if="d" :page="d.users" @go="(p:number)=>{f.page=p;load()}"/>

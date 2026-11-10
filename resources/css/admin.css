@@ -53,6 +53,7 @@ a.c-stat:hover{box-shadow:0 6px 18px #4f46e51f}
 .c-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;background:#fff;border:1px solid var(--c-line);border-radius:14px;padding:16px 18px;margin-bottom:20px}
 label{display:flex;flex-direction:column;gap:6px;font-size:15px;font-weight:600;color:var(--c-ink)}
 input,select,textarea{font:inherit;font-size:16px;font-weight:400;color:var(--c-text);background:#fff;border:1px solid #cbd5e1;border-radius:10px;padding:9px 12px;min-height:44px}
+.c-check{flex-direction:row;align-items:center;gap:10px}.c-check input{width:18px;height:18px;min-height:18px;flex:none}
 select,input,textarea{max-width:100%}.c-inline label,.c-filters label{min-width:0;max-width:100%}
 textarea{min-height:88px;resize:vertical}input:focus,select:focus,textarea:focus{border-color:var(--c-indigo);outline:3px solid #c7d2fe;outline-offset:0}
 .c-grow{flex:1;min-width:220px}

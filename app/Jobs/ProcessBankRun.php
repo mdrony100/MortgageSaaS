@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Bank\ParserConfigurationException;
 use App\Bank\Pipeline;
 use App\Bank\ProcessingException;
 use App\Billing\Usage;
@@ -54,6 +55,12 @@ class ProcessBankRun implements ShouldQueue
                 return;
             }
             app(Usage::class)->finish($r->organization_id, 'bank:'.$r->idempotency_key, 'failed');
+            if ($e instanceof ParserConfigurationException) {
+                $r->update(['status' => 'Failed', 'stage' => 'Failed', 'error_code' => $e->getMessage()]);
+                $this->fail($e);
+
+                return;
+            }
             $message = $e instanceof ProcessingException ? $e->getMessage() : 'Processing error; internal details redacted';
             $r->update(['status' => 'Failed', 'stage' => 'Failed', 'error_code' => mb_substr($message, 0, 240)]);
             // A sanitized exception avoids raw provider/document data in failed_jobs logs.
@@ -65,6 +72,12 @@ class ProcessBankRun implements ShouldQueue
     {
         $r = Run::find($this->runId);
         if (! $r || in_array($r->status, ['Completed', 'PartiallyCompleted', 'NeedsReview'], true)) {
+            return;
+        }
+        if ($exception instanceof ParserConfigurationException) {
+            $r->update(['status' => 'Failed', 'stage' => 'Failed', 'error_code' => $exception->getMessage()]);
+            app(Usage::class)->finish($r->organization_id, 'bank:'.$r->idempotency_key, 'failed');
+
             return;
         }
         if ($r->status !== 'Cancelled') {

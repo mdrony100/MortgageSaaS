@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {ref,onMounted,onBeforeUnmount,watch,provide} from 'vue';import {useRoute} from 'vue-router';
-import {LayoutDashboard,BarChart3,Wallet,ClipboardCheck,Building2,Users,Layers,Inbox,FileDown,ScrollText,Activity,Menu,X,LogOut,ExternalLink,ShieldAlert} from 'lucide-vue-next';
+import {LayoutDashboard,BarChart3,Wallet,ClipboardCheck,Building2,Users,Layers,Inbox,FileDown,ScrollText,SlidersHorizontal,Activity,Menu,X,LogOut,ExternalLink,ShieldAlert} from 'lucide-vue-next';
 import {api} from './util';
 const route=useRoute(),open=ref(false),me=ref<any>(null),error=ref('');
 provide('consoleMe',me);
@@ -15,6 +15,7 @@ const nav=[
  {to:'/inquiries',label:'Website inquiries',icon:Inbox,badge:'new_inquiries'},
  {to:'/reports',label:'Reports',icon:FileDown},
  {to:'/audit',label:'Audit log',icon:ScrollText},
+ {to:'/settings',label:'Settings',icon:SlidersHorizontal},
  {to:'/system',label:'System status',icon:Activity},
 ] as const;
 async function load(){try{me.value=await api('/api/admin/me')}catch(e:any){error.value=e.message}}

@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import {ref,reactive,onMounted,computed} from 'vue';import {useRoute} from 'vue-router';import {api,when,day,bytes} from '../util';import Badge from '../components/Badge.vue';import {ArrowLeft} from 'lucide-vue-next';
-const route=useRoute(),d=ref<any>(null),error=ref(''),success=ref(''),busy=ref(false),note=ref('');
+import {ref,reactive,onMounted,computed,inject,nextTick} from 'vue';import {useRoute} from 'vue-router';import {api,when,day,bytes} from '../util';import Badge from '../components/Badge.vue';import {ArrowLeft,Eye} from 'lucide-vue-next';
+const route=useRoute(),d=ref<any>(null),error=ref(''),success=ref(''),busy=ref(false),note=ref(''),consoleMe=inject<any>('consoleMe',null);
+const supportAllowed=computed(()=>{const state=consoleMe&&typeof consoleMe==='object'&&'value' in consoleMe?consoleMe.value:consoleMe;return !!state?.impersonation?.allowed});
+const target=ref<any>(null),reason=ref(''),starting=ref(false);
 const form=reactive({plan_id:0,status:'active',reason:'',days:14,end_status:'active',file_limit:'' as any,member_limit:'' as any,storage_gb:'' as any});
 const id=computed(()=>Number(route.params.id));
 function fill(x:any){d.value=x;const o=x.organization;form.plan_id=o.plan.id;form.status=o.subscription_status;form.reason='';form.file_limit=o.file_limit_override??'';form.member_limit=o.member_limit_override??'';form.storage_gb=o.storage_limit_bytes_override!=null?+(o.storage_limit_bytes_override/1073741824).toFixed(2):''}
@@ -11,6 +13,8 @@ function saveLimits(){act({action:'set_limits',file_limit:nul(form.file_limit),m
 function suspend(){if(!form.reason.trim()){error.value='Enter a reason before suspending.';return}act({action:'suspend',reason:form.reason},'Organization suspended. Members now see a suspension message.')}
 async function addNote(){if(!note.value.trim())return;busy.value=true;error.value='';try{d.value.notes=(await api('/api/admin/organizations/'+id.value+'/notes','POST',{body:note.value})).notes;note.value='';success.value='Internal note added.'}catch(e:any){error.value=e.message}finally{busy.value=false}}
 const pct=(u:number,l:number)=>l>0?Math.min(100,Math.round(u/l*100)):100;
+async function openSupport(m:any){target.value=m;reason.value='';await nextTick();document.getElementById('org-support-reason')?.focus()}
+async function startSupport(){if(reason.value.trim().length<10){error.value='Describe the reason (at least 10 characters).';return}starting.value=true;error.value='';try{const r=await api('/api/admin/impersonation','POST',{user_id:target.value.user.id,reason:reason.value});location.href=r.redirect}catch(e:any){error.value=e.message;starting.value=false}}
 onMounted(load);
 </script>
 <template><section>
@@ -38,8 +42,13 @@ onMounted(load);
 <hr/><h3>Limit overrides</h3><p class="c-muted">Leave blank to use the plan limit. Overrides apply on top of the plan.</p>
 <form class="c-form c-form-3" @submit.prevent="saveLimits"><label>Files<input v-model="form.file_limit" type="number" min="0" :placeholder="String(d.organization.plan.file_limit)"/></label><label>Members<input v-model="form.member_limit" type="number" min="0" :placeholder="String(d.organization.plan.member_limit)"/></label><label>Storage (GB)<input v-model="form.storage_gb" type="number" min="0" step="0.5" :placeholder="String(d.organization.plan.storage_limit_bytes/1073741824)"/></label><div class="c-actions"><button class="c-btn" :disabled="busy">Save overrides</button></div></form>
 </div></div>
+<div v-if="target" class="c-card c-support" role="region" aria-labelledby="org-support-title">
+<h2 id="org-support-title">Log in as {{target.user.name}}</h2>
+<p>You will see the customer workspace as {{target.user.email}}. Password, billing, role changes and original document downloads stay blocked unless document downloads are allowed in Settings.</p>
+<form class="c-form" @submit.prevent="startSupport"><label for="org-support-reason">Reason (required, recorded)</label><textarea id="org-support-reason" v-model="reason" rows="3" maxlength="500" required minlength="10"></textarea>
+<div class="c-actions"><button class="c-btn" :disabled="starting">{{starting?'Starting…':'Log in as customer'}}</button><button type="button" class="c-btn ghost" @click="target=null">Cancel</button></div></form></div>
 <div class="c-card c-flush"><h2 class="c-pad">Members</h2><div class="c-table-wrap"><table><caption class="sr-only">Members</caption><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Account</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>
-<tr v-for="m in d.members" :key="m.id"><td>{{m.user.name}}</td><td>{{m.user.email}}</td><td>{{m.role}}<span v-if="m.org_wide_access" class="c-muted"> · all files</span></td><td><Badge v-if="m.user.disabled_at" value="suspended" label="Disabled"/><Badge v-else-if="!m.user.email_verified_at" value="pending" label="Unverified"/><Badge v-else value="active" label="Active"/></td><td><RouterLink :to="'/users?q='+encodeURIComponent(m.user.email)">Manage user</RouterLink></td></tr>
+<tr v-for="m in d.members" :key="m.id"><td>{{m.user.name}}</td><td>{{m.user.email}}</td><td>{{m.role}}<span v-if="m.org_wide_access" class="c-muted"> · all files</span></td><td><Badge v-if="m.user.disabled_at" value="suspended" label="Disabled"/><Badge v-else-if="!m.user.email_verified_at" value="pending" label="Unverified"/><Badge v-else value="active" label="Active"/></td><td><div class="c-row-actions"><RouterLink :to="'/users?q='+encodeURIComponent(m.user.email)">Manage user</RouterLink><button v-if="!m.user.platform_admin" class="c-btn small ghost" :disabled="!supportAllowed||!!m.user.disabled_at" @click="openSupport(m)"><Eye :size="16" aria-hidden="true"/>Log in as customer</button></div></td></tr>
 <tr v-if="!d.members.length"><td colspan="5" class="c-empty">No members.</td></tr></tbody></table></div>
 <p class="c-muted c-pad">Usage: {{d.usage.files}} loan files<span v-for="(n,mod) in d.usage.files_by_module" :key="mod"> · {{mod}} {{n}}</span> · {{d.usage.pending_invitations}} pending invitations. File contents are not shown here.</p></div>
 <div class="c-grid-2">
