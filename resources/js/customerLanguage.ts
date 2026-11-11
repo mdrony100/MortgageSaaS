@@ -17,7 +17,7 @@ export function roleName(role?: string | null): string {
 export type StatusCopy = { label: string; help: string; tone: '' | 'teal' | 'amber' | 'red' }
 
 const fileStatus: Record<string, StatusCopy> = {
-  draft: { label: 'Not started', help: 'Upload bank statements or an appraisal to begin.', tone: '' },
+  draft: { label: 'Ready to upload', help: 'Upload bank statements or an appraisal to begin.', tone: '' },
   in_review: { label: 'In review', help: 'A person is checking the findings. Nothing is approved or declined automatically.', tone: 'amber' },
   complete: { label: 'Ready to export', help: 'You can download the report. Open findings can stay open.', tone: 'teal' },
   archived: { label: 'Archived', help: 'This file is put away. Open it and choose Restore if you need it again.', tone: '' },
@@ -71,13 +71,131 @@ export function plainFailure(code?: string | null): string {
   return code
 }
 
-export function stepFor(opts: { documents: number; runStatus?: string | null; hasReport?: boolean }): number {
-  if (!opts.documents) return 1
+export type GuideCta = 'upload' | 'start' | 'wait' | 'review' | 'export' | 'retry' | 'none' | 'create'
+
+export type Guide = {
+  step: number
+  badge: string
+  tone: '' | 'teal' | 'amber' | 'red'
+  title: string
+  body: string
+  hint: string
+  waiting: boolean
+  action: string
+  cta: GuideCta
+}
+
+const processingStatuses = ['Queued', 'Validating', 'Extracting', 'Reconciling', 'Analyzing']
+
+export function guideFor(opts: {
+  documents: number
+  runStatus?: string | null
+  hasReport?: boolean
+  archived?: boolean
+  canReview?: boolean
+  subject?: string
+  failure?: string | null
+}): Guide {
+  const subject = opts.subject || 'bank statements'
+  const canReview = opts.canReview !== false
+  if (opts.archived) {
+    return { step: 4, badge: 'Archived', tone: '', title: 'This file is archived', body: 'Open File actions and choose Restore if you need it again.', hint: 'Archived files stay out of the active list.', waiting: false, action: '', cta: 'none' }
+  }
+  if (!opts.documents) {
+    return { step: 1, badge: 'Ready to upload', tone: '', title: `Upload ${subject}`, body: 'Add a PDF, PNG, or JPG up to 20 MB. The file is only stored until you start analysis.', hint: 'Upload the documents for this borrower.', waiting: false, action: `Upload ${subject}`, cta: 'upload' }
+  }
   const status = opts.runStatus || ''
-  if (['Queued', 'Validating', 'Extracting', 'Reconciling', 'Analyzing'].includes(status)) return 2
-  if (opts.hasReport || status === 'Completed') return 4
-  if (['NeedsReview', 'PartiallyCompleted', 'Failed', 'Cancelled'].includes(status)) return 3
-  return 2
+  if (!status) {
+    if (!canReview) {
+      return { step: 2, badge: 'Ready to start', tone: 'amber', title: 'Waiting for a reviewer', body: 'Your documents are saved. A reviewer starts the analysis. Uploading only stores the file.', hint: 'A reviewer starts analysis.', waiting: false, action: '', cta: 'none' }
+    }
+    return { step: 2, badge: 'Ready to start', tone: 'amber', title: 'Start analysis', body: 'Uploading only stores the file. Nothing is read until you start analysis.', hint: 'Start analysis when you are ready.', waiting: false, action: 'Start analysis', cta: 'start' }
+  }
+  if (processingStatuses.includes(status)) {
+    const copy = explainStatus(status)
+    return { step: 2, badge: copy.label, tone: 'amber', title: copy.label, body: copy.help, hint: 'You can leave this page and come back.', waiting: true, action: '', cta: 'wait' }
+  }
+  if (status === 'Failed') {
+    return { step: 2, badge: 'Processing failed', tone: 'red', title: 'Processing failed', body: plainFailure(opts.failure), hint: 'Use an unlocked PDF, PNG, or JPG, then try again.', waiting: false, action: canReview ? 'Try again' : '', cta: 'retry' }
+  }
+  if (status === 'NeedsReview' || status === 'PartiallyCompleted' || status === 'Cancelled') {
+    const copy = explainStatus(status)
+    return {
+      step: 3,
+      badge: copy.label,
+      tone: 'amber',
+      title: canReview ? 'Review what was flagged' : 'A reviewer is checking this file',
+      body: canReview ? 'Open an issue to see it on the document. A person decides what it means. Nothing is approved or declined automatically.' : 'Questions for you and the export are on this page. Internal findings stay with the reviewer.',
+      hint: canReview ? 'Click an issue to open that page.' : 'Check questions and the export.',
+      waiting: false,
+      action: canReview ? 'Review findings' : 'See questions',
+      cta: 'review',
+    }
+  }
+  if (status === 'Completed' || opts.hasReport) {
+    return { step: 4, badge: 'Ready to export', tone: 'teal', title: 'Export the report', body: 'Download Excel or PDF. Open findings do not block the export. This is not a loan approval.', hint: 'Download the report.', waiting: false, action: 'Export report', cta: 'export' }
+  }
+  return { step: 2, badge: 'Ready to start', tone: 'amber', title: canReview ? 'Start analysis' : 'Waiting for a reviewer', body: 'Uploading only stores the file. Nothing is read until analysis starts.', hint: 'Start analysis when you are ready.', waiting: false, action: canReview ? 'Start analysis' : '', cta: canReview ? 'start' : 'none' }
+}
+
+export function stepFor(opts: { documents: number; runStatus?: string | null; hasReport?: boolean; archived?: boolean; canReview?: boolean; subject?: string; failure?: string | null }): number {
+  return guideFor(opts).step
+}
+
+export type ReviewIssue = {
+  id: string | number
+  title: string
+  detail: string
+  documentVersionId?: number
+  page?: number
+  region?: { x: number; y: number; width: number; height: number; normalized?: boolean }
+}
+
+function asNumber(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) return Number(value)
+  return undefined
+}
+
+function regionFrom(raw: any, forceNormalized?: boolean): ReviewIssue['region'] {
+  if (!raw) return undefined
+  const tuple = Array.isArray(raw)
+    ? raw.slice(0, 4).map(Number)
+    : [Number(raw.x), Number(raw.y), Number(raw.width ?? raw.w), Number(raw.height ?? raw.h)]
+  if (tuple.length < 4 || tuple.some((n) => !Number.isFinite(n))) return undefined
+  const [x, y, width, height] = tuple
+  if (width <= 0 || height <= 0) return undefined
+  const normalized = forceNormalized ?? (raw?.normalized === true || (raw?.normalized !== false && Math.max(x, y, width, height, x + width, y + height) <= 1.05))
+  return { x, y, width, height, normalized }
+}
+
+export function reviewIssues(rows: any[] | null | undefined): ReviewIssue[] {
+  return (rows || []).map((row, index) => {
+    const data = row?.data || row || {}
+    const evidence = data.evidence || data.source || {}
+    const location = row?.location || {}
+    const page = asNumber(location.page) ?? asNumber(row?.source_page) ?? asNumber(data.page) ?? asNumber(evidence.page)
+    const documentVersionId = asNumber(location.document_version_id) ?? asNumber(row?.source_document_version_id) ?? asNumber(data.document_version_id) ?? asNumber(evidence.document_version_id)
+    const columnRegion = [row?.bbox_x, row?.bbox_y, row?.bbox_w, row?.bbox_h].every((value) => value !== null && value !== undefined && value !== '')
+      ? regionFrom([row.bbox_x, row.bbox_y, row.bbox_w, row.bbox_h], true)
+      : undefined
+    const verified = data.region_verified !== false && evidence.region_verified !== false
+    const region = regionFrom(location.bbox, true) || columnRegion || (verified ? regionFrom(data.region) || regionFrom(evidence.region) : undefined)
+    const code = String(data.title || data.code || data.category || 'Potential issue')
+    return {
+      id: row?.id ?? index,
+      title: code.replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase()),
+      detail: String(data.observation || data.explanation || ''),
+      documentVersionId,
+      page,
+      region,
+    }
+  })
+}
+
+export function smoothScroll(): ScrollBehavior {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'auto'
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
 }
 
 export const helpText = {

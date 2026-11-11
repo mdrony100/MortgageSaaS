@@ -147,6 +147,6 @@ class ReviewState
     {
         $reviews = Ledger::latestDecisions('bank_finding_reviews', $r, 'finding_id');
 
-        return array_map(fn ($f) => $f + ['status' => $reviews[$f['id']]['data']['status'] ?? 'open', 'assignee' => $reviews[$f['id']]['data']['assignee'] ?? null, 'disposition' => $reviews[$f['id']]['data'] ?? null], Ledger::rows('bank_findings', $r));
+        return array_map(fn ($f) => $f + ['status' => $reviews[$f['id']]['data']['status'] ?? 'open', 'assignee' => $reviews[$f['id']]['data']['assignee'] ?? null, 'disposition' => $reviews[$f['id']]['data'] ?? null, 'location' => FindingLocation::present($f)], Ledger::rows('bank_findings', $r));
     }
 }

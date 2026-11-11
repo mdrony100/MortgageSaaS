@@ -29,7 +29,18 @@ class FileController extends Controller
             $q->where('name', 'ilike', '%'.substr($r->string('q'), 0, 100).'%');
         }
 
-        return $q->paginate(30)->through(fn ($f) => ['id' => $f->id, 'organization_id' => $f->organization_id, 'name' => $f->name, 'reference' => $f->reference, 'module' => $f->module, 'status' => $f->status, 'is_demo' => $f->is_demo, 'archived_at' => $f->archived_at, 'borrower' => ['id' => $f->borrower->id, 'name' => $f->borrower->name], 'updated_at' => $f->updated_at]);
+        $page = $q->paginate(30);
+        $ids = collect($page->items())->pluck('id');
+        $docs = $ids->isEmpty() ? collect() : DB::table('documents')->join('document_versions', 'document_versions.document_id', '=', 'documents.id')->whereIn('documents.loan_file_id', $ids)->where('documents.category', '!=', 'fixture')->groupBy('documents.loan_file_id')->selectRaw('documents.loan_file_id as loan_file_id, count(*) as c')->pluck('c', 'loan_file_id')->mapWithKeys(fn ($c, $id) => [(int) $id => (int) $c]);
+        $bank = $ids->isEmpty() ? collect() : DB::table('bank_runs')->whereIn('loan_file_id', $ids)->orderByDesc('created_at')->get(['loan_file_id', 'status'])->unique('loan_file_id')->keyBy(fn ($row) => (int) $row->loan_file_id);
+        $review = $ids->isEmpty() ? collect() : DB::table('review_runs')->whereIn('loan_file_id', $ids)->orderByDesc('created_at')->get(['loan_file_id', 'status'])->unique('loan_file_id')->keyBy(fn ($row) => (int) $row->loan_file_id);
+        $reported = $ids->isEmpty() ? collect() : DB::table('bank_reports')->whereIn('loan_file_id', $ids)->pluck('loan_file_id')->merge(DB::table('review_records')->whereIn('loan_file_id', $ids)->where('kind', 'report')->pluck('loan_file_id'))->map(fn ($id) => (int) $id)->unique()->values();
+
+        return $page->through(function ($f) use ($docs, $bank, $review, $reported) {
+            $run = $f->module === 'bank' ? ($bank->get($f->id)->status ?? null) : ($review->get($f->id)->status ?? null);
+
+            return ['id' => $f->id, 'organization_id' => $f->organization_id, 'name' => $f->name, 'reference' => $f->reference, 'module' => $f->module, 'status' => $f->status, 'is_demo' => $f->is_demo, 'archived_at' => $f->archived_at, 'borrower' => ['id' => $f->borrower->id, 'name' => $f->borrower->name], 'updated_at' => $f->updated_at, 'document_count' => (int) ($docs[$f->id] ?? 0), 'latest_run_status' => $run, 'has_report' => $reported->contains($f->id)];
+        });
     }
 
     public function borrowers(Request $r, Organization $organization)

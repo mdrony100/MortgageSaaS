@@ -6,7 +6,7 @@ import FileSteps from '../../resources/js/components/FileSteps.vue';
 import StatusBadge from '../../resources/js/components/StatusBadge.vue';
 import {useAuth} from '../../resources/js/stores/auth';
 import {api} from '../../resources/js/api';
-import {explainStatus,fileSteps} from '../../resources/js/customerLanguage';
+import {explainStatus,fileSteps,guideFor} from '../../resources/js/customerLanguage';
 
 vi.mock('vue-router',()=>({useRouter:()=>({push:vi.fn()})}));
 vi.mock('../../resources/js/api',()=>({api:vi.fn()}));
@@ -24,6 +24,26 @@ describe('customer-facing language',()=>{
     expect(w.text()).toContain('Upload bank statements');
     expect(w.find('[aria-current="step"]').text()).toContain('Upload');
     expect(w.text()).toContain('Export report');
+  });
+  it('keeps the step and the badge on the same moment',()=>{
+    const ready=guideFor({documents:2,runStatus:null,canReview:true});
+    expect(ready.step).toBe(2);
+    expect(ready.badge).toBe('Ready to start');
+    expect(ready.waiting).toBe(false);
+    expect(ready.cta).toBe('start');
+    const reading=guideFor({documents:2,runStatus:'Extracting'});
+    expect(reading.step).toBe(2);
+    expect(reading.badge).toBe('Reading the document');
+    expect(reading.waiting).toBe(true);
+    const review=guideFor({documents:2,runStatus:'NeedsReview'});
+    expect(review.step).toBe(3);
+    expect(review.cta).toBe('review');
+    const failed=guideFor({documents:1,runStatus:'Failed',failure:'Malware scan Unavailable'});
+    expect(failed.step).toBe(2);
+    expect(failed.body).toMatch(/not certified clean/i);
+    expect(failed.body).not.toMatch(/Malware scan/);
+    expect(guideFor({documents:0}).step).toBe(1);
+    expect(guideFor({documents:1,runStatus:'Completed'}).cta).toBe('export');
   });
   it('shows the unscanned explanation next to the badge',()=>{
     const w=mount(StatusBadge,{props:{code:'Unscanned'}});

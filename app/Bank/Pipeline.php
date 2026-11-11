@@ -144,11 +144,11 @@ class Pipeline
                     $t['initial_category'] = $category;
                     $t['suggestion_source'] = 'extraction suggestion + deterministic label hints v1; eligibility separate';
                     $t['status'] = 'unverified_extraction';
-                    // Exact native localization only when the complete description is a unique native word.
-                    $page = array_values(array_filter($manifest['pages'], fn ($p) => $p['number'] === $t['page']))[0];
-                    $matches = array_values(array_filter($page['words'], fn ($w) => $w['text'] === $t['description']));
-                    if (count($matches) === 1) {
-                        $t['region'] = $matches[0]['region'];
+                    // Native coordinates only. A unique line or word run is stored; anything ambiguous stays page-only.
+                    $page = array_values(array_filter($manifest['pages'], fn ($p) => $p['number'] === $t['page']))[0] ?? null;
+                    $region = $page ? (FindingLocation::locate($page, (string) $t['description']) ?? FindingLocation::locate($page, (string) ($t['excerpt'] ?? ''))) : null;
+                    if ($region) {
+                        $t['region'] = $region;
                         $t['region_verified'] = true;
                     }
                     if (Ledger::query('bank_transactions', $run)->count() >= config('bank.max_run_transactions') && ! Ledger::query('bank_transactions', $run)->where('provenance_key', $key)->exists()) {
@@ -160,7 +160,7 @@ class Pipeline
                 $entries = array_values(array_filter(Ledger::rows('bank_transactions', $run), fn ($t) => $t['statement_id'] === $statement['id']));
                 foreach (Reconcile::statement($d, $entries, $tolerance) as $i => $issue) {
                     $partial = true;
-                    $this->finding($run, 'reconcile:'.$version->id.':'.$i, $issue + ['document_version_id' => $version->id]);
+                    $this->finding($run, 'reconcile:'.$version->id.':'.$i, $issue + ['document_version_id' => $version->id, 'page' => $issue['page'] ?? ($d['page_coverage'][0] ?? null)]);
                 }
                 $this->stage($run, 'Analyzing');
                 $external = app(IntegrityProvider::class)->analyze($run, $version->id, $path, $input->sha256);
