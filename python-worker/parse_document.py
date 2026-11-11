@@ -69,8 +69,19 @@ def parse(path, output, max_pages=120):
             if all(math.isfinite(v) for v in region) and x>=0 and y>=0 and width>0 and height>0 and x+width<=1.000001 and y+height<=1.000001:
                 words.append({'text':w[4],'region':region})
         fonts=sorted(set(span.get('font','unknown') for block in p.get_text('dict')['blocks'] if 'lines' in block for line in block['lines'] for span in line['spans']))
+        lines=[]
+        for block in p.get_text('dict')['blocks']:
+            if 'lines' not in block:
+                continue
+            for line in block['lines']:
+                line_text=''.join(span.get('text','') for span in line.get('spans',[])).strip()
+                x0,y0,x1,y1=line['bbox']
+                region=[x0/p.rect.width,y0/p.rect.height,(x1-x0)/p.rect.width,(y1-y0)/p.rect.height]
+                x,y,width,height=region
+                if line_text and all(math.isfinite(v) for v in region) and width>0 and height>0 and x>=0 and y>=0 and x+width<=1.000001 and y+height<=1.000001:
+                    lines.append({'text':line_text,'region':region})
         declared=re.search(r'Page\s+(\d+)\s+(?:of|/)\s*(\d+)',text,re.I)
-        pages.append({'images':images,'images_total':len(listed_images),'image_limitations':image_limitations,'fonts':fonts,'declared_number':int(declared[1]) if declared else None,'declared_total':int(declared[2]) if declared else None,'number':i+1,'width':p.rect.width,'height':p.rect.height,'text':text,'words':words,'render':f'page-{i+1}.png','sha256':hashlib.sha256(text.encode()+p.get_pixmap(matrix=pymupdf.Matrix(.25,.25),alpha=False,annots=False).samples).hexdigest()})
+        pages.append({'images':images,'images_total':len(listed_images),'image_limitations':image_limitations,'fonts':fonts,'declared_number':int(declared[1]) if declared else None,'declared_total':int(declared[2]) if declared else None,'number':i+1,'width':p.rect.width,'height':p.rect.height,'text':text,'words':words,'lines':lines,'render':f'page-{i+1}.png','sha256':hashlib.sha256(text.encode()+p.get_pixmap(matrix=pymupdf.Matrix(.25,.25),alpha=False,annots=False).samples).hexdigest()})
     return {'format':'pdf','metadata':{k:v for k,v in doc.metadata.items() if k in ['format','creator','producer','creationDate','modDate']},'structural':structural,'pages':pages}
 if __name__=='__main__':
     try:

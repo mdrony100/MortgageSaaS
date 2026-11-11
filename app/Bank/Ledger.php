@@ -39,7 +39,11 @@ class Ledger
         if ($old) {
             return self::decode($old);
         }
-        $id = DB::table($table)->insertGetId(self::scope($r) + ['record_key' => $key, 'data' => self::json($data), 'created_at' => now()]);
+        $insert = self::scope($r) + ['record_key' => $key, 'data' => self::json($data), 'created_at' => now()];
+        if ($table === 'bank_findings') {
+            $insert += FindingLocation::columns($data);
+        }
+        $id = DB::table($table)->insertGetId($insert);
 
         return self::decode(DB::table($table)->find($id));
     }

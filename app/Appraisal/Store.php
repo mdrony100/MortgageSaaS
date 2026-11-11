@@ -2,6 +2,7 @@
 
 namespace App\Appraisal;
 
+use App\Bank\FindingLocation;
 use App\Bank\Ledger;
 use App\Models\Review\Run;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,11 @@ class Store
 
     public static function add(Run $r, string $kind, string $key, array $data): array
     {
-        self::query($r)->insertOrIgnore(['organization_id' => $r->organization_id, 'loan_file_id' => $r->loan_file_id, 'run_id' => $r->id, 'kind' => $kind, 'record_key' => $key, 'data' => Ledger::json($data), 'created_at' => now(), 'updated_at' => now()]);
+        $insert = ['organization_id' => $r->organization_id, 'loan_file_id' => $r->loan_file_id, 'run_id' => $r->id, 'kind' => $kind, 'record_key' => $key, 'data' => Ledger::json($data), 'created_at' => now(), 'updated_at' => now()];
+        if ($kind === 'finding') {
+            $insert += FindingLocation::columns($data);
+        }
+        self::query($r)->insertOrIgnore($insert);
         $x = self::query($r)->where('kind', $kind)->where('record_key', $key)->first();
 
         return array_replace((array) $x, ['data' => json_decode($x->data, true)]);
@@ -53,6 +58,7 @@ return array_values($out);
         $out = [];
         foreach (self::rows($r, 'finding') as $f) {
             $f['status'] = 'open';
+            $f['location'] = FindingLocation::present($f);
             $out[$f['id']] = $f;
         }foreach (self::rows($r, 'finding_review') as $v) {
             if (isset($out[$v['data']['finding_id']])) {
