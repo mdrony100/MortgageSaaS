@@ -18,6 +18,22 @@ def fingerprint(im):
     small=im.convert('L').resize((9,8)); pix=list(small.getdata())
     return format(sum((1 << (y*8+x)) for y in range(8) for x in range(8) if pix[y*9+x]>pix[y*9+x+1]),'016x')
 
+def line_regions(words, page):
+    """Group words into lines and emit a normalized box for each line."""
+    rows=[]
+    for w in words:
+        y=w['region'][1]
+        if rows and abs(rows[-1][0]-y)<0.008:
+            rows[-1][1].append(w)
+        else:
+            rows.append([y,[w]])
+    lines=[]
+    for _,ws in rows:
+        xs=[w['region'][0] for w in ws]; ys=[w['region'][1] for w in ws]
+        xe=[w['region'][0]+w['region'][2] for w in ws]; ye=[w['region'][1]+w['region'][3] for w in ws]
+        lines.append({'text':' '.join(w['text'] for w in ws),'region':[min(xs),min(ys),max(xe)-min(xs),max(ye)-min(ys)],'page':page})
+    return lines
+
 def parse(path, output, max_pages=120):
     if os.path.getsize(path)>20*1024*1024: raise ValueError('Document exceeds 20 MiB limit')
     os.makedirs(output,exist_ok=True)
@@ -29,7 +45,7 @@ def parse(path, output, max_pages=120):
         with Image.open(path) as im:
             if im.width*im.height>20000000: raise ValueError('Image exceeds pixel limit')
             im=im.convert('RGB'); image_hash=hashlib.sha256(im.tobytes()).hexdigest(); dhash=fingerprint(im); im.thumbnail((2000,2000)); im.save(os.path.join(output,'page-1.png'))
-            return {'format':'image','metadata':{},'structural':[], 'pages':[{'images':[{'render':'page-1.png','sha256':image_hash,'dhash':dhash,'region':None}],'number':1,'width':im.width,'height':im.height,'text':'','words':[],'render':'page-1.png','sha256':hashlib.sha256(im.tobytes()).hexdigest()}]}
+            return {'format':'image','metadata':{},'structural':[], 'pages':[{'images':[{'render':'page-1.png','sha256':image_hash,'dhash':dhash,'region':None}],'number':1,'width':im.width,'height':im.height,'text':'','words':[],'lines':[],'render':'page-1.png','sha256':hashlib.sha256(im.tobytes()).hexdigest()}]}
     if not magic.startswith(b'%PDF-'): raise ValueError('Malformed or unsupported document')
     doc=pymupdf.open(path)
     if doc.is_encrypted: raise ValueError('Password-protected PDF: upload an unlocked copy')
@@ -70,7 +86,7 @@ def parse(path, output, max_pages=120):
                 words.append({'text':w[4],'region':region})
         fonts=sorted(set(span.get('font','unknown') for block in p.get_text('dict')['blocks'] if 'lines' in block for line in block['lines'] for span in line['spans']))
         declared=re.search(r'Page\s+(\d+)\s+(?:of|/)\s*(\d+)',text,re.I)
-        pages.append({'images':images,'images_total':len(listed_images),'image_limitations':image_limitations,'fonts':fonts,'declared_number':int(declared[1]) if declared else None,'declared_total':int(declared[2]) if declared else None,'number':i+1,'width':p.rect.width,'height':p.rect.height,'text':text,'words':words,'render':f'page-{i+1}.png','sha256':hashlib.sha256(text.encode()+p.get_pixmap(matrix=pymupdf.Matrix(.25,.25),alpha=False,annots=False).samples).hexdigest()})
+        pages.append({'images':images,'images_total':len(listed_images),'image_limitations':image_limitations,'fonts':fonts,'declared_number':int(declared[1]) if declared else None,'declared_total':int(declared[2]) if declared else None,'number':i+1,'width':p.rect.width,'height':p.rect.height,'text':text,'words':words,'lines':line_regions(words,i+1),'render':f'page-{i+1}.png','sha256':hashlib.sha256(text.encode()+p.get_pixmap(matrix=pymupdf.Matrix(.25,.25),alpha=False,annots=False).samples).hexdigest()})
     return {'format':'pdf','metadata':{k:v for k,v in doc.metadata.items() if k in ['format','creator','producer','creationDate','modDate']},'structural':structural,'pages':pages}
 if __name__=='__main__':
     try:

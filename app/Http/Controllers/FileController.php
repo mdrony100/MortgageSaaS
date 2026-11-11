@@ -29,7 +29,41 @@ class FileController extends Controller
             $q->where('name', 'ilike', '%'.substr($r->string('q'), 0, 100).'%');
         }
 
-        return $q->paginate(30)->through(fn ($f) => ['id' => $f->id, 'organization_id' => $f->organization_id, 'name' => $f->name, 'reference' => $f->reference, 'module' => $f->module, 'status' => $f->status, 'is_demo' => $f->is_demo, 'archived_at' => $f->archived_at, 'borrower' => ['id' => $f->borrower->id, 'name' => $f->borrower->name], 'updated_at' => $f->updated_at]);
+        $page = $q->paginate(30);
+        $progress = $this->progress(collect($page->items())->pluck('id')->all());
+
+        return $page->through(fn ($f) => ['id' => $f->id, 'organization_id' => $f->organization_id, 'name' => $f->name, 'reference' => $f->reference, 'module' => $f->module, 'status' => $f->status, 'is_demo' => $f->is_demo, 'archived_at' => $f->archived_at, 'borrower' => ['id' => $f->borrower->id, 'name' => $f->borrower->name], 'updated_at' => $f->updated_at, 'progress' => $progress[$f->id] ?? ['documents' => 0, 'run_status' => null, 'has_report' => false]]);
+    }
+
+    /** @param  array<int, int>  $ids */
+    private function progress(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+        $docs = DB::table('documents')->whereIn('loan_file_id', $ids)->where('category', '!=', 'fixture')->selectRaw('loan_file_id, count(*) as aggregate')->groupBy('loan_file_id')->pluck('aggregate', 'loan_file_id');
+        $bank = [];
+        foreach (DB::table('bank_runs')->whereIn('loan_file_id', $ids)->orderBy('created_at')->get(['loan_file_id', 'status']) as $row) {
+            $bank[$row->loan_file_id] = $row->status;
+        }
+        $review = [];
+        foreach (DB::table('review_runs')->whereIn('loan_file_id', $ids)->orderBy('created_at')->get(['loan_file_id', 'status']) as $row) {
+            $review[$row->loan_file_id] = $row->status;
+        }
+        $bankReports = DB::table('bank_reports')->whereIn('loan_file_id', $ids)->distinct()->pluck('loan_file_id')->flip();
+        $reviewReports = DB::table('review_records')->where('kind', 'report')->whereIn('loan_file_id', $ids)->distinct()->pluck('loan_file_id')->flip();
+        $modules = DB::table('loan_files')->whereIn('id', $ids)->pluck('module', 'id');
+        $out = [];
+        foreach ($ids as $id) {
+            $bankFile = ($modules[$id] ?? 'bank') === 'bank';
+            $out[$id] = [
+                'documents' => (int) ($docs[$id] ?? 0),
+                'run_status' => $bankFile ? ($bank[$id] ?? null) : ($review[$id] ?? null),
+                'has_report' => $bankFile ? isset($bankReports[$id]) : isset($reviewReports[$id]),
+            ];
+        }
+
+        return $out;
     }
 
     public function borrowers(Request $r, Organization $organization)

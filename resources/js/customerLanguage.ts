@@ -71,13 +71,98 @@ export function plainFailure(code?: string | null): string {
   return code
 }
 
-export function stepFor(opts: { documents: number; runStatus?: string | null; hasReport?: boolean }): number {
-  if (!opts.documents) return 1
+const processingStatuses = ['Queued', 'Validating', 'Extracting', 'Reconciling', 'Analyzing', 'DocumentClassificationAndExtraction']
+
+export type JourneyPhase = 'upload' | 'start' | 'processing' | 'failed' | 'review' | 'export' | 'archived'
+
+export type Journey = {
+  step: number
+  settled: boolean
+  failed: boolean
+  phase: JourneyPhase
+  badge: StatusCopy
+  title: string
+  body: string
+  cta: string | null
+}
+
+export function journeyFor(opts: {
+  documents: number
+  runStatus?: string | null
+  hasReport?: boolean
+  archived?: boolean
+  fileStatus?: string | null
+  errorCode?: string | null
+  module?: string | null
+}): Journey {
+  const uploadTitle = opts.module === 'appraisal' ? 'Upload the appraisal' : opts.module === 'dscr' ? 'Upload the rental documents' : 'Upload bank statements'
+  if (opts.archived) {
+    return { step: 4, settled: true, failed: false, phase: 'archived', badge: fileStatus.archived, title: 'This file is archived', body: 'Open File details and choose Restore if you need it again.', cta: null }
+  }
+  if (!opts.documents) {
+    return {
+      step: 1, settled: false, failed: false, phase: 'upload',
+      badge: { label: 'Not started', help: 'Upload the documents for this borrower.', tone: '' },
+      title: uploadTitle,
+      body: 'PDF, PNG, or JPG, up to 20 MB. Nothing is read until you start analysis.',
+      cta: 'Upload documents',
+    }
+  }
   const status = opts.runStatus || ''
-  if (['Queued', 'Validating', 'Extracting', 'Reconciling', 'Analyzing'].includes(status)) return 2
-  if (opts.hasReport || status === 'Completed') return 4
-  if (['NeedsReview', 'PartiallyCompleted', 'Failed', 'Cancelled'].includes(status)) return 3
-  return 2
+  if (processingStatuses.includes(status)) {
+    const badge = explainStatus(status)
+    return {
+      step: 2, settled: false, failed: false, phase: 'processing', badge,
+      title: badge.label,
+      body: 'You can leave this page and come back. This is not a loan decision.',
+      cta: null,
+    }
+  }
+  if (status === 'Failed') {
+    return {
+      step: 2, settled: false, failed: true, phase: 'failed', badge: explainStatus('Failed'),
+      title: 'Processing did not finish',
+      body: plainFailure(opts.errorCode),
+      cta: 'Try again',
+    }
+  }
+  if (opts.hasReport || status === 'Completed' || opts.fileStatus === 'complete') {
+    return {
+      step: 4, settled: false, failed: false, phase: 'export',
+      badge: { label: 'Ready to export', help: 'Download the report. Open findings can stay open.', tone: 'teal' },
+      title: 'Export the report',
+      body: 'Download Excel or PDF. Open findings do not block the export. This is not a loan approval.',
+      cta: 'Go to export',
+    }
+  }
+  if (status === 'NeedsReview' || status === 'PartiallyCompleted' || opts.fileStatus === 'in_review') {
+    const badge = status ? explainStatus(status) : fileStatus.in_review
+    return {
+      step: 3, settled: false, failed: false, phase: 'review', badge,
+      title: 'Review what was flagged',
+      body: 'Choose an item to see it on the document. A person decides what it means. The tool does not call something fraud or approve a loan.',
+      cta: 'Review findings',
+    }
+  }
+  if (status === 'Cancelled') {
+    return {
+      step: 1, settled: true, failed: false, phase: 'start', badge: explainStatus('Cancelled'),
+      title: 'Analysis was cancelled',
+      body: 'The documents are still saved. Start analysis again when you are ready.',
+      cta: 'Start analysis',
+    }
+  }
+  return {
+    step: 1, settled: true, failed: false, phase: 'start',
+    badge: { label: 'Ready to start', help: 'Documents are saved. Start analysis when you are ready. Processing has not begun.', tone: 'amber' },
+    title: 'Start analysis',
+    body: 'Uploading only stores the file. The documents are not read until you start analysis.',
+    cta: 'Start analysis',
+  }
+}
+
+export function stepFor(opts: { documents: number; runStatus?: string | null; hasReport?: boolean }): number {
+  return journeyFor(opts).step
 }
 
 export const helpText = {

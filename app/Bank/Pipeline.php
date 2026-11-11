@@ -19,8 +19,12 @@ use Illuminate\Support\Str;
 
 class Pipeline
 {
+    /** @var array<string, array<int, array<string, mixed>>> */
+    private array $pageWords = [];
+
     public function execute(Run $run): void
     {
+        $this->pageWords = [];
         if (in_array($run->status, ['Completed', 'PartiallyCompleted', 'NeedsReview', 'Cancelled'], true)) {
             return;
         }
@@ -88,6 +92,7 @@ class Pipeline
                 }
                 $hashes = [];
                 foreach ($manifest['pages'] as $p) {
+                    $this->pageWords[$version->id.':'.$p['number']] = $p['words'] ?? [];
                     $artifact = 'bank-derived/'.$run->organization_id.'/'.$run->loan_file_id.'/'.$run->id.'/'.$version->id.'/'.$p['render'];
                     $renderBytes = filesize($tmp.'/derived/'.$p['render']);
                     DB::transaction(function () use ($run, $version, $p, $manifest, $tmp, $artifact, $renderBytes) {
@@ -103,14 +108,14 @@ class Pipeline
                     });
                     if (($p['declared_number'] ?? $p['number']) !== $p['number'] || ($p['declared_total'] ?? count($manifest['pages'])) !== count($manifest['pages'])) {
                         $partial = true;
-                        $this->finding($run, 'page_sequence:'.$version->id.':'.$p['number'], ['category' => 'missing_evidence', 'code' => 'missing_or_reordered_pages', 'observation' => 'Printed page numbering/total differs from uploaded sequence; request complete original', 'document_version_id' => $version->id, 'page' => $p['number']]);
+                        $this->finding($run, 'page_sequence:'.$version->id.':'.$p['number'], ['category' => 'missing_evidence', 'code' => 'missing_or_reordered_pages', 'observation' => 'Printed page numbering/total differs from uploaded sequence; request complete original', 'document_version_id' => $version->id, 'page' => $p['number'], 'locate' => 'Page '.($p['declared_number'] ?? $p['number'])]);
                     }
                     if (count($p['fonts'] ?? []) > 4) {
                         $this->finding($run, 'font_layout:'.$version->id.':'.$p['number'], ['category' => 'integrity_indicator', 'code' => 'native_font_variation', 'observation' => 'Native parser observed more than four font names. This is contextual variation, not proof of tampering', 'document_version_id' => $version->id, 'page' => $p['number'], 'font_names' => $p['fonts']]);
                     }
                     if (isset($hashes[$p['sha256']])) {
                         $partial = true;
-                        $this->finding($run, 'duplicate_page:'.$version->id.':'.$p['number'], ['category' => 'missing_evidence', 'code' => 'duplicate_page', 'observation' => 'Duplicate rendered/text page fingerprint; confirm page sequence and coverage', 'document_version_id' => $version->id, 'page' => $p['number']]);
+                        $this->finding($run, 'duplicate_page:'.$version->id.':'.$p['number'], ['category' => 'missing_evidence', 'code' => 'duplicate_page', 'observation' => 'Duplicate rendered/text page fingerprint; confirm page sequence and coverage', 'document_version_id' => $version->id, 'page' => $p['number'], 'locate' => 'Page '.($p['declared_number'] ?? $p['number'])]);
                     }
                     $hashes[$p['sha256']] = true;
                 }
@@ -146,9 +151,9 @@ class Pipeline
                     $t['status'] = 'unverified_extraction';
                     // Exact native localization only when the complete description is a unique native word.
                     $page = array_values(array_filter($manifest['pages'], fn ($p) => $p['number'] === $t['page']))[0];
-                    $matches = array_values(array_filter($page['words'], fn ($w) => $w['text'] === $t['description']));
-                    if (count($matches) === 1) {
-                        $t['region'] = $matches[0]['region'];
+                    $box = EvidenceLocation::matchWords($page['words'] ?? [], (string) $t['description']);
+                    if ($box) {
+                        $t['region'] = $box;
                         $t['region_verified'] = true;
                     }
                     if (Ledger::query('bank_transactions', $run)->count() >= config('bank.max_run_transactions') && ! Ledger::query('bank_transactions', $run)->where('provenance_key', $key)->exists()) {
@@ -202,7 +207,10 @@ class Pipeline
 
     public function finding(Run $r, string $key, array $data): array
     {
-        return Ledger::append('bank_findings', $r, $key, $data + ['severity' => 'review', 'rule' => 'internal-v1', 'explanation' => 'Evidence indicator requires review, not proof or a loan decision', 'action' => 'Review original source and request clarification', 'status' => 'open']);
+        $data += ['severity' => 'review', 'rule' => 'internal-v1', 'explanation' => 'Evidence indicator requires review, not proof or a loan decision', 'action' => 'Review original source and request clarification', 'status' => 'open'];
+        $located = EvidenceLocation::pin($data, $this->pageWords);
+
+        return Ledger::append('bank_findings', $r, $key, $located);
     }
 
     private function removeWork(string $dir): void

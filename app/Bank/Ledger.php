@@ -28,6 +28,12 @@ class Ledger
         if (isset($a['data']) && is_string($a['data'])) {
             $a['data'] = json_decode($a['data'], true, 512, JSON_THROW_ON_ERROR);
         }
+        if (isset($a['source_bbox']) && is_string($a['source_bbox'])) {
+            $a['source_bbox'] = json_decode($a['source_bbox'], true, 512, JSON_THROW_ON_ERROR);
+        }
+        if (array_key_exists('bbox_verified', $a)) {
+            $a['bbox_verified'] = in_array($a['bbox_verified'], [true, 1, '1', 't', 'true'], true);
+        }
 
         return $a;
     }
@@ -39,7 +45,11 @@ class Ledger
         if ($old) {
             return self::decode($old);
         }
-        $id = DB::table($table)->insertGetId(self::scope($r) + ['record_key' => $key, 'data' => self::json($data), 'created_at' => now()]);
+        $columns = self::scope($r) + ['record_key' => $key, 'data' => self::json($data), 'created_at' => now()];
+        if ($table === 'bank_findings') {
+            $columns += EvidenceLocation::columns($data);
+        }
+        $id = DB::table($table)->insertGetId($columns);
 
         return self::decode(DB::table($table)->find($id));
     }

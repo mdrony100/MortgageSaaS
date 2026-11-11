@@ -3,6 +3,7 @@
 namespace App\Appraisal;
 
 use App\Bank\DocumentParser;
+use App\Bank\EvidenceLocation;
 use App\Bank\Ledger;
 use App\Bank\Money;
 use App\Bank\ProcessingException;
@@ -21,8 +22,12 @@ use Illuminate\Support\Str;
 
 class Pipeline
 {
+    /** @var array<string, array<int, array<string, mixed>>> */
+    private array $pageWords = [];
+
     public function execute(Run $r): void
     {
+        $this->pageWords = [];
         if (in_array($r->status, ['NeedsReview', 'Completed', 'Cancelled'], true)) {
             return;
         }app()->instance(BatchBudget::class, new BatchBudget);
@@ -97,6 +102,7 @@ class Pipeline
                     throw new ProcessingException('Review page limit exceeded');
                 }$seen = [];
                 foreach ($m['pages'] as $p) {
+                    $this->pageWords[$v->id.':'.$p['number']] = $p['words'] ?? [];
                     if (! empty($p['image_limitations'])) {
                         $this->finding($r, 'image-coverage:'.$v->id.':'.$p['number'], 'missing_evidence', 'Embedded-image coverage limitation; full rendered page retained', ['document_version_id' => $v->id, 'page' => $p['number'], 'what_verify' => implode('; ', $p['image_limitations'])]);
                     }
@@ -105,7 +111,7 @@ class Pipeline
                         $this->finding($r, 'duplicate-page:'.$v->id.':'.$p['number'], 'missing_evidence', 'Repeated page fingerprint; legitimate exhibit repetition is possible', ['document_version_id' => $v->id, 'page' => $p['number']]);
                     }$seen[$p['sha256']] = true;
                     if (($p['declared_number'] ?? $p['number']) !== $p['number'] || ($p['declared_total'] ?? count($m['pages'])) !== count($m['pages'])) {
-                        $this->finding($r, 'page-order:'.$v->id.':'.$p['number'], 'missing_evidence', 'Printed page numbering/coverage differs; confirm complete ordered original', ['document_version_id' => $v->id, 'page' => $p['number']]);
+                        $this->finding($r, 'page-order:'.$v->id.':'.$p['number'], 'missing_evidence', 'Printed page numbering/coverage differs; confirm complete ordered original', ['document_version_id' => $v->id, 'page' => $p['number'], 'locate' => 'Page '.($p['declared_number'] ?? $p['number'])]);
                     }foreach ($p['images'] ?? [] as $image) {
                         if ($currentImages >= config('review.max_images')) {
                             throw new ProcessingException('Embedded image review limit reached; original preserved, select bounded documents or manual review');
@@ -142,9 +148,12 @@ class Pipeline
                     }
                     $f = array_replace($f, ['document_version_id' => $v->id, 'normalized' => $f['normalized'], 'raw' => $f['raw'], 'excerpt' => $f['excerpt'], 'region' => null, 'region_verified' => false, 'reviewer_confirmed' => false]);
                     $page = collect($m['pages'])->firstWhere('number', $f['page']);
-                    $matches = array_values(array_filter($page['words'] ?? [], fn ($w) => $w['text'] === $f['raw']));
-                    if (count($matches) === 1) {
-                        $f['region'] = $matches[0]['region'];
+                    $box = EvidenceLocation::matchWords($page['words'] ?? [], (string) ($f['excerpt'] ?: $f['raw']));
+                    if (! $box && ($f['raw'] ?? '') !== '') {
+                        $box = EvidenceLocation::matchWords($page['words'] ?? [], (string) $f['raw']);
+                    }
+                    if ($box) {
+                        $f['region'] = $box;
                         $f['region_verified'] = true;
                     }
                     Store::add($r, 'field', $v->id.':'.$f['key'].':'.($f['unit'] ?? '').':'.$n, $f);
@@ -215,6 +224,8 @@ class Pipeline
 
     public function finding(Run $r, string $key, string $cat, string $obs, array $evidence = []): array
     {
+        $evidence = EvidenceLocation::pin($evidence, $this->pageWords);
+
         return Store::add($r, 'finding', $key, ['category' => $cat, 'priority' => 'review', 'observation' => Ledger::redact($obs), 'evidence' => $evidence, 'guideline' => 'No explicit rule located', 'impact' => 'Review affected input before confirmation', 'what_verify' => $evidence['what_verify'] ?? 'Verify Against Program Guidelines; review original evidence', 'status' => 'open', 'original_suggestion' => true, 'actor' => 'system_evidence_analysis', 'at' => now()->toIso8601String(), 'checklist_version' => $r->checklist['version'] ?? null]);
     }
 

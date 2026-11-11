@@ -662,6 +662,9 @@ class PhaseTwoTest extends TestCase
             $manifest = app(DocumentParser::class)->parse($path, $dir.'/derived');
             $this->assertCount(1, $manifest['pages']);
             $this->assertNotEmpty($manifest['pages'][0]['words']);
+            $this->assertNotEmpty($manifest['pages'][0]['lines']);
+            $this->assertSame(1, $manifest['pages'][0]['lines'][0]['page']);
+            $this->assertCount(4, $manifest['pages'][0]['lines'][0]['region']);
             $run = $this->normalized();
             $extracted = (new NativeExtractor)->extract($manifest, $run, 1, $dir.'/derived');
             $this->assertTrue($extracted['complete']);
