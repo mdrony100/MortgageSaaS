@@ -50,19 +50,19 @@ const figures = computed(() => [
 </script>
 <template>
 <article class="statement-card" id="statement-summary">
-  <header class="statement-card-head">
-    <div>
+  <div class="statement-card-head">
+    <div class="statement-identity">
       <p class="eyebrow">Statement</p>
-      <h3>{{ read(current, 'institution') || 'Statement not read yet' }}</h3>
-      <p>{{ read(current, 'holder') || 'Account holder not on the statement' }} · {{ read(current, 'masked_account') || 'Account number unavailable' }}</p>
-      <p class="micro">{{ period }}</p>
+      <h3 class="statement-institution">{{ read(current, 'institution') || 'Statement not read yet' }}</h3>
+      <p class="statement-holder">{{ read(current, 'holder') || 'Account holder not on the statement' }} · {{ read(current, 'masked_account') || 'Account number unavailable' }}</p>
+      <p class="micro statement-period">{{ period }}</p>
     </div>
     <label v-if="options.length > 1" class="statement-picker">Statement
       <select v-model="selected" aria-label="Statement">
         <option v-for="option in options" :key="option.id" :value="option.id">{{ option.label }}</option>
       </select>
     </label>
-  </header>
+  </div>
   <div v-if="current" class="money-grid">
     <div v-for="[label, amount] in figures" :key="label">
       <span>{{ label }}</span>
