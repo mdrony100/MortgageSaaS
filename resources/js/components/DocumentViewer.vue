@@ -319,14 +319,14 @@ onBeforeUnmount(() => {
 <template>
 <section ref="root" class="doc-reader" aria-label="Document reader" @keydown="onKey">
   <header class="doc-reader-header">
-    <div class="doc-reader-id">
-      <strong :title="version.original_name">{{ version.original_name }}</strong>
-      <StatusBadge kind="integrity" :code="integrity" />
+    <div class="doc-reader-title">
+      <strong class="doc-reader-name" :title="version.original_name">{{ version.original_name }}</strong>
+      <a class="button doc-reader-download" :href="downloadHref">
+        <Download :size="16" aria-hidden="true" />
+        Download original
+      </a>
     </div>
-    <a class="button" :href="downloadHref">
-      <Download :size="16" aria-hidden="true" />
-      Download original
-    </a>
+    <StatusBadge class="doc-reader-integrity" kind="integrity" :code="integrity" />
   </header>
   <p v-if="error" role="alert" class="alert error">{{ error }}</p>
   <p v-if="busy" class="sr-only" aria-live="polite">Rendering document…</p>

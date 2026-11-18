@@ -93,11 +93,12 @@ button,.button{min-height:40px}
 
 /* Document reader */
 .doc-reader{display:flex;flex-direction:column;background:#fff;border:1px solid #e0e7ef;border-radius:10px;overflow:hidden;min-width:0;color:#172b43}
-.doc-reader-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px;background:#fff;border-bottom:1px solid #e0e7ef;flex-wrap:wrap}
-.doc-reader-id{min-width:0;flex:1 1 220px}
-.doc-reader-id strong{display:block;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.doc-reader-header .status-pair{margin-top:6px;max-width:100%}
-.doc-reader-header .button{flex:none}
+.doc-reader-header{display:flex;flex-direction:column;align-items:stretch;flex:0 0 auto;height:auto;min-height:max-content;gap:8px;padding:12px 14px;background:#fff;border-bottom:1px solid #e0e7ef}
+.doc-reader-title{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.doc-reader-name{min-width:0;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-reader-download{flex:none}
+.doc-reader-header .doc-reader-integrity{display:flex;flex-direction:column;align-items:flex-start;gap:4px;max-width:none;width:100%;margin:0}
+.doc-reader-header .status-help{display:block;width:100%;margin:0;line-height:1.45;white-space:normal}
 .doc-reader-body{display:grid;grid-template-columns:112px minmax(0,1fr);min-height:560px;background:#d5dde6}
 .doc-thumbs{background:#e7edf3;border-right:1px solid #c9d4e0;overflow:auto;max-height:760px;padding:10px 8px;display:flex;flex-direction:column;gap:8px}
 .doc-reader button.thumb{display:flex;flex-direction:column;align-items:center;width:100%;min-height:0;padding:6px;background:transparent;border-color:transparent;color:#3e4e63;font-size:13px;box-shadow:none}
@@ -119,9 +120,10 @@ button,.button{min-height:40px}
 .pdf-page .source-highlight{z-index:3}
 .source-pane .doc-reader{border:0;border-radius:0}
 .source-pane .canvas-scroll{max-height:640px}
-.analysis-jump{display:flex;gap:14px;border-bottom:1px solid #dbe4ed;margin:0 0 14px;position:sticky;top:0;background:#fff;z-index:2;padding-top:2px}
-.analysis-jump a{padding:10px 2px;font-weight:700;color:#52657d}
-.analysis-jump a:hover{color:#0f766e;text-decoration:none}
+nav.analysis-jump{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px;position:sticky;top:0;z-index:6;margin:-12px -12px 12px;padding:8px 12px;background:#fff;border-bottom:1px solid #e0e7ef;box-shadow:0 8px 10px -8px #10284033}
+nav.analysis-jump a{display:inline-flex;align-items:center;width:auto;min-height:32px;padding:4px 12px;border:1px solid #d4dce6;border-radius:999px;background:#f4f7fb;color:#24364c;font-size:13px;font-weight:650;line-height:1.2;text-decoration:none}
+nav.analysis-jump a:hover{background:#e7f4f1;color:#0f766e;text-decoration:none}
+#statement-summary,#statement-transactions,#statement-findings{scroll-margin-top:56px}
 .statement-card{border:1px solid #d5e4e1;border-radius:10px;padding:14px 16px;background:#f4faf8;margin:0 0 16px}
 .statement-card h3{margin:2px 0 4px}
 .statement-card p{margin:0 0 4px}
@@ -152,7 +154,8 @@ button.issue-card span{font-weight:500;color:#3e4e63}
  .doc-thumbs{flex-direction:row;max-height:none;border-right:0;border-bottom:1px solid #c9d4e0;overflow-x:auto}
  .doc-reader button.thumb{width:84px;flex:none}
  .doc-reader .canvas-scroll{min-height:320px;max-height:70vh}
- .doc-reader-header{flex-direction:column}
+ .doc-reader-title{align-items:flex-start;flex-direction:column}
+ nav.analysis-jump a{min-height:40px}
  .statement-card-head{flex-direction:column}
  .split-review{grid-template-columns:1fr}
 }
