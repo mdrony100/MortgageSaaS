@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {computed} from 'vue'
-import {explainStatus} from '../customerLanguage'
-const props = defineProps<{code?: string | null}>()
-const copy = computed(() => explainStatus(props.code))
+import {explainIntegrity, explainStatus} from '../customerLanguage'
+const props = defineProps<{code?: string | null; kind?: 'status' | 'integrity'}>()
+const copy = computed(() => props.kind === 'integrity' ? explainIntegrity(props.code) : explainStatus(props.code))
 </script>
 <template>
 <span class="status-pair">
