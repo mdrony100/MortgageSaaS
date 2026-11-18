@@ -48,6 +48,27 @@ const scanStatus: Record<string, StatusCopy> = {
   failed: { label: 'Scan could not finish', help: 'The security scan failed. Try the upload again.', tone: 'red' },
 }
 
+const integrityCopy: Record<'Clean' | 'Unscanned' | 'Unavailable' | 'Quarantined', StatusCopy> = {
+  Clean: { label: 'Clean', help: 'The security scan did not report a problem. Original bytes are unchanged.', tone: 'teal' },
+  Unscanned: { label: 'Unscanned', help: 'No virus scan has cleared this file. It is not certified clean.', tone: 'amber' },
+  Unavailable: { label: 'Unavailable', help: 'Scanning could not run. The file is not certified clean.', tone: 'amber' },
+  Quarantined: { label: 'Quarantined', help: 'The security scan held this file. Do not use it. Upload a different copy.', tone: 'red' },
+}
+
+/** Map a stored scan verdict to the four reader badges. */
+export function integrityCode(version?: { scan_status?: string | null; latest_scan_status?: string | null } | null): keyof typeof integrityCopy {
+  const raw = String(version?.latest_scan_status || version?.scan_status || '').trim().toLowerCase()
+  if (['infected', 'rejected', 'scanfailed', 'failed', 'quarantined'].includes(raw) || raw.includes('quarantine')) return 'Quarantined'
+  if (raw === 'clean') return 'Clean'
+  if (raw === 'unavailable' || raw.includes('unavailable')) return 'Unavailable'
+  return 'Unscanned'
+}
+
+export function explainIntegrity(code?: string | null): StatusCopy {
+  if (code === 'Clean' || code === 'Unscanned' || code === 'Unavailable' || code === 'Quarantined') return integrityCopy[code]
+  return integrityCopy[integrityCode({ scan_status: code })]
+}
+
 export function explainStatus(code?: string | null): StatusCopy {
   if (!code) return { label: 'Unknown', help: 'Refresh the page. If this stays unknown, ask your administrator.', tone: '' }
   return fileStatus[code] || runStatus[code] || scanStatus[code] || {
@@ -146,6 +167,7 @@ export type ReviewIssue = {
   id: string | number
   title: string
   detail: string
+  severity?: string
   documentVersionId?: number
   page?: number
   region?: { x: number; y: number; width: number; height: number; normalized?: boolean }
@@ -157,7 +179,7 @@ function asNumber(value: unknown): number | undefined {
   return undefined
 }
 
-function regionFrom(raw: any, forceNormalized?: boolean): ReviewIssue['region'] {
+export function regionFrom(raw: any, forceNormalized?: boolean): ReviewIssue['region'] {
   if (!raw) return undefined
   const tuple = Array.isArray(raw)
     ? raw.slice(0, 4).map(Number)
@@ -186,6 +208,7 @@ export function reviewIssues(rows: any[] | null | undefined): ReviewIssue[] {
       id: row?.id ?? index,
       title: code.replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase()),
       detail: String(data.observation || data.explanation || ''),
+      severity: String(data.severity || row?.severity || 'review'),
       documentVersionId,
       page,
       region,
