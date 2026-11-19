@@ -15,10 +15,10 @@ $steps = [
 <section class="site-section" aria-labelledby="steps-heading">
     <div class="site-container">
         <h2 id="steps-heading" class="sr-only">Steps</h2>
-        <ol class="relative grid gap-6 before:absolute before:bottom-8 before:left-[1.6rem] before:top-8 before:w-0.5 before:bg-teal-200 md:before:left-[1.85rem]">
+        <ol class="relative grid gap-6 before:absolute before:bottom-8 before:left-[1.6rem] before:top-8 before:w-0.5 before:bg-cyan-200 md:before:left-[1.85rem]">
             @foreach ($steps as $i => [$t, $d, $example])
                 <li class="relative grid gap-4 md:grid-cols-[auto_1fr] md:gap-8" data-reveal>
-                    <span class="relative z-10 inline-flex h-[3.25rem] w-[3.25rem] items-center justify-center rounded-full bg-accent text-xl font-bold text-white shadow-lg shadow-teal-900/20 md:h-[3.75rem] md:w-[3.75rem]" aria-hidden="true">{{ $i + 1 }}</span>
+                    <span class="relative z-10 inline-flex h-[3.25rem] w-[3.25rem] items-center justify-center rounded-full bg-accent text-xl font-bold text-ink shadow-lg shadow-cyan-900/20 md:h-[3.75rem] md:w-[3.75rem]" aria-hidden="true">{{ $i + 1 }}</span>
                     <div class="site-card site-card-hover">
                         <h3 class="site-h3"><span class="sr-only">Step {{ $i + 1 }}: </span>{{ $t }}</h3>
                         <p class="site-copy mt-3">{{ $d }}</p>

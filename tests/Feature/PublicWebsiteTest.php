@@ -354,7 +354,7 @@ class PublicWebsiteTest extends TestCase
             $this->assertStringContainsString('<summary>'.$q.'</summary>', $html);
         }
         // Final CTA
-        $this->assertStringContainsString('See how MortgageLens fits your workflow.', $html);
+        $this->assertStringContainsString('See how Non-QM Doc fits your workflow.', $html);
         $this->assertStringContainsString('Explore bank statement analysis, document checks, and appraisal review in a guided demo.', $html);
         $this->assertStringContainsString('href="'.route('site.contact').'?type=pricing" class="site-btn site-btn-outline-light">Contact Sales</a>', $html);
         $this->get('/contact?type=pricing')->assertSee('<option value="pricing" selected', false);
@@ -366,8 +366,12 @@ class PublicWebsiteTest extends TestCase
         preg_match_all('~<img [^>]*>~', $html, $imgs);
         $this->assertNotEmpty($imgs[0]);
         foreach ($imgs[0] as $img) {
-            $this->assertMatchesRegularExpression('~src="/images/site/[a-z0-9-]+\.jpg"~', $img, 'local images only, no hotlinking');
             $this->assertMatchesRegularExpression('~width="\d+" height="\d+"~', $img);
+            if (str_contains($img, '/images/brand/')) {
+                $this->assertMatchesRegularExpression('~src="/images/brand/[a-z0-9-]+\.png"~', $img, 'brand artwork stays local');
+                continue;
+            }
+            $this->assertMatchesRegularExpression('~src="/images/site/[a-z0-9-]+\.jpg"~', $img, 'local images only, no hotlinking');
             $this->assertStringContainsString('loading="lazy"', $img);
             $this->assertMatchesRegularExpression('~alt="[^"]{10,}"~', $img);
         }

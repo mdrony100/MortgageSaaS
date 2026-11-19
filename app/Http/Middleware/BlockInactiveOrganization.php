@@ -17,9 +17,9 @@ use Symfony\Component\HttpFoundation\Response;
 class BlockInactiveOrganization
 {
     public const MESSAGES = [
-        'organization_suspended' => 'This organization is suspended. Contact MortgageLens support to restore access.',
+        'organization_suspended' => 'This organization is suspended. Contact Non-QM Doc support to restore access.',
         'organization_pending' => 'This organization is waiting for approval. You will receive an email when it is approved.',
-        'organization_rejected' => 'This organization was not approved. Contact MortgageLens support for details.',
+        'organization_rejected' => 'This organization was not approved. Contact Non-QM Doc support for details.',
     ];
 
     public function handle(Request $request, Closure $next): Response

@@ -20,7 +20,10 @@
     <meta property="og:title" content="{{ $title }}">
     <meta property="og:description" content="{{ $description }}">
     <meta property="og:url" content="{{ $canonical }}">
-    <meta name="twitter:card" content="summary">
+    <meta property="og:image" content="{{ \App\Website\Site::url('/images/brand/non-qm-doc-og.png') }}">
+    <meta property="og:image:alt" content="{{ $product }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="{{ \App\Website\Site::url('/images/brand/non-qm-doc-og.png') }}">
     <meta name="twitter:title" content="{{ $title }}">
     <meta name="twitter:description" content="{{ $description }}">
     <meta name="theme-color" content="#102840">
@@ -34,9 +37,7 @@
 <header class="site-header">
     <div class="site-container site-header-row">
         <a href="{{ route('site.home') }}" class="site-brand" aria-label="{{ $product }} home">
-            <span class="site-brand-mark" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6"/></svg>
-            </span>
+            <img class="site-brand-logo" src="/images/brand/non-qm-doc-icon.png" alt="" width="40" height="40">
             {{ $product }}
         </a>
         <nav aria-label="Primary" class="hidden xl:block">
@@ -87,7 +88,10 @@
 <footer class="site-footer">
     <div class="site-container grid gap-10 py-14 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div class="md:col-span-1">
-            <p class="text-xl font-bold text-white">{{ $product }}</p>
+            <picture>
+                <source srcset="/images/brand/non-qm-doc-logo.webp" type="image/webp">
+                <img class="site-footer-logo" src="/images/brand/non-qm-doc-logo.png" alt="{{ $product }}" width="240" height="181">
+            </picture>
             <p class="mt-3 max-w-sm text-slate-300">Mortgage document analysis that supports professional review. {{ $product }} does not make lending decisions.</p>
         </div>
         <div>

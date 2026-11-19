@@ -4,7 +4,7 @@ const d=ref<any>(null),error=ref('');
 onMounted(async()=>{try{d.value=await api('/api/admin/overview')}catch(e:any){error.value=e.message}});
 </script>
 <template><section>
-<div class="c-head"><div><span class="c-eyebrow">Owner console</span><h1>Overview</h1><p class="c-lead">Live counts from the MortgageLens database.</p></div></div>
+<div class="c-head"><div><span class="c-eyebrow">Owner console</span><h1>Overview</h1><p class="c-lead">Live counts from the Non-QM Doc database.</p></div></div>
 <p v-if="error" class="c-alert error" role="alert">{{error}}</p>
 <template v-if="d">
 <div class="c-stats">

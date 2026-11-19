@@ -10,7 +10,7 @@
  */
 return [
     // Product name shown on the public site. Defaults to the existing APP_NAME branding.
-    'product_name' => env('WEBSITE_PRODUCT_NAME', env('APP_NAME', 'MortgageLens')),
+    'product_name' => env('WEBSITE_PRODUCT_NAME', env('APP_NAME', 'Non-QM Doc')),
 
     // Canonical public base URL (no trailing slash). Defaults to APP_URL.
     'url' => rtrim((string) env('WEBSITE_URL', env('APP_URL', 'http://localhost')), '/'),

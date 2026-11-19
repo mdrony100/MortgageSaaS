@@ -29,7 +29,7 @@ class Site
 
     public static function name(): string
     {
-        return (string) config('website.product_name', 'MortgageLens');
+        return (string) config('website.product_name', 'Non-QM Doc');
     }
 
     public static function url(string $path = '/'): string

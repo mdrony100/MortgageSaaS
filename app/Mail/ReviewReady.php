@@ -10,6 +10,6 @@ class ReviewReady extends Mailable
 
     public function build()
     {
-        return $this->subject('MortgageLens review processing update')->text('mail.review-ready');
+        return $this->subject('Non-QM Doc review processing update')->text('mail.review-ready');
     }
 }

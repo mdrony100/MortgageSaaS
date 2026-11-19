@@ -17,7 +17,7 @@ const me={user:{id:1,name:'Fictional Platform Admin',email:'admin@example.test',
 beforeEach(()=>{mocked.mockReset()});
 describe('owner console layout',()=>{
  it('has its own branded shell, console navigation, workspace link and no customer workspace switcher',async()=>{mocked.mockResolvedValue(me);const r=router(['/','/analytics','/revenue','/approvals','/organizations','/users','/plans','/inquiries','/reports','/audit','/settings','/system']);r.push('/organizations');await r.isReady();const w=mount(ConsoleApp,{global:{plugins:[r]}});await flushPromises();
-  expect(w.text()).toContain('MortgageLens Platform');expect(w.text()).toContain('Owner Console');
+  expect(w.text()).toContain('Non-QM Doc');expect(w.text()).toContain('Owner Console');
   const labels=w.findAll('nav[aria-label="Owner console"] a').map(a=>a.text());
   for(const l of ['Overview','Analytics','Revenue','Approvals','Organizations','Users','Plans & billing','Website inquiries','Reports','Audit log','Settings','System status'])expect(labels.some(x=>x.startsWith(l))).toBe(true);
   expect(w.find('a.active').attributes('aria-current')).toBe('page');expect(w.find('a.active').text()).toContain('Organizations');

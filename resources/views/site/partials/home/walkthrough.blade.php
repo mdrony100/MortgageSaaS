@@ -66,7 +66,7 @@
                     <div class="mt-5 grid items-center gap-4 sm:grid-cols-[0.8fr_auto_1.2fr]">
                         <div class="site-doc" aria-hidden="true">
                             <p class="font-semibold text-ink">Sample Bank</p>
-                            <div class="mt-3 grid gap-2"><span class="site-doc-line w-3/4"></span><span class="site-doc-line w-1/2"></span><span class="site-doc-line w-5/6 bg-teal-200"></span><span class="site-doc-line w-2/3"></span><span class="site-doc-line w-3/5 bg-teal-200"></span><span class="site-doc-line w-1/2"></span></div>
+                            <div class="mt-3 grid gap-2"><span class="site-doc-line w-3/4"></span><span class="site-doc-line w-1/2"></span><span class="site-doc-line w-5/6 bg-cyan-200"></span><span class="site-doc-line w-2/3"></span><span class="site-doc-line w-3/5 bg-cyan-200"></span><span class="site-doc-line w-1/2"></span></div>
                             <p class="mt-3 text-[0.875rem] text-muted">Page 1 of 2</p>
                         </div>
                         <div class="hidden w-10 sm:block" aria-hidden="true"><div class="site-connector"></div></div>

@@ -2,7 +2,7 @@
 import {ref,onMounted,onBeforeUnmount,watch,provide} from 'vue';import {useRoute} from 'vue-router';
 import {LayoutDashboard,BarChart3,Wallet,ClipboardCheck,Building2,Users,Layers,Inbox,FileDown,ScrollText,SlidersHorizontal,Activity,Menu,X,LogOut,ExternalLink,ShieldAlert} from 'lucide-vue-next';
 import {api} from './util';
-const route=useRoute(),open=ref(false),me=ref<any>(null),error=ref('');
+const route=useRoute(),open=ref(false),me=ref<any>(null),error=ref(''),brandIcon='/images/brand/non-qm-doc-icon.png';
 provide('consoleMe',me);
 const nav=[
  {to:'/',label:'Overview',icon:LayoutDashboard},
@@ -27,7 +27,7 @@ onMounted(()=>{load();document.addEventListener('keydown',onKey)});onBeforeUnmou
 </script>
 <template><div class="console">
 <header class="c-top"><button class="c-icon-btn c-menu" :aria-expanded="open" aria-controls="console-nav" :aria-label="open?'Close navigation':'Open navigation'" @click="open=!open"><X v-if="open" :size="22"/><Menu v-else :size="22"/></button>
-<RouterLink to="/" class="c-brand"><span class="c-brand-mark" aria-hidden="true">ML</span><span><strong>MortgageLens Platform</strong><small>Owner Console</small></span></RouterLink>
+<RouterLink to="/" class="c-brand"><img class="c-brand-logo" :src="brandIcon" alt="" width="38" height="38"><span><strong>Non-QM Doc</strong><small>Owner Console</small></span></RouterLink>
 <div class="c-top-right"><a href="/dashboard" class="c-top-link"><ExternalLink :size="17"/><span>Open customer workspace</span></a><span v-if="me" class="c-user" :title="me.user.email"><span class="c-avatar" aria-hidden="true">{{me.user.name.slice(0,1)}}</span><span class="c-user-name">{{me.user.name}}</span></span><button class="c-icon-btn" aria-label="Sign out" @click="signOut"><LogOut :size="19"/></button></div></header>
 <div class="c-body">
 <nav id="console-nav" class="c-nav" :class="{open}" aria-label="Owner console"><RouterLink v-for="n in nav" :key="n.to" :to="n.to" :class="{active:active(n.to)}" :aria-current="active(n.to)?'page':undefined"><component :is="n.icon" :size="19" aria-hidden="true"/><span>{{n.label}}</span><span v-if="'badge' in n && me?.[n.badge]" class="c-nav-count" :aria-label="me[n.badge]+' waiting'">{{me[n.badge]}}</span></RouterLink>

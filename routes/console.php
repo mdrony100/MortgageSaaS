@@ -67,7 +67,7 @@ Artisan::command('mortgage:platform-admin {email} {--revoke}', function (string 
     }
 
     return 0;
-})->purpose('Grant (or --revoke) MortgageLens platform admin / owner console access for an existing user.');
+})->purpose('Grant (or --revoke) Non-QM Doc platform admin / owner console access for an existing user.');
 
 // Only transient working directories and encrypted replay cache expire. Original evidence,
 // normalized ledgers, decisions and issued reports are never purged by this command.

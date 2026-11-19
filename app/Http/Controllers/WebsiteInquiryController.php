@@ -106,7 +106,7 @@ class WebsiteInquiryController extends Controller
             $email = strtolower($inquiry->email);
             abort_if(User::where('email', $email)->where('platform_admin', true)->exists(), 422, 'This email belongs to platform staff.');
             $trial = (int) ($d['trial_days'] ?? 0);
-            $org = Organization::create(['name' => $d['organization_name'], 'plan_id' => $d['plan_id'], 'subscription_status' => 'trial', 'trial_ends_at' => $trial > 0 ? now()->addDays($trial) : null, 'approval_status' => 'approved', 'approval_decided_at' => now(), 'branding' => ['product_name' => config('app.name'), 'accent' => '#0f766e'], 'preferences' => ['timezone' => 'America/New_York', 'currency' => 'USD']]);
+            $org = Organization::create(['name' => $d['organization_name'], 'plan_id' => $d['plan_id'], 'subscription_status' => 'trial', 'trial_ends_at' => $trial > 0 ? now()->addDays($trial) : null, 'approval_status' => 'approved', 'approval_decided_at' => now(), 'branding' => ['product_name' => config('app.name'), 'accent' => '#22c6e6'], 'preferences' => ['timezone' => 'America/New_York', 'currency' => 'USD']]);
             Invitation::create(['id' => (string) Str::uuid(), 'organization_id' => $org->id, 'email' => $email, 'role' => 'owner', 'org_wide_access' => true, 'token_hash' => hash('sha256', $token), 'invited_by' => $r->user()->id, 'expires_at' => now()->addDays(7)]);
             $inquiry->update(['converted_organization_id' => $org->id, 'converted_at' => now(), 'status' => $inquiry->status === 'new' ? 'in_progress' : $inquiry->status, 'status_changed_by' => $r->user()->id]);
             Audit::record('website_inquiry.converted', $org->id, null, ['inquiry_id' => $inquiry->id, 'organization_id' => $org->id, 'platform_admin_id' => $r->user()->id]);
@@ -114,7 +114,7 @@ class WebsiteInquiryController extends Controller
             return [$inquiry, $org];
         });
         $url = config('app.url').'/invitations/accept?token='.$token;
-        $queued = SendPlatformEmail::safely($inquiry->email, 'Your MortgageLens workspace invitation', "Hello {$inquiry->name},\n\nThank you for your interest in MortgageLens. A workspace named \"{$org->name}\" has been created for you as the owner.\n\nCreate an account or sign in with this email address ({$inquiry->email}), then open this link within 7 days:\n{$url}\n");
+        $queued = SendPlatformEmail::safely($inquiry->email, 'Your Non-QM Doc workspace invitation', "Hello {$inquiry->name},\n\nThank you for your interest in Non-QM Doc. A workspace named \"{$org->name}\" has been created for you as the owner.\n\nCreate an account or sign in with this email address ({$inquiry->email}), then open this link within 7 days:\n{$url}\n");
 
         return response()->json(['inquiry' => $inquiry->fresh()->load('notes.author'), 'organization_id' => $org->id, 'message' => $queued ? 'Organization created and owner invitation sent.' : 'Organization and invitation created, but the email could not be queued. Check mail settings.'], 201);
     }
