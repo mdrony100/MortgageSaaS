@@ -1,5 +1,5 @@
-# cPanel's stock MIME map often omits SVG and web manifest types, so a linked
-# favicon.svg is ignored. Declare them here, before any rewrite.
+# cPanel's stock MIME map often omits the web manifest type. Declare icon
+# types here, before any rewrite.
 <IfModule mod_mime.c>
     AddType image/x-icon .ico
     AddType image/svg+xml .svg
@@ -8,7 +8,7 @@
 </IfModule>
 
 <IfModule mod_headers.c>
-    <FilesMatch "^(favicon\.ico|favicon\.svg|favicon-16x16\.png|favicon-32x32\.png|apple-touch-icon\.png|site\.webmanifest)$">
+    <FilesMatch "^(favicon\.ico|favicon-32x32\.png|favicon-192x192\.png|favicon-512x512\.png|apple-touch-icon\.png|site\.webmanifest)$">
         Header set Cache-Control "public, max-age=604800"
         Header set X-Content-Type-Options "nosniff"
     </FilesMatch>
@@ -23,9 +23,8 @@
 
     # Serve the brand icons as files. Without this, a missing favicon.ico is
     # rewritten to index.php and the customer shell answers 200 text/html, which
-    # browsers cache as a broken tab icon. -MultiViews above stops favicon.ico
-    # from being negotiated into favicon.svg.
-    RewriteRule ^(?:favicon\.ico|favicon\.svg|favicon-16x16\.png|favicon-32x32\.png|apple-touch-icon\.png|site\.webmanifest)$ - [L]
+    # browsers cache as a broken tab icon.
+    RewriteRule ^(?:favicon\.ico|favicon-32x32\.png|favicon-192x192\.png|favicon-512x512\.png|apple-touch-icon\.png|site\.webmanifest)$ - [L]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .

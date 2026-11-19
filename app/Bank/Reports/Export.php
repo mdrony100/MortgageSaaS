@@ -66,7 +66,7 @@ class Export
         $str = function ($s, $cell, $value) {
             $s->setCellValueExplicit($cell, (string) ($value ?? ''), DataType::TYPE_STRING);
         };
-        foreach (['A1' => 'MortgageLens FALLBACK — client template matching pending', 'A2' => 'Loan Number', 'B2' => $r['loan_number'], 'A3' => 'Borrower', 'B3' => $r['borrower'], 'A4' => 'Report status', 'B4' => $r['status'], 'A5' => 'Snapshot', 'B5' => $r['snapshot_hash']] as $cell => $v) {
+        foreach (['A1' => 'Non-QM Doc FALLBACK — client template matching pending', 'A2' => 'Loan Number', 'B2' => $r['loan_number'], 'A3' => 'Borrower', 'B3' => $r['borrower'], 'A4' => 'Report status', 'B4' => $r['status'], 'A5' => 'Snapshot', 'B5' => $r['snapshot_hash']] as $cell => $v) {
             $str($sheet, $cell, $v);
         }
         if ($r['audience'] === 'broker') {

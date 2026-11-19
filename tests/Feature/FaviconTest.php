@@ -12,18 +12,18 @@ class FaviconTest extends TestCase
 
     private const LINKS = [
         '<link rel="icon" href="/favicon.ico" sizes="any">',
-        '<link rel="icon" href="/favicon.svg" type="image/svg+xml">',
         '<link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32">',
-        '<link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16">',
+        '<link rel="icon" href="/favicon-192x192.png" type="image/png" sizes="192x192">',
+        '<link rel="icon" href="/favicon-512x512.png" type="image/png" sizes="512x512">',
         '<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">',
         '<link rel="manifest" href="/site.webmanifest">',
     ];
 
     private const FILES = [
         'favicon.ico' => 'image/x-icon',
-        'favicon.svg' => 'image/svg+xml',
         'favicon-32x32.png' => 'image/png',
-        'favicon-16x16.png' => 'image/png',
+        'favicon-192x192.png' => 'image/png',
+        'favicon-512x512.png' => 'image/png',
         'apple-touch-icon.png' => 'image/png',
         'site.webmanifest' => 'application/manifest+json',
     ];
@@ -61,15 +61,11 @@ class FaviconTest extends TestCase
             $this->assertSame(file_get_contents($path), $response->streamedContent(), $file);
         }
 
-        $svg = file_get_contents(public_path('favicon.svg'));
-        $this->assertStringContainsString('#0f766e', $svg);
-        $this->assertStringContainsString('<svg', $svg);
-
         $ico = file_get_contents(public_path('favicon.ico'));
         $this->assertSame("\x00\x00\x01\x00", substr($ico, 0, 4));
         $this->assertSame(2, unpack('v', substr($ico, 4, 2))[1]);
 
-        foreach (['favicon-16x16.png' => 16, 'favicon-32x32.png' => 32, 'apple-touch-icon.png' => 180] as $file => $size) {
+        foreach (['favicon-32x32.png' => 32, 'favicon-192x192.png' => 192, 'favicon-512x512.png' => 512, 'apple-touch-icon.png' => 180] as $file => $size) {
             $info = getimagesize(public_path($file));
             $this->assertSame($size, $info[0], $file);
             $this->assertSame($size, $info[1], $file);
@@ -77,20 +73,23 @@ class FaviconTest extends TestCase
         }
 
         $png = imagecreatefrompng(public_path('favicon-32x32.png'));
-        $teal = imagecolorsforindex($png, imagecolorat($png, 1, 16));
-        $this->assertSame(['red' => 15, 'green' => 118, 'blue' => 110, 'alpha' => 0], $teal);
+        $corner = imagecolorsforindex($png, imagecolorat($png, 0, 0));
+        $this->assertGreaterThan(100, $corner['alpha']);
+        $center = imagecolorsforindex($png, imagecolorat($png, 16, 16));
+        $this->assertLessThan(20, $center['alpha']);
 
         $manifest = json_decode($this->get('/site.webmanifest')->streamedContent(), true);
-        $this->assertSame('MortgageLens', $manifest['name']);
+        $this->assertSame('Non-QM Doc', $manifest['name']);
+        $this->assertSame('Non-QM Doc', $manifest['short_name']);
         $this->assertSame('#102840', $manifest['theme_color']);
-        $this->assertSame('#0f766e', $manifest['background_color']);
+        $this->assertSame('#102840', $manifest['background_color']);
         $srcs = array_column($manifest['icons'], 'src');
-        $this->assertSame(['/favicon-16x16.png', '/favicon-32x32.png', '/apple-touch-icon.png'], $srcs);
+        $this->assertSame(['/favicon-32x32.png', '/favicon-192x192.png', '/favicon-512x512.png', '/apple-touch-icon.png'], $srcs);
 
         $htaccess = file_get_contents(public_path('.htaccess'));
         $this->assertStringContainsString('AddType image/svg+xml .svg', $htaccess);
         $this->assertStringContainsString('AddType application/manifest+json .webmanifest', $htaccess);
-        $this->assertStringContainsString('RewriteRule ^(?:favicon\.ico|favicon\.svg|favicon-16x16\.png|favicon-32x32\.png|apple-touch-icon\.png|site\.webmanifest)$ - [L]', $htaccess);
+        $this->assertStringContainsString('RewriteRule ^(?:favicon\.ico|favicon-32x32\.png|favicon-192x192\.png|favicon-512x512\.png|apple-touch-icon\.png|site\.webmanifest)$ - [L]', $htaccess);
     }
 
     private function assertLinks(string $html, string $shell): void

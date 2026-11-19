@@ -9,7 +9,7 @@ use App\Services\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-/** Organization owners can ask MortgageLens to change their plan. No payment is taken here. */
+/** Organization owners can ask Non-QM Doc to change their plan. No payment is taken here. */
 class PlanRequestController extends Controller
 {
     public function index(Request $r, Organization $organization)
@@ -34,6 +34,6 @@ class PlanRequestController extends Controller
             return $req;
         });
 
-        return response()->json(['request' => $req->only(['id', 'status', 'payload', 'created_at']), 'message' => 'Request sent. MortgageLens will review it; no payment is taken here.'], 201);
+        return response()->json(['request' => $req->only(['id', 'status', 'payload', 'created_at']), 'message' => 'Request sent. Non-QM Doc will review it; no payment is taken here.'], 201);
     }
 }

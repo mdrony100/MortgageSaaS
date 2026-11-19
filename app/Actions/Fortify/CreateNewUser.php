@@ -26,7 +26,7 @@ class CreateNewUser implements CreatesNewUsers
             $user = User::create(['name' => $input['name'], 'email' => $input['email'], 'password' => $input['password']]);
             $plan = Plan::firstOrCreate(['name' => 'Starter'], ['file_limit' => 25, 'member_limit' => 5, 'storage_limit_bytes' => 1073741824, 'provisional_monthly_price' => '49.00']);
             $pending = (bool) config('platform.signup_approval');
-            $org = Organization::create(['name' => $input['organization_name'], 'plan_id' => $plan->id, 'approval_status' => $pending ? 'pending' : 'approved', 'branding' => ['product_name' => config('app.name'), 'accent' => '#0f766e'], 'preferences' => ['timezone' => 'America/New_York', 'currency' => 'USD']]);
+            $org = Organization::create(['name' => $input['organization_name'], 'plan_id' => $plan->id, 'approval_status' => $pending ? 'pending' : 'approved', 'branding' => ['product_name' => config('app.name'), 'accent' => '#22c6e6'], 'preferences' => ['timezone' => 'America/New_York', 'currency' => 'USD']]);
             Membership::create(['organization_id' => $org->id, 'user_id' => $user->id, 'role' => 'owner', 'org_wide_access' => true]);
             Audit::record('organization.created', $org->id);
             if ($pending) {

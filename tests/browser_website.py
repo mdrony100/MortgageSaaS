@@ -181,7 +181,7 @@ def run():
         check("FAQ has the five practical questions", all(q in faq_q for q in ["What documents can I upload?", "Can I review and correct extracted information?", "Does the platform make lending decisions?", "What reports can I export?", "Can my team work on the same file?"]))
 
         # Final CTA + links
-        check("final CTA copy", "See how MortgageLens fits your workflow." in page.inner_text("#final-cta-heading"))
+        check("final CTA copy", "See how Non-QM Doc fits your workflow." in page.inner_text("#final-cta-heading"))
         check("Contact Sales preselects pricing inquiry", page.get_attribute('section[aria-labelledby="final-cta-heading"] a:has-text("Contact Sales")', "href").endswith("/contact?type=pricing"))
         page.click('section[aria-labelledby="final-cta-heading"] a:has-text("Request a Demo")'); page.wait_for_load_state("networkidle")
         check("Request a Demo opens contact with demo selected", page.url.endswith("/contact?type=demo") and page.eval_on_selector("#inquiry_type", "e => e.value") == "demo")

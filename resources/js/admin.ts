@@ -7,6 +7,6 @@ import {csrf} from './api';
 const titles:Record<string,string>={};
 export const consoleRoutes=[['/','Overview',Overview],['/analytics','Analytics',Analytics],['/revenue','Revenue',Revenue],['/approvals','Approvals',Approvals],['/organizations','Organizations',Organizations],['/organizations/:id','Organization',OrganizationDetail],['/users','Users',Users],['/plans','Plans & billing',Plans],['/inquiries','Website inquiries',Inquiries],['/reports','Reports',Reports],['/audit','Audit log',Audit],['/settings','Settings',Settings],['/system','System status',System]].map(([path,title,component])=>{titles[path as string]=title as string;return {path:path as string,component:component as any,meta:{title}}});
 const router=createRouter({history:createWebHistory('/admin/'),routes:[...consoleRoutes,{path:'/:pathMatch(.*)*',redirect:'/'}],scrollBehavior:()=>({top:0})});
-let first=true;router.afterEach(to=>{document.title=(to.meta.title?to.meta.title+' · ':'')+'Owner Console · MortgageLens Platform';if(!first)requestAnimationFrame(()=>document.getElementById('console-main')?.focus({preventScroll:true}));first=false});
+let first=true;router.afterEach(to=>{document.title=(to.meta.title?to.meta.title+' · ':'')+'Owner Console · Non-QM Doc';if(!first)requestAnimationFrame(()=>document.getElementById('console-main')?.focus({preventScroll:true}));first=false});
 await csrf();
 createApp(ConsoleApp).use(router).mount('#admin');

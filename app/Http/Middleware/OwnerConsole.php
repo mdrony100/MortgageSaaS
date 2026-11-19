@@ -27,7 +27,7 @@ class OwnerConsole
             return $api ? response()->json(['message' => 'Verify your email address first.', 'code' => 'email_unverified'], 403) : redirect('/verify-email');
         }
         if ($user->platform_admin !== true) {
-            return $this->deny($api, 'not_platform_admin', 'The owner console is only available to MortgageLens platform staff.');
+            return $this->deny($api, 'not_platform_admin', 'The owner console is only available to Non-QM Doc platform staff.');
         }
         if (config('platform.console_require_2fa') && ! $user->hasConfirmedTwoFactor()) {
             return $this->deny($api, 'two_factor_required', 'Turn on two-factor sign-in in My account before opening the owner console.');

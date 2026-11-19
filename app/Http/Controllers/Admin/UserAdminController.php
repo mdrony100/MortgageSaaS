@@ -84,7 +84,7 @@ class UserAdminController extends Controller
                 });
                 $ok = $sent && $status === Password::RESET_LINK_SENT;
                 Audit::record('admin.user.password_reset_sent', null, null, $meta + ['delivered_to_transport' => $ok]);
-                $message = $ok ? 'Password reset link sent. MortgageLens staff never see or set passwords.' : ($status === Password::RESET_THROTTLED ? 'A reset link was sent recently. Please wait before sending another.' : 'The reset link could not be sent. Check mail settings.');
+                $message = $ok ? 'Password reset link sent. Non-QM Doc staff never see or set passwords.' : ($status === Password::RESET_THROTTLED ? 'A reset link was sent recently. Please wait before sending another.' : 'The reset link could not be sent. Check mail settings.');
         }
         $fresh = User::with(['memberships' => fn ($m) => $m->select(['id', 'user_id', 'organization_id', 'role'])->with('organization:id,name')])->findOrFail($user->id);
 

@@ -66,11 +66,11 @@ class ApprovalController extends Controller
         }
         $owners = Membership::where('organization_id', $req->organization_id)->where('role', 'owner')->with('user:id,email')->get()->pluck('user.email');
         $recipients = $recipients->merge($owners)->filter()->unique();
-        $what = $req->type === 'signup' ? 'Your MortgageLens organization "'.$req->organization->name.'"' : 'Your plan change request for "'.$req->organization->name.'"';
+        $what = $req->type === 'signup' ? 'Your Non-QM Doc organization "'.$req->organization->name.'"' : 'Your plan change request for "'.$req->organization->name.'"';
         $outcome = $req->status === 'approved' ? 'has been approved.' : 'was not approved.';
-        $body = $what.' '.$outcome.($req->decision_reason ? "\n\nNote from MortgageLens: ".$req->decision_reason : '')."\n\nSign in: ".config('app.url').'/login';
+        $body = $what.' '.$outcome.($req->decision_reason ? "\n\nNote from Non-QM Doc: ".$req->decision_reason : '')."\n\nSign in: ".config('app.url').'/login';
         foreach ($recipients as $email) {
-            SendPlatformEmail::safely($email, 'MortgageLens: request '.$req->status, $body);
+            SendPlatformEmail::safely($email, 'Non-QM Doc: request '.$req->status, $body);
         }
     }
 }

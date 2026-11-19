@@ -10,7 +10,7 @@ a{color:var(--c-indigo-d)}a:hover{text-decoration:underline}
 .console{min-height:100vh;display:flex;flex-direction:column}
 .c-top{position:sticky;top:0;z-index:30;height:64px;display:flex;align-items:center;gap:14px;padding:0 20px;background:var(--c-navy);color:#e2e8f0;border-bottom:1px solid #1f2b47}
 .c-brand{display:flex;align-items:center;gap:12px;color:#fff;text-decoration:none!important}
-.c-brand-mark{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:15px;letter-spacing:.02em;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;box-shadow:0 4px 14px #6366f155}
+.c-brand-logo{width:38px;height:38px;object-fit:contain;display:block;flex:none}
 .c-brand strong{display:block;font-size:17px;line-height:1.2}.c-brand small{display:block;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--c-indigo-l);font-weight:700}
 .c-top-right{margin-left:auto;display:flex;align-items:center;gap:10px}
 .c-top-link{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border-radius:10px;color:#e2e8f0;border:1px solid #334155;font-size:15px;font-weight:600;text-decoration:none!important}.c-top-link:hover{background:#1e293b}
@@ -103,6 +103,6 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;back
  .c-scrim{display:block;position:fixed;inset:64px 0 0;z-index:35;background:#0f172a80}
  .c-grid-2{grid-template-columns:1fr}
 }
-@media(max-width:640px){.c-top{padding:0 10px;gap:6px}.c-brand strong{font-size:15px}.c-brand-mark{width:34px;height:34px}.c-main{padding:22px 14px 36px}.c-stats{grid-template-columns:1fr 1fr;gap:12px}.c-stat-wide{grid-column:1/-1}.c-stat-value{font-size:26px}.c-form-3{grid-template-columns:1fr}.c-filters label{flex:1 1 140px}.c-card{padding:18px}.c-user{display:none}}
+@media(max-width:640px){.c-top{padding:0 10px;gap:6px}.c-brand strong{font-size:15px}.c-brand-logo{width:34px;height:34px}.c-main{padding:22px 14px 36px}.c-stats{grid-template-columns:1fr 1fr;gap:12px}.c-stat-wide{grid-column:1/-1}.c-stat-value{font-size:26px}.c-form-3{grid-template-columns:1fr}.c-filters label{flex:1 1 140px}.c-card{padding:18px}.c-user{display:none}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 .c-grid-2>*,.c-grid-3>*,.c-main,.c-card{min-width:0}

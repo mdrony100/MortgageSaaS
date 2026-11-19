@@ -153,9 +153,9 @@ Route::post('/api/billing/test-webhook', [BillingController::class, 'webhook'])-
 Route::get('/{asset}', function (string $asset) {
     $types = [
         'favicon.ico' => 'image/x-icon',
-        'favicon.svg' => 'image/svg+xml',
         'favicon-32x32.png' => 'image/png',
-        'favicon-16x16.png' => 'image/png',
+        'favicon-192x192.png' => 'image/png',
+        'favicon-512x512.png' => 'image/png',
         'apple-touch-icon.png' => 'image/png',
         'site.webmanifest' => 'application/manifest+json',
     ];
@@ -166,5 +166,5 @@ Route::get('/{asset}', function (string $asset) {
         'Content-Type' => $types[$asset],
         'Cache-Control' => 'public, max-age=604800',
     ]);
-})->where('asset', 'favicon\.ico|favicon\.svg|favicon-16x16\.png|favicon-32x32\.png|apple-touch-icon\.png|site\.webmanifest');
-Route::get('/{path?}', fn () => view('app'))->where('path', '^(?!api/|sanctum/|horizon|admin(/|$)|(?:favicon(?:\.ico|\.svg|-16x16\.png|-32x32\.png)|apple-touch-icon\.png|site\.webmanifest)$).*$')->name('spa');
+})->where('asset', 'favicon\.ico|favicon-32x32\.png|favicon-192x192\.png|favicon-512x512\.png|apple-touch-icon\.png|site\.webmanifest');
+Route::get('/{path?}', fn () => view('app'))->where('path', '^(?!api/|sanctum/|horizon|admin(/|$)|(?:favicon(?:\.ico|-32x32\.png|-192x192\.png|-512x512\.png)|apple-touch-icon\.png|site\.webmanifest)$).*$')->name('spa');

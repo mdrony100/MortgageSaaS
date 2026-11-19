@@ -54,7 +54,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($r->is('api/auth/forgot-password')) {
                 Log::warning('Password reset email could not be delivered', ['exception_type' => $e::class, 'smtp_rejected' => str_contains($e->getMessage(), '550')]);
 
-                return response()->json(['message' => 'The password reset email could not be delivered. Try again later, or ask an administrator to send a reset link. MortgageLens never sets a password for you.'], 503);
+                return response()->json(['message' => 'The password reset email could not be delivered. Try again later, or ask an administrator to send a reset link. Non-QM Doc never sets a password for you.'], 503);
             }
         });
         $exceptions->render(function (Throwable $e, Request $r) use ($financial) {
