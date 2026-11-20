@@ -114,7 +114,7 @@ class WebsiteInquiryController extends Controller
             return [$inquiry, $org];
         });
         $url = config('app.url').'/invitations/accept?token='.$token;
-        $queued = SendPlatformEmail::safely($inquiry->email, 'Your Non-QM Doc workspace invitation', "Hello {$inquiry->name},\n\nThank you for your interest in Non-QM Doc. A workspace named \"{$org->name}\" has been created for you as the owner.\n\nCreate an account or sign in with this email address ({$inquiry->email}), then open this link within 7 days:\n{$url}\n");
+        $queued = SendPlatformEmail::safely($inquiry->email, 'Your Non-QM Doc AI workspace invitation', "Hello {$inquiry->name},\n\nThank you for your interest in Non-QM Doc AI. A workspace named \"{$org->name}\" has been created for you as the owner.\n\nCreate an account or sign in with this email address ({$inquiry->email}), then open this link within 7 days:\n{$url}\n");
 
         return response()->json(['inquiry' => $inquiry->fresh()->load('notes.author'), 'organization_id' => $org->id, 'message' => $queued ? 'Organization created and owner invitation sent.' : 'Organization and invitation created, but the email could not be queued. Check mail settings.'], 201);
     }

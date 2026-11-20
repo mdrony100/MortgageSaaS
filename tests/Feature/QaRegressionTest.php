@@ -76,7 +76,7 @@ class QaRegressionTest extends TestCase
         $this->postJson('/api/auth/logout');
         $this->postJson('/api/auth/forgot-password', ['email' => 'qa-verify@example.test'])
             ->assertStatus(503)
-            ->assertJsonFragment(['message' => 'The password reset email could not be delivered. Try again later, or ask an administrator to send a reset link. Non-QM Doc never sets a password for you.']);
+            ->assertJsonFragment(['message' => 'The password reset email could not be delivered. Try again later, or ask an administrator to send a reset link. Non-QM Doc AI never sets a password for you.']);
     }
 
     public function test_invitation_is_kept_when_smtp_rejects_the_message(): void

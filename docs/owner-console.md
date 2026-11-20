@@ -1,6 +1,6 @@
 # Owner console (`/admin`)
 
-The owner console is the platform owner's back office. It is separate from the customer workspace: it has its own URL (`/admin`), its own Vite bundle (`resources/js/admin.ts`, `resources/css/admin.css`), its own Blade shell (`resources/views/admin.blade.php`) and a dark navy/indigo design labelled **Owner Console · MortgageLens Platform**. It has no customer workspace switcher and no customer navigation. **Open customer workspace** goes to `/dashboard`.
+The owner console is the platform owner's back office. It is separate from the customer workspace: it has its own URL (`/admin`), its own Vite bundle (`resources/js/admin.ts`, `resources/css/admin.css`), its own Blade shell (`resources/views/admin.blade.php`) and a dark navy/indigo design labelled **Owner Console · Non-QM Doc AI**. It has no customer workspace switcher and no customer navigation. **Open customer workspace** goes to `/dashboard`.
 
 Customers never see it. In the customer app, platform admins get only a small **Owner console** link at the bottom of the sidebar. Old URLs `/platform` and `/platform/inquiries[?id=]` redirect to `/admin` and `/admin/inquiries`. Horizon (`/horizon`) works as before for platform admins.
 

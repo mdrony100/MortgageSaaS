@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "mortgagelens/workspace",
     "type": "project",
-    "description": "MortgageLens Phase 1 secure mortgage review workspace",
+    "description": "Non-QM Doc AI secure mortgage review workspace",
     "keywords": [
         "mortgage",
         "laravel",

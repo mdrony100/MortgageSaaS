@@ -79,8 +79,8 @@ class FaviconTest extends TestCase
         $this->assertLessThan(20, $center['alpha']);
 
         $manifest = json_decode($this->get('/site.webmanifest')->streamedContent(), true);
-        $this->assertSame('Non-QM Doc', $manifest['name']);
-        $this->assertSame('Non-QM Doc', $manifest['short_name']);
+        $this->assertSame('Non-QM Doc AI', $manifest['name']);
+        $this->assertSame('Non-QM Doc AI', $manifest['short_name']);
         $this->assertSame('#102840', $manifest['theme_color']);
         $this->assertSame('#102840', $manifest['background_color']);
         $srcs = array_column($manifest['icons'], 'src');

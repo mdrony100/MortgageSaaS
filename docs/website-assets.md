@@ -18,4 +18,4 @@ Notes:
 
 ## Icons and illustrations
 
-Inline SVG icons are hand-written simple paths (lock, people, shield, house). The brand mark is the existing MortgageLens house icon. No icon library or external font is loaded.
+Inline SVG icons are hand-written simple paths (lock, people, shield, house). The brand mark is the existing Non-QM Doc AI house icon. No icon library or external font is loaded.
