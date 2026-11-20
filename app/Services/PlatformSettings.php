@@ -208,9 +208,9 @@ class PlatformSettings
             config(['mail.mailers.smtp.timeout' => 10]);
             Mail::purge($mailer);
             Mail::mailer($mailer)->raw(
-                'This is a Non-QM Doc settings test. No customer data is included.',
+                'This is a Non-QM Doc AI settings test. No customer data is included.',
                 function ($message) use ($user) {
-                    $message->to($user->email)->subject('Non-QM Doc test email');
+                    $message->to($user->email)->subject('Non-QM Doc AI test email');
                 }
             );
         } catch (\Throwable) {

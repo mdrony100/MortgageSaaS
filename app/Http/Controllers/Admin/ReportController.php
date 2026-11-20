@@ -35,7 +35,7 @@ class ReportController extends Controller
         $to = isset($d['to']) ? Carbon::parse($d['to'])->endOfDay() : null;
         $rows = $this->{$type}($from, $to);
         Audit::record('admin.report.exported', null, null, ['report' => $type, 'format' => $d['format'], 'from' => $from?->toDateString(), 'to' => $to?->toDateString(), 'rows' => count($rows) - 1]);
-        $name = 'non-qm-doc-'.$type.'-'.now()->format('Ymd-His').'.'.$d['format'];
+        $name = 'non-qm-doc-ai-'.$type.'-'.now()->format('Ymd-His').'.'.$d['format'];
 
         return $d['format'] === 'csv' ? $this->csv($rows, $name) : $this->xlsx($rows, $name, self::TYPES[$type]);
     }

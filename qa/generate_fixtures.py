@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write SAMPLE / FICTIONAL MortgageLens QA PDFs. Not a lender form or a real statement.
+"""Write SAMPLE / FICTIONAL Non-QM Doc AI QA PDFs. Not a lender form or a real statement.
 
 Run: .venv-document-worker/bin/python qa/generate_fixtures.py
 """
@@ -30,7 +30,7 @@ def write_text_pdf(path: Path, lines):
 def statement_lines(header, transactions, page_label="Page 1 of 1"):
     lines = [
         MARK,
-        "This is a fictional bank statement created for MortgageLens QA. Not a real account.",
+        "This is a fictional bank statement created for Non-QM Doc AI QA. Not a real account.",
         "Bank statement",
         page_label,
         f"Institution: {header['institution']}",

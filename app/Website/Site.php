@@ -29,7 +29,7 @@ class Site
 
     public static function name(): string
     {
-        return (string) config('website.product_name', 'Non-QM Doc');
+        return (string) config('website.product_name', 'Non-QM Doc AI');
     }
 
     public static function url(string $path = '/'): string

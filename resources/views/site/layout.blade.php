@@ -37,7 +37,7 @@
 <header class="site-header">
     <div class="site-container site-header-row">
         <a href="{{ route('site.home') }}" class="site-brand" aria-label="{{ $product }} home">
-            <img class="site-brand-logo" src="/images/brand/non-qm-doc-icon.png" alt="" width="40" height="40">
+            <img class="site-brand-logo" src="/images/brand/non-qm-doc-icon.png" alt="{{ $product }}" width="40" height="40">
             {{ $product }}
         </a>
         <nav aria-label="Primary" class="hidden xl:block">

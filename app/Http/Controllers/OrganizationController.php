@@ -61,7 +61,7 @@ class OrganizationController extends Controller
         $url = config('app.url').'/invitations/accept?token='.$token;
         $delivered = true;
         try {
-            Mail::raw('You are invited to a Non-QM Doc workspace. Sign in with this email, then open: '.$url, fn ($m) => $m->to($d['email'])->subject('Non-QM Doc workspace invitation'));
+            Mail::raw('You are invited to a Non-QM Doc AI workspace. Sign in with this email, then open: '.$url, fn ($m) => $m->to($d['email'])->subject('Non-QM Doc AI workspace invitation'));
         } catch (\Throwable $e) {
             $delivered = false;
             Log::warning('Invitation email could not be delivered', ['invitation_id' => $invite->id, 'exception_type' => $e::class, 'smtp_rejected' => str_contains($e->getMessage(), '550')]);
