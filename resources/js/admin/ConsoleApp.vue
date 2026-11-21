@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {ref,onMounted,onBeforeUnmount,watch,provide} from 'vue';import {useRoute} from 'vue-router';
-import {LayoutDashboard,BarChart3,Wallet,ClipboardCheck,Building2,Users,Layers,Inbox,FileDown,ScrollText,SlidersHorizontal,Activity,Menu,X,LogOut,ExternalLink,ShieldAlert} from 'lucide-vue-next';
+import {LayoutDashboard,BarChart3,Wallet,ClipboardCheck,Building2,Users,Layers,Inbox,LifeBuoy,FileDown,ScrollText,SlidersHorizontal,Activity,Menu,X,LogOut,ExternalLink,ShieldAlert} from 'lucide-vue-next';
 import {api} from './util';
 const route=useRoute(),open=ref(false),me=ref<any>(null),error=ref(''),brandIcon='/images/brand/non-qm-doc-icon.png';
 provide('consoleMe',me);
@@ -13,6 +13,7 @@ const nav=[
  {to:'/users',label:'Users',icon:Users},
  {to:'/plans',label:'Plans & billing',icon:Layers},
  {to:'/inquiries',label:'Website inquiries',icon:Inbox,badge:'new_inquiries'},
+ {to:'/support-tickets',label:'Support tickets',icon:LifeBuoy,badge:'open_tickets'},
  {to:'/reports',label:'Reports',icon:FileDown},
  {to:'/audit',label:'Audit log',icon:ScrollText},
  {to:'/settings',label:'Settings',icon:SlidersHorizontal},

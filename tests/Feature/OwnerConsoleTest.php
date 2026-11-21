@@ -32,7 +32,7 @@ class OwnerConsoleTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const GET_ENDPOINTS = ['me', 'overview', 'analytics', 'revenue', 'plans', 'system', 'settings', 'organizations', 'organizations/{org}', 'users', 'impersonations', 'approvals', 'audit', 'reports', 'reports/users?format=csv', 'inquiries', 'inquiries/{inquiry}'];
+    private const GET_ENDPOINTS = ['me', 'overview', 'analytics', 'revenue', 'plans', 'system', 'settings', 'organizations', 'organizations/{org}', 'users', 'impersonations', 'approvals', 'audit', 'reports', 'reports/users?format=csv', 'inquiries', 'inquiries/{inquiry}', 'support-tickets'];
 
     private User $owner;
 
@@ -93,6 +93,8 @@ class OwnerConsoleTest extends TestCase
             ['patch', 'inquiries/{inquiry}', ['status' => 'closed']],
             ['post', 'inquiries/{inquiry}/notes', ['body' => 'x']],
             ['post', 'inquiries/{inquiry}/convert', ['organization_name' => 'X', 'plan_id' => 1]],
+            ['patch', 'support-tickets/1', ['status' => 'closed']],
+            ['post', 'support-tickets/1/replies', ['message' => 'We are looking at this.']],
             ['post', 'impersonation', ['user_id' => $this->owner->id, 'reason' => 'Testing authorization rules']],
             ['put', 'settings', ['website_contact_phone' => '555-0100']],
             ['post', 'settings/test', ['check' => 'clamav']],
