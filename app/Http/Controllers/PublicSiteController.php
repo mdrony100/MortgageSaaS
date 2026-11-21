@@ -92,7 +92,7 @@ class PublicSiteController extends Controller
     public function robots()
     {
         $lines = Site::indexable()
-            ? ['User-agent: *', 'Allow: /', 'Disallow: /api/', 'Disallow: /dashboard', 'Disallow: /files/', 'Disallow: /settings/', 'Disallow: /platform', 'Disallow: /horizon', '', 'Sitemap: '.Site::url('/sitemap.xml')]
+            ? ['User-agent: *', 'Allow: /', 'Disallow: /api/', 'Disallow: /dashboard', 'Disallow: /files/', 'Disallow: /settings/', 'Disallow: /support', 'Disallow: /platform', 'Disallow: /horizon', '', 'Sitemap: '.Site::url('/sitemap.xml')]
             : ['# Indexing disabled for this environment.', 'User-agent: *', 'Disallow: /'];
 
         return response(implode("\n", $lines)."\n", 200, ['Content-Type' => 'text/plain; charset=UTF-8']);

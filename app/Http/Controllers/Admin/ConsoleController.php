@@ -7,6 +7,7 @@ use App\Models\LoanFile;
 use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\PlatformRequest;
+use App\Models\SupportTicket;
 use App\Models\User;
 use App\Models\WebsiteInquiry;
 use App\Services\Entitlements;
@@ -31,7 +32,7 @@ class ConsoleController extends Controller
     {
         $u = $r->user();
 
-        return ['user' => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'two_factor' => $u->hasConfirmedTwoFactor()], 'privacy_notice' => self::PRIVACY_NOTICE, 'impersonation' => ['enabled' => (bool) config('platform.impersonation.enabled'), 'minutes' => (int) config('platform.impersonation.minutes'), 'allowed' => (bool) config('platform.impersonation.enabled') && $u->hasConfirmedTwoFactor()], 'pending_approvals' => PlatformRequest::where('status', 'pending')->count(), 'new_inquiries' => WebsiteInquiry::where('status', 'new')->where('is_spam', false)->count()];
+        return ['user' => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'two_factor' => $u->hasConfirmedTwoFactor()], 'privacy_notice' => self::PRIVACY_NOTICE, 'impersonation' => ['enabled' => (bool) config('platform.impersonation.enabled'), 'minutes' => (int) config('platform.impersonation.minutes'), 'allowed' => (bool) config('platform.impersonation.enabled') && $u->hasConfirmedTwoFactor()], 'pending_approvals' => PlatformRequest::where('status', 'pending')->count(), 'new_inquiries' => WebsiteInquiry::where('status', 'new')->where('is_spam', false)->count(), 'open_tickets' => SupportTicket::where('status', 'open')->count()];
     }
 
     public function overview()

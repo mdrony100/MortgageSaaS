@@ -19,6 +19,7 @@ class AuditController extends Controller
         'auth' => ['Sign-ins and account security', ['auth.%']],
         'impersonation' => ['Support sessions', ['impersonation.%', 'platform_support.%']],
         'inquiry' => ['Website inquiries', ['website_inquiry.%']],
+        'support' => ['Support tickets', ['support_ticket.%']],
         'requests' => ['Customer requests', ['plan_change.%', 'organization.created']],
         'cli' => ['Operator commands', ['platform.%']],
     ];

@@ -6,6 +6,8 @@ use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\LoanFile;
 use App\Models\Organization;
+use App\Models\SupportTicket;
+use App\Models\SupportTicketAttachment;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -46,7 +48,7 @@ class BlockInactiveOrganization
         if (isset($p['organization'])) {
             return (int) ($p['organization'] instanceof Organization ? $p['organization']->id : $p['organization']);
         }
-        $map = ['file' => LoanFile::class, 'document' => Document::class, 'version' => DocumentVersion::class];
+        $map = ['file' => LoanFile::class, 'document' => Document::class, 'version' => DocumentVersion::class, 'ticket' => SupportTicket::class, 'attachment' => SupportTicketAttachment::class];
         foreach ($map as $key => $class) {
             if (isset($p[$key])) {
                 $model = $p[$key] instanceof $class ? $p[$key] : $class::find($p[$key]);
