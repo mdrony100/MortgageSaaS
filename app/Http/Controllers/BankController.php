@@ -13,6 +13,8 @@ use App\Bank\RuleProfile;
 use App\Bank\TransferEngine;
 use App\Billing\Usage;
 use App\Jobs\ProcessBankRun;
+use App\Jobs\RunAiFraudCheck;
+use App\Models\Bank\FraudCheck;
 use App\Models\Bank\Run;
 use App\Models\DocumentVersion;
 use App\Models\LoanFile;
@@ -22,6 +24,7 @@ use App\Services\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -52,7 +55,7 @@ class BankController extends Controller
         $run = $id ? $this->run($file, $id) : null;
         $data = ['audience' => 'internal', 'runs' => $runs, 'rules' => DB::table('bank_rules')->where('organization_id', $file->organization_id)->get()->map(fn ($x) => ['id' => $x->id, 'name' => $x->name, 'version' => $x->version, 'status' => $x->status, 'policy' => json_decode($x->policy, true)]), 'reason_codes' => config('bank.reason_codes'), 'categories' => config('bank.categories')];
         if ($run) {
-            $data += ['run' => $run, 'inputs_fresh' => BankStatus::freshness($run), 'integrity' => BankStatus::integrity($run), 'scans' => DB::table('bank_scans')->where('organization_id', $run->organization_id)->whereIn('document_version_id', Ledger::query('bank_inputs', $run)->pluck('document_version_id'))->orderByDesc('id')->get(['document_version_id', 'status', 'adapter', 'created_at']), 'provider_usage' => Ledger::query('bank_provider_calls', $run)->get()->map(fn ($call) => ['provider' => $call->provider, 'version' => $call->version, 'status' => $call->status, 'reserved_micro_usd' => $call->reserved_micro_usd, 'usage' => json_decode($call->data, true)['usage'] ?? null]), 'statements' => ReviewState::statements($run), 'accounts' => array_values(ReviewState::accounts($run)), 'transactions' => ReviewState::transactions($run), 'transfers' => ReviewState::transfers($run), 'findings' => ReviewState::findings($run), 'calculations' => Ledger::rows('bank_calculations', $run), 'reports' => Ledger::rows('bank_reports', $run), 'conditions' => $this->publicRows($file, 'bank_conditions'), 'messages' => $this->publicRows($file, 'bank_messages'), 'condition_history' => Ledger::rows('bank_conditions', $run), 'review_history' => array_merge(Ledger::rows('bank_reviews', $run), Ledger::rows('bank_finding_reviews', $run), Ledger::rows('bank_transfer_reviews', $run))];
+            $data += ['run' => $run, 'inputs_fresh' => BankStatus::freshness($run), 'integrity' => BankStatus::integrity($run), 'fraud_checks' => $this->fraudChecks($run), 'scans' => DB::table('bank_scans')->where('organization_id', $run->organization_id)->whereIn('document_version_id', Ledger::query('bank_inputs', $run)->pluck('document_version_id'))->orderByDesc('id')->get(['document_version_id', 'status', 'adapter', 'created_at']), 'provider_usage' => Ledger::query('bank_provider_calls', $run)->get()->map(fn ($call) => ['provider' => $call->provider, 'version' => $call->version, 'status' => $call->status, 'reserved_micro_usd' => $call->reserved_micro_usd, 'usage' => json_decode($call->data, true)['usage'] ?? null]), 'statements' => ReviewState::statements($run), 'accounts' => array_values(ReviewState::accounts($run)), 'transactions' => ReviewState::transactions($run), 'transfers' => ReviewState::transfers($run), 'findings' => ReviewState::findings($run), 'calculations' => Ledger::rows('bank_calculations', $run), 'reports' => Ledger::rows('bank_reports', $run), 'conditions' => $this->publicRows($file, 'bank_conditions'), 'messages' => $this->publicRows($file, 'bank_messages'), 'condition_history' => Ledger::rows('bank_conditions', $run), 'review_history' => array_merge(Ledger::rows('bank_reviews', $run), Ledger::rows('bank_finding_reviews', $run), Ledger::rows('bank_transfer_reviews', $run))];
         }
 
         return response()->json($data)->header('Cache-Control', 'private, no-store');
@@ -132,6 +135,63 @@ class BankController extends Controller
         }
 
         return response()->json(['status' => $run->fresh()->status], 202);
+    }
+
+    public function rerunFraud(LoanFile $file, string $runId, int $versionId)
+    {
+        $this->reviewer($file);
+        $run = $this->run($file, $runId);
+        abort_unless(Schema::hasTable('bank_fraud_checks'), 503, 'AI fraud check storage is not ready.');
+        abort_unless(Ledger::query('bank_inputs', $run)->where('document_version_id', $versionId)->exists(), 404);
+        $busy = FraudCheck::where('run_id', $run->id)->where('document_version_id', $versionId)->whereIn('status', ['queued', 'running'])->where('updated_at', '>', now()->subMinutes(3))->exists();
+        abort_if($busy, 422, 'An AI fraud check is already running for this document.');
+        $check = FraudCheck::create([
+            'organization_id' => $run->organization_id,
+            'loan_file_id' => $run->loan_file_id,
+            'run_id' => $run->id,
+            'document_version_id' => $versionId,
+            'status' => 'queued',
+            'attempts' => 0,
+        ]);
+        try {
+            if (config('queue.default') === 'sync') {
+                (new RunAiFraudCheck($run->id, $versionId, $check->id))->handle();
+            } else {
+                RunAiFraudCheck::dispatch($run->id, $versionId, $check->id)->afterCommit();
+            }
+        } catch (\Throwable) {
+            // A recorded failure must not surface as an unhandled error.
+        }
+
+        return response()->json(['fraud_check' => $this->presentFraud($check->fresh())], 202);
+    }
+
+    private function fraudChecks(Run $run): array
+    {
+        if (! Schema::hasTable('bank_fraud_checks')) {
+            return [];
+        }
+        $latest = [];
+        foreach (FraudCheck::where('run_id', $run->id)->orderBy('id')->get() as $check) {
+            $latest[$check->document_version_id] = $check;
+        }
+
+        return array_values(array_map(fn (FraudCheck $check) => $this->presentFraud($check), $latest));
+    }
+
+    private function presentFraud(FraudCheck $check): array
+    {
+        return [
+            'id' => $check->id,
+            'document_version_id' => $check->document_version_id,
+            'status' => $check->status,
+            'risk_level' => $check->risk_level,
+            'score' => $check->score,
+            'summary' => $check->summary,
+            'findings' => $check->findings ?? [],
+            'message' => $check->error_code,
+            'checked_at' => $check->updated_at,
+        ];
     }
 
     public function rule(Request $r, LoanFile $file)

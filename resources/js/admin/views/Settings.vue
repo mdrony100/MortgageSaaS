@@ -10,18 +10,13 @@ const groups:Group[]=[
   {key:'impersonation_minutes',label:'Session length (minutes)',kind:'number',hint:'5 to 240. Leave blank to use the server environment.'},
   {key:'impersonation_allow_document_download',label:'Allow original document downloads during a support session',kind:'bool'},
  ]},
- {id:'openai',title:'OpenAI',lead:'Bank statement and appraisal vision models. Approval must be on before a run may call the provider.',check:'openai',fields:[
+ {id:'openai',title:'OpenAI',lead:'Bank statement reading, appraisal vision, and the AI fraud check. The fraud check uses this API key and bank model. Approval must be on before a statement-reading run calls the provider.',check:'openai',fields:[
   {key:'openai_approved',label:'Approve OpenAI for bank statements',kind:'bool'},
   {key:'openai_api_key',label:'OpenAI API key',secret:true},
   {key:'openai_model',label:'Bank model',kind:'text'},
   {key:'openai_secondary_model',label:'Bank fallback model',kind:'text'},
   {key:'appraisal_vision_approved',label:'Approve appraisal vision',kind:'bool'},
   {key:'appraisal_vision_model',label:'Appraisal vision model',kind:'text'},
- ]},
- {id:'integrity',title:'Ocrolus integrity',lead:'Optional integrity provider. Leave the token blank to keep the current value.',fields:[
-  {key:'integrity_approved',label:'Approve the integrity provider',kind:'bool'},
-  {key:'integrity_provider',label:'Provider',kind:'select',options:[{value:'disabled',label:'Disabled'},{value:'ocrolus',label:'Ocrolus'}]},
-  {key:'ocrolus_token',label:'Ocrolus access token',secret:true},
  ]},
  {id:'billing',title:'Billing',lead:'Test mode uses the sandbox provider and does not charge cards. Live mode stores the provider and keys for an approved adapter.',fields:[
   {key:'billing_provider',label:'Provider',kind:'select',options:[{value:'disabled',label:'Disabled'},{value:'fake',label:'Test provider'},{value:'stripe',label:'Stripe'}]},

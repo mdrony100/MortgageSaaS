@@ -30,10 +30,16 @@ return [
         'timeout' => 90,
     ],
     'integrity' => [
+        // The retained adapter stays off unless this server flag is set. Admin settings do not expose it.
+        'enabled' => (bool) env('BANK_INTEGRITY_ENABLED', false),
         'provider' => env('BANK_INTEGRITY_PROVIDER', 'disabled'),
         'approved' => (bool) env('BANK_INTEGRITY_APPROVED', false),
         'token' => env('OCROLUS_ACCESS_TOKEN'),
         'reservation_micro_usd_per_document' => (int) env('BANK_OCROLUS_RESERVATION_MICRO_USD', 0),
+    ],
+    'fraud' => [
+        'engine' => env('BANK_FRAUD_ENGINE', 'openai'),
+        'timeout' => (int) env('BANK_FRAUD_TIMEOUT', 60),
     ],
     'reason_codes' => ['source_verified', 'extraction_correction', 'policy_application', 'duplicate_artifact', 'relationship_verified', 'explanation_received', 'review_complete', 'other'],
     'reason_version' => 'review-reasons-v1',

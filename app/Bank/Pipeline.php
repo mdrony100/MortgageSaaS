@@ -5,6 +5,8 @@ namespace App\Bank;
 use App\Bank\ProcessingException as RuntimeException;
 use App\Bank\Providers\IntegrityProvider;
 use App\Jobs\PollBankIntegrity;
+use App\Jobs\RunAiFraudCheck;
+use App\Models\Bank\FraudCheck;
 use App\Models\Bank\Run;
 use App\Models\DocumentVersion;
 use App\Models\LoanFile;
@@ -14,6 +16,7 @@ use App\Services\Audit;
 use App\Services\Entitlements;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -163,16 +166,20 @@ class Pipeline
                     $this->finding($run, 'reconcile:'.$version->id.':'.$i, $issue + ['document_version_id' => $version->id, 'page' => $issue['page'] ?? ($d['page_coverage'][0] ?? null)]);
                 }
                 $this->stage($run, 'Analyzing');
-                $external = app(IntegrityProvider::class)->analyze($run, $version->id, $path, $input->sha256);
-                Ledger::append('bank_findings', $run, 'external-status:'.$version->id.':'.Ledger::hash($external), ['category' => 'provider_status', 'severity' => 'info', 'code' => 'external_integrity', 'observation' => $external['reason'] ?? ('Specialist integrity '.$external['status']), 'external' => $external, 'document_version_id' => $version->id, 'rule' => 'provider-contract-v1', 'explanation' => 'Internal and external checks are independent; unavailable/pending is never no fraud detected', 'action' => 'Review specialist completeness', 'status' => 'open']);
-                if ($external['status'] !== 'Completed') {
+                if ($this->ocrolusEnabled()) {
+                    $external = app(IntegrityProvider::class)->analyze($run, $version->id, $path, $input->sha256);
+                    Ledger::append('bank_findings', $run, 'external-status:'.$version->id.':'.Ledger::hash($external), ['category' => 'provider_status', 'severity' => 'info', 'code' => 'external_integrity', 'observation' => $external['reason'] ?? ('Specialist integrity '.$external['status']), 'external' => $external, 'document_version_id' => $version->id, 'rule' => 'provider-contract-v1', 'explanation' => 'Internal and external checks are independent; unavailable/pending is never no fraud detected', 'action' => 'Review specialist completeness', 'status' => 'open']);
+                    if ($external['status'] !== 'Completed') {
+                        $partial = true;
+                    }
+                    if ($external['status'] === 'Pending') {
+                        PollBankIntegrity::dispatch($run->id, $version->id)->delay(now()->addSeconds(30));
+                    }
+                    foreach ($external['signals'] ?? [] as $i => $s) {
+                        $this->finding($run, 'external:'.$version->id.':'.$i, ['category' => 'integrity_indicator', 'code' => $s['identifier'], 'observation' => $s['observation'], 'document_version_id' => $version->id, 'page' => $s['page'], 'provider' => $s]);
+                    }
+                } elseif (! $this->queueFraudCheck($run, $version->id)) {
                     $partial = true;
-                }
-                if ($external['status'] === 'Pending') {
-                    PollBankIntegrity::dispatch($run->id, $version->id)->delay(now()->addSeconds(30));
-                }
-                foreach ($external['signals'] ?? [] as $i => $s) {
-                    $this->finding($run, 'external:'.$version->id.':'.$i, ['category' => 'integrity_indicator', 'code' => $s['identifier'], 'observation' => $s['observation'], 'document_version_id' => $version->id, 'page' => $s['page'], 'provider' => $s]);
                 }
             } finally {
                 $this->removeWork($tmp);
@@ -203,6 +210,36 @@ class Pipeline
     public function finding(Run $r, string $key, array $data): array
     {
         return Ledger::append('bank_findings', $r, $key, $data + ['severity' => 'review', 'rule' => 'internal-v1', 'explanation' => 'Evidence indicator requires review, not proof or a loan decision', 'action' => 'Review original source and request clarification', 'status' => 'open']);
+    }
+
+    private function ocrolusEnabled(): bool
+    {
+        $cfg = config('bank.integrity');
+
+        return ! empty($cfg['enabled']) && ($cfg['provider'] ?? 'disabled') === 'ocrolus';
+    }
+
+    /** @return bool true when the AI fraud check finished successfully */
+    private function queueFraudCheck(Run $run, int $versionId): bool
+    {
+        if (! Schema::hasTable('bank_fraud_checks')) {
+            return false;
+        }
+        $check = FraudCheck::create([
+            'organization_id' => $run->organization_id,
+            'loan_file_id' => $run->loan_file_id,
+            'run_id' => $run->id,
+            'document_version_id' => $versionId,
+            'status' => 'queued',
+            'attempts' => 0,
+        ]);
+        try {
+            RunAiFraudCheck::dispatch($run->id, $versionId, $check->id);
+        } catch (\Throwable) {
+            // The sync driver runs the job inline. A recorded failure must not fail the bank run.
+        }
+
+        return $check->fresh()->status === 'completed';
     }
 
     private function removeWork(string $dir): void

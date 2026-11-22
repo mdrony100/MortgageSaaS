@@ -156,6 +156,7 @@ Route::middleware(['auth:sanctum', 'verified', 'org.active', 'throttle:workspace
     Route::post('files/{file}/bank/runs/{runId}/relationships', [$b, 'relationship'])->middleware(SerializeBankReview::class);
     Route::post('files/{file}/bank/runs/{runId}/transfers/{matchId}', [$b, 'transfer'])->middleware(SerializeBankReview::class);
     Route::post('files/{file}/bank/runs/{runId}/findings/{findingId}', [$b, 'finding'])->middleware(SerializeBankReview::class);
+    Route::post('files/{file}/bank/runs/{runId}/fraud/{versionId}', [$b, 'rerunFraud'])->middleware(SerializeBankReview::class);
     Route::post('files/{file}/bank/runs/{runId}/calculate', [$b, 'calculate'])->middleware(SerializeBankReview::class);
     Route::post('files/{file}/bank/runs/{runId}/conditions', [$b, 'condition'])->middleware(SerializeBankReview::class);
     Route::post('files/{file}/bank/runs/{runId}/reports', [$b, 'issue'])->middleware(SerializeBankReview::class);

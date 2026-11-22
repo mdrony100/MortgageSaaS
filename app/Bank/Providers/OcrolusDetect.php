@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 
+/**
+ * Retained adapter. The bank pipeline calls it only when bank.integrity.enabled is true.
+ * Admin and customer screens do not expose it.
+ */
 class OcrolusDetect implements IntegrityProvider
 {
     public function analyze(Run $run, int $versionId, string $originalPath, string $sha256): array
