@@ -5,6 +5,7 @@ namespace App\Bank;
 use App\Models\Bank\Run;
 use App\Models\LoanFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class BankStatus
 {
@@ -39,6 +40,16 @@ class BankStatus
         foreach (Ledger::rows('bank_findings', $r) as $f) {
             if ($f['data']['category'] === 'provider_status') {
                 $statuses[$f['data']['document_version_id']] = $f['data']['external']['status'];
+            }
+        }
+        if (Schema::hasTable('bank_fraud_checks')) {
+            foreach (DB::table('bank_fraud_checks')->where('run_id', $r->id)->orderBy('id')->get(['document_version_id', 'status']) as $check) {
+                $statuses[$check->document_version_id] = match ($check->status) {
+                    'completed' => 'Completed',
+                    'failed' => 'Failed',
+                    'not_configured' => 'Unavailable',
+                    default => 'Pending',
+                };
             }
         }
         $inputCount = Ledger::query('bank_inputs', $r)->count();

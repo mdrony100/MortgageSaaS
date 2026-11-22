@@ -34,6 +34,8 @@ class PlatformSettings
         'openai_secondary_model' => ['config' => 'bank.openai.secondary_model', 'type' => 'string', 'rules' => 'nullable|string|max:80'],
         'appraisal_vision_approved' => ['config' => 'review.vision_approved', 'type' => 'bool', 'rules' => 'sometimes|boolean'],
         'appraisal_vision_model' => ['config' => 'review.model', 'type' => 'string', 'rules' => 'nullable|string|max:80'],
+        // Kept so existing rows still overlay config. The admin UI does not render these.
+        // The pipeline ignores them unless BANK_INTEGRITY_ENABLED is true.
         'integrity_approved' => ['config' => 'bank.integrity.approved', 'type' => 'bool', 'rules' => 'sometimes|boolean'],
         'integrity_provider' => ['config' => 'bank.integrity.provider', 'type' => 'string', 'rules' => 'sometimes|in:disabled,ocrolus'],
         'ocrolus_token' => ['config' => 'bank.integrity.token', 'type' => 'string', 'secret' => true, 'rules' => 'nullable|string|max:4000'],

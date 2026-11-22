@@ -129,7 +129,7 @@ class ConsoleController extends Controller
             ['group' => 'Providers', 'label' => 'OpenAI extraction approved', 'value' => config('bank.openai.approved') ? 'Yes' : 'No'],
             ['group' => 'Providers', 'label' => 'OpenAI key present', 'value' => filled(config('bank.openai.key')) ? 'Yes' : 'No'],
             ['group' => 'Providers', 'label' => 'Appraisal vision approved', 'value' => config('review.vision_approved') ? 'Yes' : 'No'],
-            ['group' => 'Providers', 'label' => 'Integrity provider approved', 'value' => config('bank.integrity.approved') ? 'Yes' : 'No'],
+            ['group' => 'Providers', 'label' => 'AI fraud check', 'value' => (config('bank.fraud.engine') === 'openai' && filled(config('bank.openai.key')) && filled(config('bank.openai.model'))) ? 'Ready (OpenAI)' : 'Needs an OpenAI key and model'],
             ['group' => 'Providers', 'label' => 'Billing provider', 'value' => (string) config('billing.provider')],
             ['group' => 'Owner console', 'label' => 'Two-factor required for console', 'value' => config('platform.console_require_2fa') ? 'Yes' : 'No', 'warn' => ! config('platform.console_require_2fa') && app()->environment('production')],
             ['group' => 'Owner console', 'label' => 'Signup approval required', 'value' => config('platform.signup_approval') ? 'Yes' : 'No'],

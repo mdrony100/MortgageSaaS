@@ -319,6 +319,6 @@ class Pipeline
                 $this->finding($r, 'exhibit:'.$expected, 'missing_evidence', 'Verify applicable '.$expected.' exhibit and completeness in the combined original; classification may be incomplete, no approved-rule violation inferred');
             }
         }
-        $this->finding($r, 'external-coverage', 'integration_unavailable', 'Bank Ocrolus forensic coverage is not enabled or claimed for appraisals; only declared internal/vision checks performed');
+        $this->finding($r, 'external-coverage', 'integration_unavailable', 'Appraisal review uses the checks recorded on this file. It does not send the appraisal to a separate bank-statement fraud vendor.');
     }
 }

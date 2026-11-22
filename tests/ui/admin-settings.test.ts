@@ -17,6 +17,8 @@ describe('owner settings',()=>{
   expect(w.text()).toContain('Python path is empty.');
   expect(w.text()).toContain('not isolated with bubblewrap');
   expect(w.text()).not.toContain('sk-');
+  expect(w.text()).not.toContain('Ocrolus');
+  expect(w.text()).not.toContain('ocrolus');
   const input=w.find('#setting-openai_api_key');
   expect(input.attributes('type')).toBe('password');
   expect((input.element as HTMLInputElement).value).toBe('');
