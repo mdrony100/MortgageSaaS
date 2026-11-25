@@ -89,6 +89,9 @@ export type FailureCta = 'retry' | 'replace' | 'admin'
 /** One plain-language failure, and the single action that fits it. Raw codes are never shown. */
 export function failureGuide(code?: string | null): { body: string; cta: FailureCta; button: string } {
   const raw = String(code || '')
+  if (/page credits are used up|more pages than your plan allows/i.test(raw)) {
+    return { body: /more pages than your plan allows/i.test(raw) ? 'This file has more pages than your plan allows for one loan file. Request a plan change from Plan.' : 'Your page credits are used up. Request more pages from Plan.', cta: 'admin', button: 'Contact support' }
+  }
   if (/budget unavailable|budget .*exhausted/i.test(raw)) {
     return { body: "Processing budget isn't set up or is used up — ask an administrator.", cta: 'admin', button: 'Contact support' }
   }

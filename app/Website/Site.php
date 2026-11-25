@@ -2,10 +2,13 @@
 
 namespace App\Website;
 
+use App\Models\Plan;
+use Illuminate\Support\Facades\Schema;
+
 /**
- * Central helpers for the public marketing website. All business content that
- * requires approval (prices, legal identity, contact details) comes from
- * config/website.php; nothing here invents commercial or legal facts.
+ * Central helpers for the public marketing website. Legal identity and contact
+ * details come from config/website.php. Plan prices shown on the pricing page
+ * come from active plans marked for the public site. Those prices are placeholders.
  */
 class Site
 {
@@ -18,9 +21,10 @@ class Site
             'site.home' => ['/', $p.' — Mortgage document analysis with reviewer control', 'Review bank statements, spot potential document issues, and check appraisal and rental income details—all in one workspace, with supporting evidence and reviewer control.'],
             'site.features' => ['/features', 'Features — '.$p, 'Bank statement income analysis, document integrity indicators, appraisal review for forms 1004, 1025, 1007 and 216, rental/DSCR analysis and team workflow.'],
             'site.how' => ['/how-it-works', 'How It Works — '.$p, 'From organization setup and secure upload to analysis, reviewer decisions and authorized report exports in five steps.'],
-            'site.pricing' => ['/pricing', 'Pricing — '.$p, 'Pricing for '.$p.' is provided on request. Request a demo or contact sales to discuss your team.'],
+            'site.pricing' => ['/pricing', 'Pricing — '.$p, 'Plans and page allowances for '.$p.'. Request a demo to talk through pricing. Payment is arranged offline.'],
             'site.security' => ['/security', 'Security — '.$p, 'How '.$p.' protects documents with private storage, role and file permissions, organization isolation and append-only audit history.'],
             'site.faq' => ['/faq', 'FAQ — '.$p, 'Answers about supported documents, statement periods, appraisal forms, rental income, DSCR, exports, permissions and lending decisions.'],
+            'site.demo' => ['/request-demo', 'Request a Demo — '.$p, 'Request a demo of '.$p.'. Tell us your name, company, and monthly volume.'],
             'site.contact' => ['/contact', 'Contact and Demo Requests — '.$p, 'Request a demo of '.$p.' or send a question to the team.'],
             'site.privacy' => ['/privacy', 'Privacy Policy — '.$p, 'Privacy Policy for '.$p.'.'],
             'site.terms' => ['/terms', 'Terms of Service — '.$p, 'Terms of Service for '.$p.'.'],
@@ -56,14 +60,38 @@ class Site
         return array_values(array_filter(array_keys(self::pages()), fn ($r) => ! in_array($r, ['site.privacy', 'site.terms'], true) || config('website.legal.approved')));
     }
 
-    /** Only explicitly approved plans can be published. */
+    /** Active plans marked for the public pricing page. Prices are placeholders, not a checkout. */
     public static function publishedPlans(): array
     {
-        if (! config('website.pricing.published')) {
+        if (! Schema::hasTable('plans') || ! Schema::hasColumn('plans', 'listed_publicly')) {
             return [];
         }
 
-        return array_values(array_filter((array) config('website.pricing.plans', []), fn ($p) => is_array($p) && ($p['approved'] ?? false) === true && filled($p['name'] ?? null) && filled($p['price_label'] ?? null)));
+        return Plan::query()->where('is_active', true)->where('listed_publicly', true)->orderBy('monthly_page_quota')->orderBy('id')->get()->map(function (Plan $plan) {
+            $price = (float) $plan->provisional_monthly_price;
+            $whole = abs($price - round($price)) < 0.001;
+            $includes = [];
+            if ((int) $plan->monthly_page_quota > 0) {
+                $includes[] = number_format((int) $plan->monthly_page_quota).' PDF pages each month';
+            } elseif ((int) $plan->trial_page_allowance > 0) {
+                $includes[] = number_format((int) $plan->trial_page_allowance).' PDF pages in total';
+            }
+            if ($plan->per_file_page_cap) {
+                $includes[] = 'Up to '.number_format((int) $plan->per_file_page_cap).' pages in one loan file';
+            }
+            foreach ($plan->packs() as $pack) {
+                if ($pack['pages'] > 0 && $pack['label'] !== '') {
+                    $includes[] = 'Add '.$pack['label'].' for $'.$pack['price'].' when you need more';
+                }
+            }
+
+            return [
+                'name' => $plan->name,
+                'price_label' => '$'.($whole ? number_format($price, 0) : number_format($price, 2)).' / month',
+                'summary' => $plan->summary,
+                'includes' => $includes,
+            ];
+        })->all();
     }
 
     /** Short, plain-English FAQ used on the homepage (each answer verified against the implementation). */

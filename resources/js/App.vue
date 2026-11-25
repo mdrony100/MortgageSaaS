@@ -5,6 +5,7 @@ import { useRoute } from 'vue-router'
 import { api } from './api'
 import { roleName } from './customerLanguage'
 import CompanySwitcher from './components/CompanySwitcher.vue'
+import CreditWarning from './components/CreditWarning.vue'
 import { LayoutDashboard, FolderOpen, BookOpen, Building2, UserRound, Settings, LifeBuoy, Ticket, LogOut, Menu, ShieldCheck, Eye } from 'lucide-vue-next'
 
 const auth = useAuth(), route = useRoute(), open = ref(false), ending = ref(false)
@@ -61,7 +62,6 @@ watch(() => route.path, async () => { open.value = false; await nextTick() })
 <RouterLink class="brand" to="/dashboard"><img v-if="logoOk" class="brand-logo" :src="brandIcon" alt="" width="40" height="40" @error="logoOk = false"><span v-else class="brand-mark" aria-hidden="true">NQ</span>{{ auth.org?.branding?.product_name || 'Non-QM Doc AI' }}</RouterLink>
 <CompanySwitcher/>
 <nav id="app-nav" aria-label="Main navigation"><RouterLink v-for="[url, label, icon] in nav" :key="url" :to="url" :class="{ 'is-active': navOn(url) }" @click="open = false"><component :is="icon" :size="22"/>{{ label }}</RouterLink></nav>
-<div class="sidebar-foot"><span class="status-dot"></span>A person makes the decision<p>The tool only flags potential issues. Practice files are labeled.</p></div>
 </aside>
 <div class="main-shell">
 <header>
@@ -69,7 +69,7 @@ watch(() => route.path, async () => { open.value = false; await nextTick() })
 <nav class="breadcrumb" aria-label="Current location"><template v-for="(crumb, index) in crumbs" :key="crumb.label + index"><span v-if="index" aria-hidden="true">/</span><RouterLink v-if="crumb.to" :to="crumb.to">{{ crumb.label }}</RouterLink><span v-else aria-current="page">{{ crumb.label }}</span></template></nav>
 <div class="header-user"><a v-if="auth.user.platform_admin && !auth.impersonation" class="user-menu-admin" href="/admin">Admin</a><span class="avatar" aria-hidden="true">{{ auth.user.name.slice(0, 1) }}</span><div>{{ auth.user.name }}<small>{{ roleName(auth.membership?.role) }}</small></div><button class="icon-btn" @click="auth.logout()" aria-label="Sign out"><LogOut :size="18"/></button></div>
 </header>
-<main id="main"><section v-if="blocked && !route.path.startsWith('/settings/profile')" class="blocked-org card" role="alert"><ShieldCheck :size="40" aria-hidden="true"/><h1>{{ blocked.title }}</h1><p>{{ blocked.text }}</p><p v-if="auth.memberships.length > 1" class="muted">You can switch to another company from the menu.</p></section><RouterView v-else :key="route.path + '-' + auth.orgId"/></main>
+<main id="main"><CreditWarning v-if="route.path === '/dashboard' && !(blocked && !route.path.startsWith('/settings/profile'))"/><section v-if="blocked && !route.path.startsWith('/settings/profile')" class="blocked-org card" role="alert"><ShieldCheck :size="40" aria-hidden="true"/><h1>{{ blocked.title }}</h1><p>{{ blocked.text }}</p><p v-if="auth.memberships.length > 1" class="muted">You can switch to another company from the menu.</p></section><RouterView v-else :key="route.path + '-' + auth.orgId"/></main>
 <footer>Non-QM Doc AI <span>A person reviews every file. This is not lending advice.</span></footer>
 </div>
 </div>

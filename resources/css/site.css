@@ -209,6 +209,27 @@
   .site-error:empty { display: none; }
   .site-hp { position: absolute !important; left: -10000px !important; width: 1px; height: 1px; overflow: hidden; }
 
+  .site-btn-teal { background: #0e7c71; color: #fff; border-color: #0e7c71; box-shadow: 0 6px 18px rgb(14 124 113 / .28); }
+  .site-btn-teal:hover { background: #0b655c; color: #fff; }
+
+  .demo-form { font-size: 1.0625rem; }
+  .demo-form .site-field label { font-size: 1.0625rem; }
+  .demo-form .site-field input, .demo-form .site-field select { font-size: 1.0625rem; min-height: 52px; }
+  .demo-form .site-caption, .demo-form .site-error { font-size: .9375rem; }
+  .phone-row { display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: .6rem; align-items: end; }
+  .phone-code { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+  .phone-code input, .phone-code select, .phone-row > input { min-width: 0; }
+  @media (min-width: 768px) { .demo-form .phone-span { grid-column: 1 / -1; } }
+  @media (max-width: 640px) { .phone-row { grid-template-columns: 1fr; } }
+
+  .site-plan-grid { align-items: stretch; }
+  .site-plan-card { display: flex; flex-direction: column; height: 100%; }
+  .site-plan-card .site-h3 { font-size: 1.35rem; }
+  .site-plan-price { margin-top: .5rem; font-size: 1.75rem; line-height: 1.2; font-weight: 750; color: #102840; }
+  .site-plan-card .site-copy, .site-plan-card .site-benefits li { font-size: 1.0625rem; }
+  .site-plan-card .site-benefits, .site-plan-spacer { flex-grow: 1; }
+  .site-plan-card .site-btn { margin-top: auto; }
+
   /* Prose (legal) */
   .site-prose { max-width: 70ch; }
   .site-prose h2 { font-size: var(--fs-h3); font-weight: 700; color: #102840; margin: 2.25rem 0 .75rem; }

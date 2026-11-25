@@ -8,6 +8,7 @@ use App\Bank\Money;
 use App\Bank\ProcessingException;
 use App\Bank\RunScans;
 use App\Bank\Scanner;
+use App\Billing\PageCredits;
 use App\Models\DocumentVersion;
 use App\Models\LoanFile;
 use App\Models\Organization;
@@ -91,6 +92,13 @@ class Pipeline
                 }
                 $this->stage($r, 'Extracting');
                 $m = app(DocumentParser::class)->parse($tmp.'/original', $tmp.'/derived');
+                app(PageCredits::class)->consume($r->organization_id, count($m['pages']), 'appraisal:'.$r->id.':'.$v->id, [
+                    'reason' => 'Appraisal pages processed',
+                    'actor_id' => $r->requested_by,
+                    'loan_file_id' => $r->loan_file_id,
+                    'document_version_id' => $v->id,
+                    'pipeline' => 'appraisal',
+                ], true);
                 $pages += count($m['pages']);
                 $worker[] = $m['observed_resources'] ?? [];
                 if ($pages > config('review.max_run_pages')) {

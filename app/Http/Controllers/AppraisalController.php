@@ -9,6 +9,8 @@ use App\Appraisal\Reports;
 use App\Appraisal\Store;
 use App\Bank\Ledger;
 use App\Bank\Money;
+use App\Billing\PageCredits;
+use App\Billing\PdfPageCounter;
 use App\Billing\Usage;
 use App\Jobs\ProcessAppraisal;
 use App\Models\DocumentVersion;
@@ -59,7 +61,10 @@ class AppraisalController extends Controller
             $v = DocumentVersion::where('organization_id', $file->organization_id)->findOrFail($id);
             abort_unless($v->document->loan_file_id === $file->id, 404);
             Gate::authorize('view', $v->document);
+            $estimatedPages = ($estimatedPages ?? 0) + app(PdfPageCounter::class)->countVersion($v);
             $pins[] = ['id' => $v->id, 'sha256' => $v->sha256, 'classification' => Ledger::redact((string) ($d['classifications'][$id] ?? 'uncertain'))];
+        }if (! Run::where('organization_id', $file->organization_id)->where('loan_file_id', $file->id)->where('idempotency_key', $d['idempotency_key'])->exists()) {
+            app(PageCredits::class)->assertCanSpend($file->organization_id, max(1, $estimatedPages ?? 1), $file->id);
         }if (! empty($d['parent_id'])) {
             $this->run($file, $d['parent_id']);
         }$g = Guidelines::baseline();

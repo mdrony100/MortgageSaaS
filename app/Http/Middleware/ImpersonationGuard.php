@@ -25,6 +25,8 @@ class ImpersonationGuard
         [['*'], 'api/auth/email/*'],
         [['POST'], 'api/organizations/*/billing'],          // billing changes
         [['POST'], 'api/organizations/*/plan-requests'],
+        [['POST'], 'api/organizations/*/payment-requests'],
+        [['POST'], 'api/organizations/*/payment-requests/*'],
         [['POST'], 'api/organizations/*/invitations'],      // granting roles
         [['DELETE'], 'api/organizations/*/invitations/*'],
         [['PATCH', 'DELETE'], 'api/organizations/*/members/*'],

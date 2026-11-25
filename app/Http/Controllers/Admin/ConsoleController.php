@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Billing\PageCredits;
 use App\Http\Controllers\Controller;
+use App\Models\DemoRequest;
 use App\Models\LoanFile;
 use App\Models\Organization;
+use App\Models\PaymentRequest;
 use App\Models\Plan;
 use App\Models\PlatformRequest;
 use App\Models\SupportTicket;
@@ -32,7 +35,7 @@ class ConsoleController extends Controller
     {
         $u = $r->user();
 
-        return ['user' => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'two_factor' => $u->hasConfirmedTwoFactor()], 'privacy_notice' => self::PRIVACY_NOTICE, 'impersonation' => ['enabled' => (bool) config('platform.impersonation.enabled'), 'minutes' => (int) config('platform.impersonation.minutes'), 'allowed' => (bool) config('platform.impersonation.enabled') && $u->hasConfirmedTwoFactor()], 'pending_approvals' => PlatformRequest::where('status', 'pending')->count(), 'new_inquiries' => WebsiteInquiry::where('status', 'new')->where('is_spam', false)->count(), 'open_tickets' => SupportTicket::where('status', 'open')->count()];
+        return ['user' => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'two_factor' => $u->hasConfirmedTwoFactor()], 'privacy_notice' => self::PRIVACY_NOTICE, 'impersonation' => ['enabled' => (bool) config('platform.impersonation.enabled'), 'minutes' => (int) config('platform.impersonation.minutes'), 'allowed' => (bool) config('platform.impersonation.enabled') && $u->hasConfirmedTwoFactor()], 'pending_approvals' => PlatformRequest::where('status', 'pending')->count(), 'new_inquiries' => WebsiteInquiry::where('status', 'new')->where('is_spam', false)->count(), 'pending_payment_requests' => PaymentRequest::where('status', 'pending')->count(), 'new_demo_requests' => DemoRequest::where('status', 'new')->where('is_spam', false)->count(), 'open_tickets' => SupportTicket::where('status', 'open')->count()];
     }
 
     public function overview()
@@ -62,8 +65,9 @@ class ConsoleController extends Controller
         $counts = Organization::query()->selectRaw('plan_id, count(*) as n')->groupBy('plan_id')->pluck('n', 'plan_id');
 
         return [
-            'plans' => Plan::orderBy('id')->get()->map(fn (Plan $p) => ['id' => $p->id, 'name' => $p->name, 'file_limit' => $p->file_limit, 'member_limit' => $p->member_limit, 'storage_limit_bytes' => (int) $p->storage_limit_bytes, 'organizations' => (int) ($counts[$p->id] ?? 0), 'approved_price' => $catalog[$p->id]['monthly_price'] ?? null, 'pricing_status' => isset($catalog[$p->id]) ? 'Approved configuration' : 'Price not approved']),
+            'plans' => Plan::orderBy('id')->get()->map(fn (Plan $p) => app(PageCredits::class)->planPayload($p) + ['organizations' => (int) ($counts[$p->id] ?? 0), 'approved_price' => $catalog[$p->id]['monthly_price'] ?? null, 'pricing_status' => isset($catalog[$p->id]) ? 'Approved configuration' : 'Placeholder price — edit it here. Payment is arranged offline.']),
             'billing' => $this->billingStatus(),
+            'notice' => 'Prices are placeholders for display and for offline payment requests. No card is charged from this screen.',
         ];
     }
 

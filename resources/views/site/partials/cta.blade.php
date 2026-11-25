@@ -5,7 +5,7 @@
             <p class="site-lead mt-4 !text-cyan-50">Explore bank statement analysis, document checks, and appraisal review in a guided demo.</p>
         </div>
         <div class="flex flex-wrap gap-3 lg:justify-end">
-            <a href="{{ route('site.contact') }}?type=demo" class="site-btn site-btn-light">Request a Demo</a>
+            <a href="{{ route('site.demo') }}" class="site-btn site-btn-light">Request a Demo</a>
             <a href="{{ route('site.contact') }}?type=pricing" class="site-btn site-btn-outline-light">Contact Sales</a>
         </div>
     </div>

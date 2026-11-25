@@ -41,6 +41,11 @@ return [
         'per_day' => (int) env('WEBSITE_INQUIRY_PER_DAY', 20),
     ],
 
+    'demo_rate_limit' => [
+        'per_minute' => (int) env('WEBSITE_DEMO_PER_MINUTE', 3),
+        'per_day' => (int) env('WEBSITE_DEMO_PER_DAY', 20),
+    ],
+
     /*
      * Pricing publication. Prices are shown ONLY when 'published' is true AND at
      * least one plan below is marked approved. Otherwise the pricing page shows

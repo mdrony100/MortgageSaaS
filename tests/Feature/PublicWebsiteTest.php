@@ -94,21 +94,17 @@ class PublicWebsiteTest extends TestCase
         $this->actingAs($u)->getJson('/api/me')->assertOk();
     }
 
-    public function test_pricing_is_contact_only_until_approved_plans_are_published(): void
+    public function test_pricing_lists_database_plans_with_demo_calls_to_action(): void
     {
         $this->seed();
-        $html = $this->get('/pricing')->assertOk()->assertSee('Contact for pricing')->assertSee('Contact Sales')->getContent();
-        $this->assertDoesNotMatchRegularExpression('~\$\s?\d~', $html);
+        $html = $this->get('/pricing')->assertOk()->assertSee('Plans and pricing')->assertSee('Request a demo')->assertSee('Starter')->assertSee('Pro')->assertSee('Business')->assertSee('Trial')->assertSee('placeholder', false)->getContent();
+        $this->assertStringContainsString(route('site.demo'), $html);
         foreach (['Buy now', 'Free trial', 'Subscribe', 'Checkout'] as $bad) {
             $this->assertStringNotContainsStringIgnoringCase($bad, $html);
         }
-        $this->assertStringNotContainsString('49.00', $html);
-        config(['website.pricing.plans' => [['name' => 'Team', 'price_label' => 'Approved label', 'approved' => true]]]);
-        $this->get('/pricing')->assertSee('Contact for pricing'); // not published yet
-        config(['website.pricing.published' => true, 'website.pricing.plans' => [['name' => 'Unapproved', 'price_label' => 'X', 'approved' => false]]]);
-        $this->get('/pricing')->assertSee('Contact for pricing')->assertDontSee('Unapproved');
-        config(['website.pricing.plans' => [['name' => 'Team', 'price_label' => 'Approved label', 'approved' => true, 'includes' => ['Item A']]]]);
-        $this->get('/pricing')->assertSee('Approved label')->assertSee('Item A')->assertDontSee('Contact for pricing');
+        $this->assertStringNotContainsString('Team', $html);
+        Plan::query()->update(['listed_publicly' => false]);
+        $this->get('/pricing')->assertSee('Contact for pricing')->assertDontSee('Starter');
     }
 
     public function test_sitemap_lists_only_public_pages_and_robots_is_noindex_outside_production(): void
@@ -288,7 +284,7 @@ class PublicWebsiteTest extends TestCase
         $this->assertStringContainsString('Understand mortgage documents.<br> Review every detail with confidence.', $html);
         $this->assertStringContainsString('Review bank statements, spot potential document issues, and check appraisal and rental income details—all in one workspace.', $html);
         $this->assertStringContainsString('href="#walkthrough" class="site-btn site-btn-ghost" data-walkthrough-start>See How It Works</a>', $html);
-        $this->assertStringContainsString('href="'.route('site.contact').'?type=demo" class="site-btn site-btn-primary">Request a Demo</a>', $html);
+        $this->assertStringContainsString('href="'.route('site.demo').'" class="site-btn site-btn-primary">Request a Demo</a>', $html);
         // Hero preview: ARIA tabs with three panels; the first is selected server-side.
         $this->assertSame(1, substr_count($html, 'aria-label="Product preview"'));
         foreach (['bank' => 'Bank Statements', 'checks' => 'Document Checks', 'rental' => 'Appraisal &amp; Rental Income'] as $id => $label) {
