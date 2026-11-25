@@ -101,7 +101,7 @@ return new class extends Migration
             $t->string('email', 190);
             $t->string('phone', 40);
             $t->string('monthly_volume', 120);
-            $t->text('message');
+            $t->text('message')->nullable();
             $t->string('status', 20)->default('new');
             $t->boolean('is_spam')->default(false);
             $t->string('spam_reason', 40)->nullable();

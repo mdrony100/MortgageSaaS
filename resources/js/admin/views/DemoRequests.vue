@@ -26,7 +26,6 @@ onMounted(async()=>{await load();const id=Number(route.query?.id);if(id)await op
 <article v-if="selected" class="c-card" aria-labelledby="demo-heading">
 <h2 id="demo-heading" tabindex="-1">{{selected.name}} · {{selected.company}}</h2>
 <p class="c-muted">{{selected.email}} · {{selected.phone}} · {{selected.monthly_volume}} · {{when(selected.created_at)}}</p>
-<p>{{selected.message}}</p>
 <label>Status<select :value="selected.status" @change="update({status:($event.target as HTMLSelectElement).value},'Status updated.')"><option v-for="(label,key) in statuses" :key="key" :value="key">{{label}}</option></select></label>
 <div class="c-actions"><button class="c-btn ghost" type="button" @click="update({is_spam:!selected.is_spam}, selected.is_spam?'Marked as not spam.':'Marked as spam.')">{{selected.is_spam?'Not spam':'Mark as spam'}}</button></div>
 <h3>Notes</h3>

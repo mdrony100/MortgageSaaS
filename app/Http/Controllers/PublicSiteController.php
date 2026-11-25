@@ -6,9 +6,12 @@ use App\Billing\CreditNotifier;
 use App\Jobs\SendWebsiteInquiryNotification;
 use App\Models\DemoRequest;
 use App\Models\WebsiteInquiry;
+use App\Website\CallingCodes;
+use App\Website\DemoCaptcha;
 use App\Website\Site;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class PublicSiteController extends Controller
@@ -82,33 +85,60 @@ class PublicSiteController extends Controller
 
     public function demo()
     {
-        return response()->view('site.demo', ['routeName' => 'site.demo']);
+        return response()->view('site.demo', [
+            'routeName' => 'site.demo',
+            'captcha' => DemoCaptcha::current(),
+            'countries' => CallingCodes::all(),
+        ]);
     }
 
     public function demoSubmit(Request $r)
     {
-        $data = $r->validate([
+        $validator = Validator::make($r->all(), [
             'name' => 'required|string|max:120',
             'company' => 'required|string|max:150',
             'email' => 'required|string|email:rfc|max:190',
-            'phone' => 'required|string|max:40',
+            'phone_country' => 'required|string|size:2',
+            'phone' => 'required|string|max:30',
             'monthly_volume' => 'required|string|max:120',
-            'message' => 'required|string|min:10|max:5000',
+            'captcha' => 'required|string|max:2',
             'company_website' => 'nullable|string|max:500',
-        ], [], ['email' => 'work email', 'monthly_volume' => 'monthly loan volume or pages', 'phone' => 'phone']);
+        ], [
+            'captcha.required' => 'Answer the question so we know this is a person.',
+        ], [
+            'email' => 'work email',
+            'monthly_volume' => 'monthly loan volume or pages',
+            'phone' => 'phone',
+            'phone_country' => 'country',
+            'captcha' => 'question',
+        ]);
 
-        $clean = fn (?string $v) => $v === null ? null : trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $v));
-        $message = $clean($data['message']);
-        $spam = filled($data['company_website'] ?? null) ? 'honeypot' : (preg_match_all('~https?://|www\.~i', (string) $message) > 3 ? 'link_heavy' : null);
+        $validator->fails();
+        $e164 = CallingCodes::e164($r->input('phone_country'), $r->input('phone'));
+        if (! $e164) {
+            $validator->errors()->add('phone', 'Enter a valid phone number for the selected country.');
+        }
+        if (! DemoCaptcha::matches($r->input('captcha'))) {
+            $validator->errors()->add('captcha', 'That answer does not match. Please try the new question.');
+        }
+        if ($validator->errors()->isNotEmpty()) {
+            DemoCaptcha::refresh();
+
+            return back()->withInput($r->except('captcha'))->withErrors($validator);
+        }
+
+        $clean = fn (?string $v) => $v === null ? null : trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $v) ?? '');
+        $volume = $clean($r->input('monthly_volume'));
+        $spam = filled($r->input('company_website')) ? 'honeypot' : (preg_match_all('~https?://|www\.~i', (string) $volume) > 3 ? 'link_heavy' : null);
 
         try {
             $demo = DemoRequest::create([
-                'name' => $clean($data['name']),
-                'company' => $clean($data['company']),
-                'email' => mb_strtolower((string) $clean($data['email'])),
-                'phone' => $clean($data['phone']),
-                'monthly_volume' => $clean($data['monthly_volume']),
-                'message' => $message,
+                'name' => $clean($r->input('name')),
+                'company' => $clean($r->input('company')),
+                'email' => mb_strtolower((string) $clean($r->input('email'))),
+                'phone' => $e164,
+                'monthly_volume' => $volume,
+                'message' => null,
                 'status' => 'new',
                 'is_spam' => $spam !== null,
                 'spam_reason' => $spam,
@@ -117,10 +147,12 @@ class PublicSiteController extends Controller
             ]);
         } catch (\Throwable $e) {
             Log::error('Demo request could not be saved', ['exception_type' => get_class($e)]);
+            DemoCaptcha::refresh();
 
-            return back()->withInput()->withErrors(['form' => 'We could not save your request. Please try again later.']);
+            return back()->withInput($r->except('captcha'))->withErrors(['form' => 'We could not save your request. Please try again later.']);
         }
 
+        DemoCaptcha::forget();
         if (! $spam) {
             try {
                 CreditNotifier::demoReceived($demo->fresh());

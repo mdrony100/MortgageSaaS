@@ -16,6 +16,7 @@ use App\Models\PaymentRequest;
 use App\Models\Plan;
 use App\Models\User;
 use App\Services\SampleData;
+use App\Website\DemoCaptcha;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
@@ -207,20 +208,39 @@ class PageCreditsTest extends TestCase
     public function test_demo_form_stores_requests_blocks_spam_and_is_rate_limited(): void
     {
         Bus::fake();
-        config(['website.inquiry_notify_email' => 'sales@example.test']);
-        $this->get('/request-demo')->assertOk()->assertSee('Request a demo')->assertSee('Monthly loan volume or pages')->assertSee('name="company_website"', false);
+        config(['website.inquiry_notify_email' => 'sales@example.test', 'website.demo_rate_limit.per_minute' => 30]);
+        $this->get('/request-demo')->assertOk()
+            ->assertSee('placeholder="Jane Smith"', false)
+            ->assertSee('placeholder="jane@company.com"', false)
+            ->assertSee('placeholder="Acme Lending"', false)
+            ->assertSee('placeholder="201 555 0123"', false)
+            ->assertSee('placeholder="For example, 40 loans or 3,000 pages"', false)
+            ->assertSee('United States +1', false)
+            ->assertSee('What is ', false)
+            ->assertDontSee('name="message"', false);
 
-        $payload = ['name' => 'Fictional Prospect', 'company' => 'Example Lending Co', 'email' => 'Prospect@Example.test', 'phone' => '555-0100', 'monthly_volume' => '40 loans', 'message' => 'Please show us the bank statement workflow.', 'company_website' => ''];
+        $payload = $this->demoPayload();
         $this->post('/request-demo', $payload)->assertRedirect('/request-demo')->assertSessionHas('demo_saved');
         $saved = DemoRequest::firstOrFail();
         $this->assertSame('prospect@example.test', $saved->email);
+        $this->assertSame('+12015550123', $saved->phone);
+        $this->assertNull($saved->message);
         $this->assertSame('new', $saved->status);
         $this->assertFalse($saved->is_spam);
-        Bus::assertDispatched(SendPlatformEmail::class, fn ($job) => $job->to === 'sales@example.test');
+        Bus::assertDispatched(SendPlatformEmail::class, fn ($job) => $job->to === 'sales@example.test' && ! str_contains($job->body, 'Message:'));
 
-        $this->post('/request-demo', array_replace($payload, ['email' => 'spam@example.test', 'company_website' => 'http://spam.example']))->assertSessionHas('demo_saved');
+        $spam = $this->demoPayload(['email' => 'spam@example.test', 'company_website' => 'http://spam.example']);
+        $this->post('/request-demo', $spam)->assertSessionHas('demo_saved');
         $this->assertTrue(DemoRequest::where('email', 'spam@example.test')->first()->is_spam);
         $this->assertSame('skipped_spam', DemoRequest::where('email', 'spam@example.test')->value('notification_status'));
+
+        $badPhone = $this->demoPayload(['email' => 'bad-phone@example.test', 'phone' => '12']);
+        $this->from('/request-demo')->post('/request-demo', $badPhone)->assertSessionHasErrors('phone');
+        $this->assertNull(DemoRequest::where('email', 'bad-phone@example.test')->first());
+
+        $badCaptcha = $this->demoPayload(['email' => 'bad-captcha@example.test', 'captcha' => '0']);
+        $this->from('/request-demo')->post('/request-demo', $badCaptcha)->assertSessionHasErrors('captcha');
+        $this->assertNull(DemoRequest::where('email', 'bad-captcha@example.test')->first());
 
         $staff = User::factory()->create();
         $staff->forceFill(['platform_admin' => true])->save();
@@ -239,10 +259,27 @@ class PageCreditsTest extends TestCase
     public function test_demo_form_is_rate_limited(): void
     {
         config(['website.demo_rate_limit.per_minute' => 2, 'website.inquiry_notify_email' => 'sales@example.test']);
-        $payload = ['name' => 'Fictional Prospect', 'company' => 'Example Lending Co', 'email' => 'a@example.test', 'phone' => '555-0100', 'monthly_volume' => '40 loans', 'message' => 'Please show us the bank statement workflow.', 'company_website' => ''];
-        $this->from('/request-demo')->post('/request-demo', $payload)->assertSessionHas('demo_saved');
-        $this->from('/request-demo')->post('/request-demo', array_replace($payload, ['email' => 'b@example.test']))->assertSessionHas('demo_saved');
-        $this->from('/request-demo')->post('/request-demo', array_replace($payload, ['email' => 'c@example.test']))->assertRedirect('/request-demo')->assertSessionHasErrors('form');
+        $this->from('/request-demo')->post('/request-demo', $this->demoPayload(['email' => 'a@example.test']))->assertSessionHas('demo_saved');
+        $this->from('/request-demo')->post('/request-demo', $this->demoPayload(['email' => 'b@example.test']))->assertSessionHas('demo_saved');
+        $this->from('/request-demo')->post('/request-demo', $this->demoPayload(['email' => 'c@example.test']))->assertRedirect('/request-demo')->assertSessionHasErrors('form');
         $this->assertSame(2, DemoRequest::count());
+    }
+
+    /** @param  array<string, mixed>  $override */
+    private function demoPayload(array $override = []): array
+    {
+        $this->get('/request-demo');
+        $question = session(DemoCaptcha::KEY);
+
+        return array_replace([
+            'name' => 'Fictional Prospect',
+            'company' => 'Example Lending Co',
+            'email' => 'Prospect@Example.test',
+            'phone_country' => 'US',
+            'phone' => '201 555 0123',
+            'monthly_volume' => '40 loans',
+            'captcha' => (string) ((int) $question['a'] + (int) $question['b']),
+            'company_website' => '',
+        ], $override);
     }
 }

@@ -166,6 +166,24 @@ export function initReveal(doc: Document = document): void {
   doc.documentElement.classList.add('reveal-on');
 }
 
+export function initCallingCode(root: HTMLElement): void {
+  const search = root.querySelector<HTMLInputElement>('input[type="search"]');
+  const select = root.querySelector<HTMLSelectElement>('select');
+  if (!search || !select) return;
+  const options = Array.from(select.options);
+  const apply = () => {
+    const q = search.value.trim().toLowerCase();
+    const visible = options.filter((option) => {
+      const show = q === '' || (option.textContent || '').toLowerCase().includes(q);
+      option.hidden = !show;
+      return show;
+    });
+    const selected = select.selectedOptions[0];
+    if (visible[0] && selected?.hidden) select.value = visible[0].value;
+  };
+  search.addEventListener('input', apply);
+}
+
 export function initSite(doc: Document = document): void {
   initMobileMenu(doc);
   doc.querySelectorAll<HTMLElement>('[data-tabs="preview"]').forEach((el) => initTabs(el));
@@ -174,6 +192,7 @@ export function initSite(doc: Document = document): void {
   initWalkthroughStart(doc, walk);
   doc.querySelectorAll<HTMLElement>('[data-dscr]').forEach(initDscr);
   doc.querySelectorAll<HTMLElement>('[data-carousel]').forEach(initCarousel);
+  doc.querySelectorAll<HTMLElement>('[data-calling-code]').forEach(initCallingCode);
   initReveal(doc);
   doc.documentElement.classList.add('site-ready');
 }

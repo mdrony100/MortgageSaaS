@@ -94,7 +94,7 @@ describe('owner console payment requests and plans',()=>{
     mocked.mockResolvedValueOnce({request:row});
     await w.find('button.c-link-btn').trigger('click');
     await flushPromises();
-    expect(w.text()).toContain('Show us the workflow.');
+    expect(w.text()).toContain('p@example.test');
     mocked.mockResolvedValueOnce({request:{...row,notes:[{id:1,body:'Called the office.',author:{name:'Staff'},created_at:'2026-11-21T01:00:00Z'}]}});
     mocked.mockResolvedValueOnce({requests:{data:[row],current_page:1,last_page:1,total:1},statuses:{new:'New',contacted:'Contacted',converted:'Converted',closed:'Closed'},notification_configured:true});
     await w.find('textarea').setValue('Called the office.');

@@ -62,7 +62,6 @@ watch(() => route.path, async () => { open.value = false; await nextTick() })
 <RouterLink class="brand" to="/dashboard"><img v-if="logoOk" class="brand-logo" :src="brandIcon" alt="" width="40" height="40" @error="logoOk = false"><span v-else class="brand-mark" aria-hidden="true">NQ</span>{{ auth.org?.branding?.product_name || 'Non-QM Doc AI' }}</RouterLink>
 <CompanySwitcher/>
 <nav id="app-nav" aria-label="Main navigation"><RouterLink v-for="[url, label, icon] in nav" :key="url" :to="url" :class="{ 'is-active': navOn(url) }" @click="open = false"><component :is="icon" :size="22"/>{{ label }}</RouterLink></nav>
-<div class="sidebar-foot"><span class="status-dot"></span>A person makes the decision<p>The tool only flags potential issues. Practice files are labeled.</p></div>
 </aside>
 <div class="main-shell">
 <header>
