@@ -1,9 +1,9 @@
 @extends('site.layout')
 @section('content')
 @php $plans = \App\Website\Site::publishedPlans(); @endphp
-@include('site.partials.page-header', ['eyebrow' => 'Pricing', 'heading' => $plans ? 'Plans and pricing' : 'Contact for pricing', 'lead' => $plans ? 'These prices are placeholders you can edit. Request a demo and the team will contact you. Payment is arranged offline.' : 'Pricing is tailored to your team. Request a demo or contact sales and we’ll discuss your workflow and requirements.'])
+@include('site.partials.page-header', ['eyebrow' => 'Pricing', 'heading' => $plans ? 'Plans and pricing' : 'Contact for pricing', 'lead' => $plans ? 'These prices are placeholders you can edit. Request a demo and the team will contact you. Payment is arranged offline.' : 'Pricing is tailored to your team. Request a demo or contact sales and we’ll discuss your workflow and requirements.', 'headerInnerClass' => 'pt-16 pb-3 md:pt-24 md:pb-4'])
 
-<section class="site-section" aria-labelledby="pricing-heading">
+<section class="pt-2 pb-12 md:pt-6 md:pb-16" aria-labelledby="pricing-heading">
     <div class="site-container">
         <h2 id="pricing-heading" class="sr-only">Pricing options</h2>
         @if ($plans)
