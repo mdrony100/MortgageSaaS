@@ -356,3 +356,50 @@ button.quiet{background:#fff}
  .doc-row{grid-template-columns:1fr}
  .tip-pop{position:static;width:auto;margin-top:6px}
 }
+
+/* Loan file toolbar and analysis-type tabs */
+.file-toolbar{display:block;width:100%;box-sizing:border-box;background:#fff;border:1px solid #e0e7ef;border-radius:10px;padding:14px 16px;margin:8px 0 14px;box-shadow:0 1px 2px #182c430d}
+.file-toolbar-row{display:flex;align-items:center;justify-content:space-between;gap:12px 16px;flex-wrap:wrap}
+.file-page .file-toolbar-title{margin:0;flex:none;font-size:17px;font-weight:750;letter-spacing:-.2px;line-height:1.3;color:#102840}
+.file-toolbar-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-left:auto}
+.file-toolbar-actions button{width:auto;flex:none;white-space:nowrap;font-size:16px;min-height:44px}
+.file-toolbar-actions .toolbar-secondary{background:#fff;color:#263b53;border-color:#d4dce6}
+.practice-controls{display:flex;align-items:center;flex-wrap:wrap;gap:14px 20px;margin-top:12px;padding:12px 14px;background:#f4fbf9;border:1px solid #b7ddd6;border-radius:10px}
+.practice-controls .primary{width:auto;flex:none;align-self:center;background:#0e7c71;border-color:#0e7c71;color:#fff;min-height:44px;font-size:16px;white-space:nowrap}
+.practice-controls .primary:hover{filter:brightness(.94)}
+.switch{position:relative;display:flex;flex-direction:row;align-items:flex-start;gap:12px;margin:0;min-width:min(100%,280px);flex:1 1 280px;font-weight:500;cursor:pointer}
+.switch input{position:absolute;left:0;top:2px;width:44px;height:26px;margin:0;opacity:0;cursor:pointer;z-index:1}
+.switch-track{flex:none;width:44px;height:26px;margin-top:1px;border-radius:99px;background:#c5d0dc;position:relative;transition:background .15s ease}
+.switch-track::after{content:"";position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:3px;left:3px;box-shadow:0 1px 2px #10284033;transition:transform .15s ease}
+.switch input:checked+.switch-track{background:#0e7c71}
+.switch input:checked+.switch-track::after{transform:translateX(18px)}
+.switch input:focus-visible{outline:none}
+.switch input:focus-visible+.switch-track{outline:3px solid #31a89b;outline-offset:3px}
+.switch-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
+.switch-label{font-size:16px;font-weight:650;color:#102840;line-height:1.35}
+.switch-help{font-size:15px;font-weight:450;color:#475569;line-height:1.4}
+.analysis-tabs{display:flex;align-items:stretch;gap:8px;width:100%;margin:0 0 16px;border-bottom:1px solid #d4deea}
+.file-page .analysis-tabs .module-switch{display:flex;flex:1 1 auto;align-items:stretch;gap:4px;min-width:0;margin:0;padding:0;border-bottom:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+.file-page .module-tab{display:flex;align-items:center;justify-content:center;gap:8px;flex:1 1 0;min-width:max-content;margin-bottom:-1px;border-bottom:3px solid transparent;border-radius:8px 8px 0 0}
+.file-page .module-tab.active{background:#f4fbf9;border-bottom-color:#0e7c71}
+.file-page .module-switch button{flex:1 1 auto;justify-content:center;border:0;border-radius:8px 8px 0 0;background:transparent;color:#3e4e63;min-height:48px;padding:12px 16px;font-size:16px;font-weight:650;white-space:nowrap}
+.file-page .module-switch button:hover{background:transparent;color:#0e7c71}
+.file-page .module-switch button.active{color:#0e7c71;background:transparent;border-bottom:0;font-weight:750}
+.module-status{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;flex:none;align-self:center;padding:0 2px 0 8px;max-width:100%}
+.file-edit{margin:0 0 14px}
+.file-page .module-status .badge,.file-page .tab-badge{font-size:14px;font-weight:650;border-radius:999px;padding:4px 10px}
+@media(prefers-reduced-motion:reduce){.switch-track,.switch-track::after{transition:none}}
+@media(max-width:800px){
+ .file-toolbar{padding:12px}
+ .file-toolbar-row{align-items:flex-start}
+ .file-toolbar-actions{width:100%;margin-left:0;justify-content:flex-start}
+ .file-toolbar-actions button{flex:1 1 calc(50% - 8px);min-width:min(100%,9.5rem)}
+ .practice-controls{align-items:stretch}
+ .practice-controls .primary{width:100%}
+ .switch{flex-basis:100%}
+ .analysis-tabs{flex-direction:column;align-items:stretch;gap:0;border-bottom:0}
+ .file-page .analysis-tabs .module-switch{border-bottom:1px solid #d4deea;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 24px),transparent)}
+ .file-page .analysis-tabs .module-switch::-webkit-scrollbar{height:0;display:none}
+ .file-page .module-tab{flex:0 0 auto;scroll-snap-align:start}
+ .module-status{align-self:stretch;justify-content:flex-start;padding:8px 0 10px}
+}
