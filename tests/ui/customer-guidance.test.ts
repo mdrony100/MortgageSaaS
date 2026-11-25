@@ -6,7 +6,7 @@ import FileSteps from '../../resources/js/components/FileSteps.vue';
 import StatusBadge from '../../resources/js/components/StatusBadge.vue';
 import {useAuth} from '../../resources/js/stores/auth';
 import {api} from '../../resources/js/api';
-import {explainStatus,fileSteps,guideFor} from '../../resources/js/customerLanguage';
+import {explainStatus,failureGuide,fileSteps,guideFor,plainFailure} from '../../resources/js/customerLanguage';
 
 vi.mock('vue-router',()=>({useRouter:()=>({push:vi.fn()})}));
 vi.mock('../../resources/js/api',()=>({api:vi.fn()}));
@@ -17,20 +17,20 @@ describe('customer-facing language',()=>{
     expect(explainStatus('Unscanned').help).toMatch(/not certified clean/i);
     expect(explainStatus('Failed').label).toBe('Processing failed');
     expect(explainStatus('Failed').help).toMatch(/unlocked PDF/);
-    expect(fileSteps.map(step=>step.label)).toEqual(['Upload','Processing','Review findings','Export report']);
+    expect(fileSteps.map(step=>step.label)).toEqual(['Documents & details','Process','Review & export']);
   });
-  it('names the four loan-file steps and marks the current one',()=>{
+  it('names the three loan-file steps and marks the current one',()=>{
     const w=mount(FileSteps,{props:{current:1}});
     expect(w.text()).toContain('Upload bank statements');
-    expect(w.find('[aria-current="step"]').text()).toContain('Upload');
-    expect(w.text()).toContain('Export report');
+    expect(w.find('[aria-current="step"]').text()).toContain('Documents');
+    expect(w.text()).toContain('Review & export');
   });
   it('keeps the step and the badge on the same moment',()=>{
     const ready=guideFor({documents:2,runStatus:null,canReview:true});
-    expect(ready.step).toBe(2);
-    expect(ready.badge).toBe('Ready to start');
+    expect(ready.step).toBe(1);
+    expect(ready.badge).toBe('Loan details');
     expect(ready.waiting).toBe(false);
-    expect(ready.cta).toBe('start');
+    expect(ready.cta).toBe('details');
     const reading=guideFor({documents:2,runStatus:'Extracting'});
     expect(reading.step).toBe(2);
     expect(reading.badge).toBe('Reading the document');
@@ -42,8 +42,26 @@ describe('customer-facing language',()=>{
     expect(failed.step).toBe(2);
     expect(failed.body).toMatch(/not certified clean/i);
     expect(failed.body).not.toMatch(/Malware scan/);
+    expect(failed.action).toBe('Try again');
+    expect(failed.cta).toBe('retry');
+    expect(failed.support).toBe(true);
+    expect(guideFor({documents:1,runStatus:'Failed',failure:'Approved processing budget unavailable'}).action).toBe('Try again');
     expect(guideFor({documents:0}).step).toBe(1);
     expect(guideFor({documents:1,runStatus:'Completed'}).cta).toBe('export');
+    expect(guideFor({documents:1,runStatus:'Completed'}).step).toBe(3);
+    expect(plainFailure('Approved processing budget unavailable')).toBe("Processing budget isn't set up or is used up — ask an administrator.");
+    expect(plainFailure('Organization budget exhausted')).toBe("Processing budget isn't set up or is used up — ask an administrator.");
+    expect(plainFailure('Approved processing budget unavailable')).not.toMatch(/virus|certified clean/i);
+    expect(plainFailure('Service unavailable')).not.toMatch(/certified clean/i);
+    expect(plainFailure('scanner unavailable')).toMatch(/not certified clean/i);
+    for (const status of ['Queued','Validating','Extracting','Reconciling','Analyzing','NeedsReview','PartiallyCompleted','Completed','Failed','Cancelled','draft','in_review','complete','archived']) {
+      const guide = guideFor({documents:1,runStatus:status,canReview:true,archived:status==='archived'});
+      expect(guide.body.length).toBeGreaterThan(10);
+      expect(guide.title.length).toBeGreaterThan(2);
+    }
+    expect(failureGuide('Malware scan Rejected').cta).toBe('replace');
+    expect(failureGuide('Malware scan ScanFailed').cta).toBe('retry');
+    expect(failureGuide(null).body).not.toMatch(/undefined/);
   });
   it('shows the unscanned explanation next to the badge',()=>{
     const w=mount(StatusBadge,{props:{code:'Unscanned'}});

@@ -11,6 +11,9 @@ defineEmits<{ act: [] }>()
     <p>{{ guide.body }}</p>
     <div v-if="guide.waiting" class="processing-bar" role="progressbar" aria-label="Analysis in progress"><span></span></div>
   </div>
-  <button v-if="guide.action" class="primary" type="button" @click="$emit('act')">{{ guide.action }}</button>
+  <div v-if="guide.action || guide.support" class="guide-actions">
+    <button v-if="guide.action" class="primary" type="button" @click="$emit('act')">{{ guide.action }}</button>
+    <a v-if="guide.support" class="text-button" href="/support/new">Contact support</a>
+  </div>
 </article>
 </template>
