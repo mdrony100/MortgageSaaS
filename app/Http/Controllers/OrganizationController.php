@@ -12,10 +12,10 @@ use App\Models\Plan;
 use App\Services\Access;
 use App\Services\Audit;
 use App\Services\Entitlements;
+use App\Services\NotificationMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -59,12 +59,9 @@ class OrganizationController extends Controller
             return Invitation::create($d + ['id' => (string) Str::uuid(), 'organization_id' => $org->id, 'token_hash' => hash('sha256', $token), 'invited_by' => $r->user()->id, 'expires_at' => now()->addDays(7)]);
         });
         $url = config('app.url').'/invitations/accept?token='.$token;
-        $delivered = true;
-        try {
-            Mail::raw('You are invited to a Non-QM Doc AI workspace. Sign in with this email, then open: '.$url, fn ($m) => $m->to($d['email'])->subject('Non-QM Doc AI workspace invitation'));
-        } catch (\Throwable $e) {
-            $delivered = false;
-            Log::warning('Invitation email could not be delivered', ['invitation_id' => $invite->id, 'exception_type' => $e::class, 'smtp_rejected' => str_contains($e->getMessage(), '550')]);
+        $delivered = NotificationMail::teamInvite($d['email'], $organization->name, $url);
+        if (! $delivered) {
+            Log::warning('Invitation email could not be queued', ['invitation_id' => $invite->id]);
         }
         Audit::record('invitation.created', $organization->id, null, ['email_delivered' => $delivered]);
 
@@ -81,7 +78,7 @@ class OrganizationController extends Controller
     {
         $d = $r->validate(['token' => 'required|string|max:100']);
 
-        return DB::transaction(function () use ($r, $d) {
+        $membership = DB::transaction(function () use ($r, $d) {
             $i = Invitation::where('token_hash', hash('sha256', $d['token']))->lockForUpdate()->firstOrFail();
             abort_if($i->accepted_at || $i->revoked_at || $i->expires_at->isPast(), 410);
             abort_unless(hash_equals($i->email, strtolower($r->user()->email)), 403);
@@ -93,6 +90,12 @@ class OrganizationController extends Controller
 
             return $m;
         });
+        $organization = Organization::find($membership->organization_id);
+        if ($organization) {
+            NotificationMail::memberAdded($r->user(), $organization);
+        }
+
+        return $membership;
     }
 
     public function revokeInvite(Request $r, Organization $organization, Invitation $invitation)
@@ -135,9 +138,13 @@ class OrganizationController extends Controller
     public function audit(Request $r, Organization $organization)
     {
         abort_unless(Access::admin($r->user(), $organization->id), 403);
+        $r->validate(['page' => 'nullable|integer|min:1|max:10000']);
         $files = Access::visible($r->user())->where('organization_id', $organization->id)->pluck('id');
 
-        return AuditEvent::where('organization_id', $organization->id)->where(fn ($q) => $q->whereNull('loan_file_id')->orWhereIn('loan_file_id', $files))->latest('id')->limit(200)->get(['id', 'loan_file_id', 'actor_id', 'action', 'created_at']);
+        return AuditEvent::where('organization_id', $organization->id)
+            ->where(fn ($q) => $q->whereNull('loan_file_id')->orWhereIn('loan_file_id', $files))
+            ->latest('id')
+            ->paginate(15, ['id', 'loan_file_id', 'actor_id', 'action', 'created_at']);
     }
 
     public function usage(Request $r, Organization $organization)

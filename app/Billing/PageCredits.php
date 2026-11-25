@@ -8,8 +8,10 @@ use App\Models\PageCreditAccount;
 use App\Models\PageCreditEntry;
 use App\Models\Plan;
 use App\Services\Audit;
+use App\Services\NotificationMail;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -320,7 +322,7 @@ class PageCredits
         }
         $account->save();
 
-        return PageCreditEntry::create([
+        $entry = PageCreditEntry::create([
             'organization_id' => $account->organization_id,
             'type' => $type,
             'pages' => $pages,
@@ -334,6 +336,15 @@ class PageCredits
             'idempotency_key' => $key,
             'metadata' => isset($context['metadata']) ? $context['metadata'] : null,
         ]);
+        if ($pages < 0) {
+            try {
+                NotificationMail::credits($account->fresh() ?? $account);
+            } catch (\Throwable $e) {
+                Log::warning('Credit threshold email was not sent', ['exception_type' => $e::class]);
+            }
+        }
+
+        return $entry;
     }
 
     private function warningMessage(int $used, int $remaining): ?string

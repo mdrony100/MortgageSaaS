@@ -70,7 +70,7 @@ class ApprovalController extends Controller
         $outcome = $req->status === 'approved' ? 'has been approved.' : 'was not approved.';
         $body = $what.' '.$outcome.($req->decision_reason ? "\n\nNote from Non-QM Doc AI: ".$req->decision_reason : '')."\n\nSign in: ".config('app.url').'/login';
         foreach ($recipients as $email) {
-            SendPlatformEmail::safely($email, 'Non-QM Doc AI: request '.$req->status, $body);
+            SendPlatformEmail::safely($email, 'Non-QM Doc AI: request '.$req->status, $body, $req->type === 'signup' ? 'customer_account' : 'customer_billing');
         }
     }
 }

@@ -8,7 +8,9 @@ use App\Models\Plan;
 use App\Models\PlatformRequest;
 use App\Models\User;
 use App\Services\Audit;
+use App\Services\NotificationMail;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
@@ -22,7 +24,7 @@ class CreateNewUser implements CreatesNewUsers
         $input['email'] = strtolower($input['email'] ?? '');
         Validator::make($input, ['name' => 'required|string|max:120', 'organization_name' => 'required|string|max:120', 'email' => ['required', 'email', 'max:254', Rule::unique(User::class)], 'password' => $this->passwordRules()])->validate();
 
-        return DB::transaction(function () use ($input) {
+        $user = DB::transaction(function () use ($input) {
             $user = User::create(['name' => $input['name'], 'email' => $input['email'], 'password' => $input['password']]);
             $plan = Plan::firstOrCreate(['name' => 'Starter'], ['file_limit' => 25, 'member_limit' => 5, 'storage_limit_bytes' => 1073741824, 'provisional_monthly_price' => '49.00']);
             $pending = (bool) config('platform.signup_approval');
@@ -35,5 +37,13 @@ class CreateNewUser implements CreatesNewUsers
 
             return $user;
         });
+        try {
+            NotificationMail::welcome($user);
+            NotificationMail::signup($user);
+        } catch (\Throwable $e) {
+            Log::warning('Signup email was not queued', ['user_id' => $user->id, 'exception_type' => $e::class]);
+        }
+
+        return $user;
     }
 }

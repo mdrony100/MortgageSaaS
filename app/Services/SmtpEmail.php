@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\EmailDelivery;
+use App\Mail\BrandedMessage;
 use Illuminate\Support\Facades\Mail;
 
 class SmtpEmail implements EmailDelivery
@@ -14,6 +15,6 @@ class SmtpEmail implements EmailDelivery
 
     public function send(string $recipient, string $subject, string $body): void
     {
-        Mail::raw($body, fn ($m) => $m->to($recipient)->subject($subject));
+        Mail::to($recipient)->send(BrandedMessage::fromPlain($subject, $body));
     }
 }

@@ -16,13 +16,14 @@ function router(paths:string[]){return createRouter({history:createMemoryHistory
 const me={user:{id:1,name:'Fictional Platform Admin',email:'admin@example.test',two_factor:true},privacy_notice:'The owner console shows account and operational metadata only.',impersonation:{enabled:true,allowed:true,minutes:30},pending_approvals:2,new_inquiries:0};
 beforeEach(()=>{mocked.mockReset()});
 describe('owner console layout',()=>{
- it('has its own branded shell, console navigation, workspace link and no customer workspace switcher',async()=>{mocked.mockResolvedValue(me);const r=router(['/','/analytics','/revenue','/approvals','/organizations','/users','/plans','/inquiries','/reports','/audit','/settings','/system']);r.push('/organizations');await r.isReady();const w=mount(ConsoleApp,{global:{plugins:[r]}});await flushPromises();
+ it('has its own branded shell and console navigation, with no customer workspace switcher or open-workspace link',async()=>{mocked.mockResolvedValue(me);const r=router(['/','/analytics','/revenue','/approvals','/organizations','/users','/plans','/inquiries','/reports','/audit','/settings','/system']);r.push('/organizations');await r.isReady();const w=mount(ConsoleApp,{global:{plugins:[r]}});await flushPromises();
   expect(w.text()).toContain('Non-QM Doc AI');expect(w.text()).toContain('Owner Console');
   const labels=w.findAll('nav[aria-label="Owner console"] a').map(a=>a.text());
   for(const l of ['Overview','Analytics','Revenue','Approvals','Organizations','Users','Plans & billing','Website inquiries','Reports','Audit log','Settings','System status'])expect(labels.some(x=>x.startsWith(l))).toBe(true);
   expect(w.find('a.active').attributes('aria-current')).toBe('page');expect(w.find('a.active').text()).toContain('Organizations');
   expect(w.find('nav a[href="/approvals"]').text()).toContain('2');
-  expect(w.findAll('a[href="/dashboard"]').length).toBeGreaterThan(0);expect(w.text()).toContain('Open customer workspace');
+  expect(w.findAll('a[href="/dashboard"]')).toHaveLength(0);expect(w.text()).not.toContain('Open customer workspace');
+  expect(w.find('.c-top-link').exists()).toBe(false);expect(w.find('.c-nav-foot').exists()).toBe(false);
   expect(w.find('select#org').exists()).toBe(false);expect(w.text()).not.toContain('Workspace');
   expect(w.find('[aria-label="Privacy notice"]').text()).toContain('operational metadata only');
  });

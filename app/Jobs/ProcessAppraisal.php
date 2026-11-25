@@ -10,6 +10,7 @@ use App\Bank\ProcessingException;
 use App\Billing\Usage;
 use App\Jobs\Concerns\UsesAnalysisQueue;
 use App\Models\Review\Run;
+use App\Services\NotificationMail;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
@@ -98,10 +99,13 @@ class ProcessAppraisal implements ShouldQueue
         if ($e instanceof ParserConfigurationException) {
             $r->update(['status' => 'Failed', 'error' => $e->getMessage()]);
             app(Usage::class)->finish($r->organization_id, 'appraisal:'.$r->id, 'failed');
-
-            return;
+        } else {
+            $r->update(['status' => 'Failed', 'error' => 'Bounded attempts exhausted; check source/provider status']);
+            app(Usage::class)->finish($r->organization_id, 'appraisal:'.$r->id, 'failed');
         }
-        $r->update(['status' => 'Failed', 'error' => 'Bounded attempts exhausted; check source/provider status']);
-        app(Usage::class)->finish($r->organization_id, 'appraisal:'.$r->id, 'failed');
+        $fresh = $r->fresh();
+        if ($fresh && $fresh->status === 'Failed') {
+            NotificationMail::processing('appraisal', 'failed', (int) $fresh->organization_id, (int) $fresh->loan_file_id, (int) $fresh->requested_by, (string) $fresh->id);
+        }
     }
 }

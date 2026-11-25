@@ -717,16 +717,16 @@ class PhaseThreeTest extends TestCase
         $r = $this->reviewRun();
         app(Notifications::class)->ready($r);
         app(Notifications::class)->ready($r);
-        Mail::assertSent(ReviewReady::class, 1);
-        Mail::assertSent(ReviewReady::class, function ($m) {
+        Mail::assertQueued(ReviewReady::class, 1);
+        Mail::assertQueued(ReviewReady::class, function ($m) {
             $text = $m->render();
 
-            return str_contains($text, '/files/'.$this->file->id) && ! str_contains($text, '330000') && ! str_contains($text, 'FICTIONAL Example Street') && count($m->attachments) === 0;
+            return str_contains($text, '/files/'.$this->file->id) && str_contains($text, 'alt="Non-QM Doc AI"') && ! str_contains($text, '330000') && ! str_contains($text, 'FICTIONAL Example Street') && count($m->attachments) === 0;
         });
         $r2 = $this->reviewRun();
         Membership::where('organization_id', $this->org->id)->where('user_id', $this->owner->id)->update(['role' => 'viewer']);
         app(Notifications::class)->ready($r2);
-        Mail::assertSent(ReviewReady::class, 1);
+        Mail::assertQueued(ReviewReady::class, 1);
     }
 
     public function test_representative_eight_page_synthetic_photo_workload_observations(): void

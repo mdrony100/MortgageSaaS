@@ -167,21 +167,127 @@ export function initReveal(doc: Document = document): void {
 }
 
 export function initCallingCode(root: HTMLElement): void {
-  const search = root.querySelector<HTMLInputElement>('input[type="search"]');
-  const select = root.querySelector<HTMLSelectElement>('select');
-  if (!search || !select) return;
-  const options = Array.from(select.options);
-  const apply = () => {
-    const q = search.value.trim().toLowerCase();
-    const visible = options.filter((option) => {
-      const show = q === '' || (option.textContent || '').toLowerCase().includes(q);
-      option.hidden = !show;
-      return show;
-    });
-    const selected = select.selectedOptions[0];
-    if (visible[0] && selected?.hidden) select.value = visible[0].value;
+  const select = root.querySelector<HTMLSelectElement>('select[name="phone_country"]');
+  const button = root.querySelector<HTMLButtonElement>('.phone-prefix-btn');
+  const menu = root.querySelector<HTMLElement>('.phone-menu');
+  const search = menu?.querySelector<HTMLInputElement>('input[type="search"]');
+  const list = menu?.querySelector<HTMLElement>('[role="listbox"]');
+  if (!select || !button || !menu || !search || !list) return;
+
+  const options = Array.from(select.options).map((option) => ({
+    iso: option.value,
+    name: option.dataset.name || option.textContent || option.value,
+    dial: option.dataset.dial || '',
+    flag: option.dataset.flag || '',
+  }));
+  let active = -1;
+
+  const rows = () => Array.from(list.querySelectorAll<HTMLElement>('[role="option"]'));
+  const paintButton = () => {
+    const current = options.find((option) => option.iso === select.value) || options[0];
+    if (!current) return;
+    const flag = button.querySelector<HTMLElement>('[data-flag]');
+    const dial = button.querySelector<HTMLElement>('[data-dial]');
+    if (flag) flag.textContent = current.flag;
+    if (dial) dial.textContent = `+${current.dial}`;
+    button.setAttribute('aria-label', `Country code, ${current.name} +${current.dial}`);
   };
-  search.addEventListener('input', apply);
+  const render = (query = '') => {
+    const q = query.trim().toLowerCase();
+    const visible = options.filter((option) => q === '' || `${option.name} ${option.iso} +${option.dial} ${option.dial}`.toLowerCase().includes(q));
+    list.replaceChildren();
+    visible.forEach((option) => {
+      const item = document.createElement('li');
+      item.setAttribute('role', 'option');
+      item.dataset.iso = option.iso;
+      item.id = `phone-country-${option.iso}`;
+      item.setAttribute('aria-selected', String(option.iso === select.value));
+      const flag = document.createElement('span');
+      flag.setAttribute('aria-hidden', 'true');
+      flag.textContent = option.flag;
+      const name = document.createElement('span');
+      name.textContent = option.name;
+      const dial = document.createElement('span');
+      dial.className = 'phone-dial';
+      dial.textContent = `+${option.dial}`;
+      item.append(flag, name, dial);
+      list.appendChild(item);
+    });
+    if (!visible.length) {
+      const empty = document.createElement('li');
+      empty.className = 'phone-menu-empty';
+      empty.textContent = 'No matching country';
+      list.appendChild(empty);
+    }
+    const rendered = rows();
+    active = visible.findIndex((option) => option.iso === select.value);
+    rendered.forEach((row, index) => row.classList.toggle('is-active', index === active));
+    if (active >= 0 && rendered[active]) button.setAttribute('aria-activedescendant', rendered[active].id);
+    else button.removeAttribute('aria-activedescendant');
+  };
+  const close = (focusButton = false) => {
+    menu.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+    button.removeAttribute('aria-activedescendant');
+    if (focusButton) button.focus();
+  };
+  const open = () => {
+    menu.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    search.value = '';
+    render('');
+    search.focus();
+    const current = rows()[active];
+    current?.scrollIntoView({ block: 'nearest' });
+  };
+  const choose = (iso: string) => {
+    select.value = iso;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    paintButton();
+    close(true);
+  };
+  const move = (index: number) => {
+    const rendered = rows();
+    if (!rendered.length) return;
+    active = (index + rendered.length) % rendered.length;
+    rendered.forEach((row, i) => row.classList.toggle('is-active', i === active));
+    button.setAttribute('aria-activedescendant', rendered[active].id);
+    rendered[active].scrollIntoView({ block: 'nearest' });
+  };
+
+  button.addEventListener('click', () => { if (menu.hidden) open(); else close(); });
+  search.addEventListener('input', () => render(search.value));
+  search.addEventListener('keydown', (event: KeyboardEvent) => {
+    if (event.key === 'ArrowDown') { event.preventDefault(); move(active + 1); }
+    else if (event.key === 'ArrowUp') { event.preventDefault(); move(active < 0 ? rows().length - 1 : active - 1); }
+    else if (event.key === 'Home') { event.preventDefault(); move(0); }
+    else if (event.key === 'End') { event.preventDefault(); move(rows().length - 1); }
+    else if (event.key === 'Enter') {
+      event.preventDefault();
+      const rendered = rows();
+      const iso = (active >= 0 ? rendered[active] : rendered[0])?.dataset.iso;
+      if (iso) choose(iso);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      close(true);
+    }
+  });
+  list.addEventListener('pointerdown', (event) => {
+    const item = (event.target as HTMLElement).closest<HTMLElement>('[role="option"]');
+    if (!item?.dataset.iso) return;
+    event.preventDefault();
+    choose(item.dataset.iso);
+  });
+  root.addEventListener('keydown', (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && !menu.hidden) { event.preventDefault(); close(true); }
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (!root.contains(event.target as Node)) close();
+  });
+
+  paintButton();
+  root.classList.add('phone-ready');
 }
 
 export function initSite(doc: Document = document): void {

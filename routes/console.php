@@ -99,6 +99,7 @@ Artisan::command('bank:purge-transient {--execute}', function () {
     $this->info('Expired transient replay caches: '.$count.'. Original evidence untouched.');
 });
 Schedule::command('bank:purge-transient')->daily()->withoutOverlapping();
+Schedule::command('notifications:billing-reminders')->daily()->withoutOverlapping();
 
 Artisan::command('retention:review', function () {
     $this->line(json_encode(['mode' => 'dry_run_only', 'policy' => config('review.retention'), 'inventory' => ['originals' => DB::table('document_versions')->count(), 'reviews' => DB::table('review_runs')->count(), 'original_revisions' => DB::table('document_versions')->where('version', '>', 1)->count(), 'review_artifacts' => DB::table('review_records')->whereIn('kind', ['page', 'image'])->count(), 'issued_review_reports' => DB::table('review_records')->where('kind', 'report')->count(), 'stored_report_artifacts' => DB::table('review_records')->where('kind', 'report_artifact')->count(), 'review_database_records' => DB::table('review_records')->count()], 'provider_copies' => 'Operator/vendor agreement required', 'backups' => 'External backup inventory/restore acceptance required', 'deletion_executed' => false]));

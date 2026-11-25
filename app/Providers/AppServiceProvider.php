@@ -17,6 +17,7 @@ use App\Contracts\EmailDelivery;
 use App\Contracts\PrivateFileStorage;
 use App\Contracts\SubscriptionBilling;
 use App\Exceptions\MailDeliveryException;
+use App\Mail\BrandedMessage;
 use App\Models\Document;
 use App\Models\ImpersonationSession;
 use App\Models\LoanFile;
@@ -35,8 +36,10 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -96,7 +99,43 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('owner-actions', fn (Request $r) => Limit::perMinute(30)->by('owner-act:'.($r->user()?->id ?: $r->ip())));
         RateLimiter::for('impersonation', fn (Request $r) => Limit::perMinute(10)->by('imp:'.($r->user()?->id ?: $r->ip())));
         RateLimiter::for('uploads', fn (Request $r) => Limit::perMinute(10)->by($r->user()?->id ?: $r->ip()));
-        ResetPassword::createUrlUsing(fn ($user, $token) => config('app.url').'/reset-password?token='.$token.'&email='.urlencode($user->email));
+        $resetUrl = fn ($user, $token) => rtrim((string) config('app.url'), '/').'/reset-password?token='.$token.'&email='.urlencode($user->getEmailForPasswordReset());
+        ResetPassword::createUrlUsing($resetUrl);
+        ResetPassword::toMailUsing(function ($notifiable, $token) use ($resetUrl) {
+            $url = $resetUrl($notifiable, $token);
+            $minutes = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire');
+
+            return (new MailMessage)
+                ->subject('Reset your Non-QM Doc AI password')
+                ->view(['mail.branded', 'mail.branded-text'], BrandedMessage::data(
+                    'Reset your password',
+                    [
+                        'We received a request to reset the password for your Non-QM Doc AI account.',
+                        'This link expires in '.$minutes.' minutes. If you did not ask for a reset, you can ignore this email and your password will stay the same.',
+                    ],
+                    'Choose a new password',
+                    $url,
+                    [],
+                    'You received this because a password reset was requested for this email address.',
+                    'Choose a new password for your Non-QM Doc AI account.',
+                ));
+        });
+        VerifyEmail::toMailUsing(function ($notifiable, $url) {
+            return (new MailMessage)
+                ->subject('Confirm your email for Non-QM Doc AI')
+                ->view(['mail.branded', 'mail.branded-text'], BrandedMessage::data(
+                    'Confirm your email',
+                    [
+                        'Thanks for using Non-QM Doc AI. Confirm this email address so you can open your workspace.',
+                        'If you did not create an account or change this email address, you can ignore this message.',
+                    ],
+                    'Confirm email',
+                    $url,
+                    [],
+                    'You received this because an account was created or an email change was requested for this address.',
+                    'Confirm your email to open your Non-QM Doc AI workspace.',
+                ));
+        });
         foreach (['TwoFactorAuthenticationEnabled', 'TwoFactorAuthenticationConfirmed', 'TwoFactorAuthenticationDisabled', 'RecoveryCodesGenerated', 'RecoveryCodeReplaced', 'PasswordUpdatedViaController'] as $event) {
             Event::listen('Laravel\\Fortify\\Events\\'.$event, fn ($e) => Audit::record('auth.'.class_basename($e)));
         }
