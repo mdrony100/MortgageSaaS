@@ -312,13 +312,13 @@ onUnmounted(() => clearInterval(timer))
       <section v-if="file.permissions.review" id="finding-checklist" aria-label="Findings checklist">
         <div class="section-heading">
           <h3>Findings</h3>
-          <span class="badge">{{ doneCount }} of {{ (state.findings || []).length }} reviewed</span>
+          <span class="badge tally">{{ doneCount }} of {{ (state.findings || []).length }} reviewed</span>
         </div>
         <p v-if="!(state.findings || []).length" class="muted">Nothing was flagged. Check the detail sections if you need them, then export the report.</p>
         <article v-for="f in state.findings" :key="f.id" class="check-item" :class="{ done: isClosed(f) }">
           <header>
             <strong>{{ findingTitle(f) }}</strong>
-            <span class="badge" :class="isClosed(f) ? 'teal' : 'amber'">{{ isClosed(f) ? explainStatus(f.status).label : 'Needs a decision' }}</span>
+            <span class="badge" :class="isClosed(f) ? 'teal' : 'amber'">{{ isClosed(f) ? explainStatus(f.status).label.replace(/^./, (c: string) => c.toUpperCase()) : 'Needs a decision' }}</span>
           </header>
           <p>{{ f.data?.observation || f.data?.explanation || 'A person needs to check this.' }}</p>
           <p class="micro">{{ evidenceLine(f) }}</p>

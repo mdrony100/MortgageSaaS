@@ -279,7 +279,7 @@ a.button.primary:hover{filter:brightness(.94);text-decoration:none}
 .guided-review .guide-card h2{font-size:19px}
 .guided-review .guide-card p,.guided-review .guide-card .primary,.file-page .fold summary{font-size:16px}
 .guided-review .guide-card .eyebrow{font-size:13px;font-weight:700;color:#0f766e}
-.file-page .badge{font-size:14px}
+.file-page .badge{font-size:14px;text-transform:none}
 .guided-review .guide-card{align-items:center}
 .guided-review .guide-card .primary,.guided-review .fold-body .primary,.file-page .sharing-card .primary{width:auto;align-self:center;background:#0e7c71;border-color:#0e7c71;color:#fff}
 .guide-actions{display:flex;align-items:center;gap:12px;flex:none}
@@ -303,13 +303,13 @@ a.button.primary:hover{filter:brightness(.94);text-decoration:none}
 .fold>summary::marker{content:none}
 .fold>summary:hover,.fold>summary:focus-visible{background:#f4fbf9}
 .fold-copy{min-width:0;flex:1}
-.fold-chevron{flex:none;color:#0e7c71;transition:transform .15s ease}
-.fold[open]>summary .fold-chevron{transform:rotate(180deg)}
+.fold-chevron{flex:none;color:#0e7c71;transform:rotate(0deg);transform-origin:center;transform-box:fill-box;transition:transform .15s ease}
+details.fold[open]>summary .fold-chevron{transform:rotate(180deg)}
 .file-page details:not(.fold)>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;padding:8px 0;cursor:pointer;list-style:none;font-size:16px}
 .file-page details:not(.fold)>summary::-webkit-details-marker{display:none}
 .file-page details:not(.fold)>summary::marker{content:none}
-.file-page details:not(.fold)>summary::after{content:"";flex:none;width:8px;height:8px;border-right:2px solid #0e7c71;border-bottom:2px solid #0e7c71;transform:rotate(45deg);transition:transform .15s ease}
-.file-page details:not(.fold)[open]>summary::after{transform:rotate(-135deg)}
+.file-page details:not(.fold)>summary::after{content:"";flex:none;width:18px;height:18px;background:#0e7c71;-webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>") center/18px 18px no-repeat;mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>") center/18px 18px no-repeat;transform:rotate(0deg);transform-origin:center;transition:transform .15s ease}
+.file-page details:not(.fold)[open]>summary::after{transform:rotate(180deg)}
 .file-page details:not(.fold)>summary:hover{color:#0f766e}
 .fold-body{padding:0 14px 14px}
 .dropzone{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;border:1.5px dashed #9fb0c3;border-radius:12px;padding:18px 16px;background:#f8fbfd;cursor:pointer;margin-bottom:12px}
@@ -335,6 +335,15 @@ button.quiet{background:#fff}
 .progress-plain{font-size:16px;margin:0 0 8px}
 .loan-form fieldset{border:1px solid #e0e7ef;border-radius:10px;padding:12px;margin:0 0 12px}
 .file-page .file-actions,.file-page .card.spaced{margin-top:8px}
+#app-nav a{font-size:17px;font-weight:600;color:#e7eef6}
+#app-nav a svg{width:22px;height:22px;flex:none}
+#app-nav a:hover{background:#1c3852;color:#fff}
+#app-nav a.is-active,#app-nav a.router-link-exact-active{background:#25425c;color:#fff;font-weight:700;box-shadow:inset 4px 0 0 #36bbac}
+.org-kicker{font-size:14px}
+.org-copy strong{font-size:17px;font-weight:700}
+.org-copy small{font-size:15px;color:#d5e2ee}
+.app-shell .sidebar-foot{font-size:15px;font-weight:600;color:#e7eef6}
+.app-shell .sidebar-foot p{font-size:15px;font-weight:500;line-height:1.45;color:#d5e2ee}
 @media(max-width:800px){
  .guided-review .guide-card{align-items:flex-start}
  .guided-review .guide-card .primary,.file-page .guide-card .primary{width:auto}

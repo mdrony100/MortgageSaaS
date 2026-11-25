@@ -137,7 +137,7 @@ async function saveRule(){await act(()=>api(root.value+'/rules','POST',{name:rul
 <Fold title="Review & export" :hint="steps[2]?.summary" :open="openSection===3" @toggle="setSection(3,$event)">
   <p v-if="!internal" class="muted">A reviewer checks internal findings. You can answer questions and read the income figure above.</p>
   <section v-if="internal" id="finding-checklist" aria-label="Findings checklist">
-    <div class="section-heading"><h3>Findings</h3><span class="badge">{{doneCount}} of {{(state.findings||[]).length}} reviewed</span></div>
+    <div class="section-heading"><h3>Findings</h3><span class="badge tally">{{doneCount}} of {{(state.findings||[]).length}} reviewed</span></div>
     <p v-if="!(state.findings||[]).length" class="muted">Nothing was flagged. Use the detail sections if you need them, then export the report.</p>
     <article v-for="f in state.findings" :key="'check-'+f.id" class="check-item">
       <header><strong>{{f.data.code||f.data.category}}</strong><span class="badge" :class="['reviewed','resolved','rejected'].includes(f.status)?'teal':'amber'">{{['reviewed','resolved','rejected'].includes(f.status)?f.status:'Needs a decision'}}</span></header>
