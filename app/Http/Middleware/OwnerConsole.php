@@ -18,7 +18,12 @@ class OwnerConsole
         $api = $mode === 'api';
         $user = $request->user();
         if (! $user) {
-            return $api ? response()->json(['message' => 'Unauthenticated.'], 401) : redirect('/login?redirect='.urlencode($request->getRequestUri()));
+            if ($api) {
+                return response()->json(['message' => 'Unauthenticated.'], 401);
+            }
+            $request->session()->put('url.intended', $request->fullUrl());
+
+            return redirect('/admin/login?redirect='.urlencode($request->getRequestUri()));
         }
         if ($request->hasSession() && $request->session()->has('impersonation')) {
             return $this->deny($api, 'impersonating', 'End the support session before using the owner console.');

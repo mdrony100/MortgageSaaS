@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminLoginController;
 use App\Http\Controllers\Admin\ApprovalController as AdminApprovals;
 use App\Http\Controllers\Admin\AuditController as AdminAudit;
 use App\Http\Controllers\Admin\ConsoleController as Console;
@@ -93,6 +94,8 @@ Route::middleware(['auth:sanctum', 'owner.console:api', 'throttle:owner-console'
     });
     Route::post('impersonation', [AdminUsers::class, 'impersonate'])->middleware('throttle:impersonation');
 });
+Route::get('/admin/login', [AdminLoginController::class, 'create'])->name('admin.login');
+Route::post('/admin/login', [AdminLoginController::class, 'store'])->middleware('throttle:login')->name('admin.login.store');
 Route::get('/admin/{path?}', [Console::class, 'shell'])->where('path', '.*')->middleware('owner.console:web')->name('admin.console');
 Route::middleware(['auth:sanctum', 'verified', 'org.active', 'throttle:workspace'])->prefix('api')->group(function () {
     Route::get('organizations', [O::class, 'index']);

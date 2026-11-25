@@ -21,7 +21,7 @@ const nav=[
 ] as const;
 async function load(){try{me.value=await api('/api/admin/me')}catch(e:any){error.value=e.message}}
 function active(to:string){return to==='/'?route.path==='/':route.path.startsWith(to)}
-async function signOut(){await api('/api/auth/logout','POST').catch(()=>null);location.href='/login'}
+async function signOut(){await api('/api/auth/logout','POST').catch(()=>null);location.href='/admin/login'}
 watch(()=>route.fullPath,()=>{open.value=false;load()});
 function onKey(e:KeyboardEvent){if(e.key==='Escape'&&open.value){open.value=false;(document.querySelector('.c-menu') as HTMLElement|null)?.focus()}}
 onMounted(()=>{load();document.addEventListener('keydown',onKey)});onBeforeUnmount(()=>document.removeEventListener('keydown',onKey));
