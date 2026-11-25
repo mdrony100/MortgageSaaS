@@ -54,7 +54,10 @@ def shot(page, name):
 
 
 def login(page, base, email, password, secret=None, redirect=""):
-    page.goto(base + "/login" + (f"?redirect={urllib.parse.quote(redirect)}" if redirect else ""))
+    if redirect.startswith("/admin"):
+        page.goto(base + "/admin/login?redirect=" + urllib.parse.quote(redirect))
+    else:
+        page.goto(base + "/login" + (f"?redirect={urllib.parse.quote(redirect)}" if redirect else ""))
     page.fill("input[type=email]", email)
     page.fill("input[type=password]", password)
     page.click("button.primary")
@@ -80,7 +83,7 @@ with sync_playwright() as p:
     page = ctx.new_page()
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.goto(BASE + "/admin")
-    check("guest /admin goes to sign-in with return path", "/login?redirect=%2Fadmin" in page.url, page.url)
+    check("guest /admin goes to sign-in with return path", "/admin/login?redirect=%2Fadmin" in page.url, page.url)
     login(page, BASE, ACC["admin"]["email"], ACC["admin"]["password"], ACC["admin"]["totp_secret"], "/admin")
     page.wait_for_selector(".c-brand", timeout=15000)
     check("admin lands in the owner console after sign-in", page.url.rstrip("/").endswith("/admin"), page.url)

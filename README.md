@@ -114,7 +114,7 @@ php artisan horizon:terminate        # Supervisor restarts Horizon with the new 
 php artisan mortgage:platform-admin admin@your-domain.example
 ```
 
-The new admin then signs in, turns on two-factor authentication under **My account**, and opens `/admin`.
+The new admin then signs in at `/admin/login` (customer `/login` is unchanged), turns on two-factor authentication under **My account** when production requires it, and opens `/admin`.
 
 ## Handoff
 

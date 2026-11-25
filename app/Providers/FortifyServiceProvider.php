@@ -6,15 +6,13 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Auth\AuthenticateCredentials;
 use App\Auth\RegisterResponse;
-use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Contracts\RegisterResponse as RegisterResponseContract;
 use Laravel\Fortify\Fortify;
@@ -40,18 +38,8 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
 
-        // Same credential check as Fortify's default, plus the platform "disable sign-in" control.
-        Fortify::authenticateUsing(function (Request $request) {
-            $user = User::where('email', Str::lower((string) $request->input(Fortify::username())))->first();
-            if (! $user || ! Hash::check((string) $request->input('password'), $user->password)) {
-                return null;
-            }
-            if ($user->isDisabled()) {
-                throw ValidationException::withMessages([Fortify::username() => 'This account has been disabled. Contact your administrator.']);
-            }
-
-            return $user;
-        });
+        // Same credential check the owner-console sign-in uses, including the disable-sign-in control.
+        Fortify::authenticateUsing(fn (Request $request) => AuthenticateCredentials::resolve($request));
 
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());

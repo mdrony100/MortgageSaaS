@@ -141,8 +141,8 @@ class OwnerConsoleTest extends TestCase
 
     public function test_console_pages_have_their_own_gated_shell_and_old_urls_redirect(): void
     {
-        $this->get('/admin')->assertRedirect('/login?redirect=%2Fadmin');
-        $this->get('/admin/organizations')->assertRedirect('/login?redirect=%2Fadmin%2Forganizations');
+        $this->get('/admin')->assertRedirect('/admin/login?redirect=%2Fadmin');
+        $this->get('/admin/organizations')->assertRedirect('/admin/login?redirect=%2Fadmin%2Forganizations');
         $denied = $this->actingAs($this->owner)->get('/admin/users')->assertForbidden()->assertSee('Not authorized');
         $this->assertStringNotContainsString('id="admin"', $denied->getContent());
         $this->actingAs($this->admin(false))->get('/admin')->assertForbidden()->assertSee('Two-factor sign-in required')->assertSee('/settings/profile');
@@ -153,6 +153,66 @@ class OwnerConsoleTest extends TestCase
         $this->get('/platform')->assertRedirect('/admin');
         $this->get('/platform/inquiries?id=7')->assertRedirect('/admin/inquiries?id=7');
         $this->getJson('/api/platform')->assertNotFound();
+    }
+
+    public function test_admin_login_admits_only_platform_admins_and_uses_the_login_limiter(): void
+    {
+        $page = $this->get('/admin/login')->assertOk()->assertSee('Non-QM Doc AI')->assertSee('Owner console')->assertSee('Customer workspace sign-in');
+        $page->assertHeader('X-Robots-Tag', 'noindex, nofollow');
+        $this->assertStringNotContainsString('<div id="app"></div>', $page->getContent());
+
+        $this->from('/admin/login')->post('/admin/login', ['email' => 'owner@example.test', 'password' => 'wrong-password'])
+            ->assertRedirect('/admin/login')->assertSessionHasErrors('email');
+        $this->assertGuest();
+
+        $this->from('/admin/login')->post('/admin/login', ['email' => 'owner@example.test', 'password' => 'Owner-password-123'])
+            ->assertRedirect('/admin/login')->assertSessionHasErrors('email');
+        $this->assertGuest();
+        $this->assertStringContainsString('platform administrators', session('errors')->first('email'));
+
+        $this->actingAs($this->owner)->get('/admin/login')->assertOk()->assertSee('customer account');
+        $this->actingAs($this->owner)->from('/admin/login')->post('/admin/login', ['email' => 'owner@example.test', 'password' => 'Owner-password-123', 'redirect' => '/admin/users'])
+            ->assertRedirect('/admin/login')->assertSessionHasErrors('email');
+        $this->assertAuthenticatedAs($this->owner);
+        auth()->logout();
+
+        $this->postJson('/api/auth/login', ['email' => 'owner@example.test', 'password' => 'Owner-password-123'])->assertOk();
+        $this->assertAuthenticatedAs($this->owner);
+        auth()->logout();
+
+        $admin = $this->admin(false);
+        $this->post('/admin/login', ['email' => $admin->email, 'password' => 'password', 'redirect' => 'https://evil.example/admin'])
+            ->assertRedirect('/admin');
+        $this->assertAuthenticatedAs($admin);
+        auth()->logout();
+
+        $this->post('/admin/login', ['email' => $admin->email, 'password' => 'password', 'redirect' => '/admin/organizations'])
+            ->assertRedirect('/admin/organizations');
+        $this->assertAuthenticatedAs($admin);
+        $this->get('/admin/login')->assertRedirect('/admin');
+        auth()->logout();
+
+        $with2fa = $this->admin(true);
+        $this->post('/admin/login', ['email' => $with2fa->email, 'password' => 'password', 'redirect' => '/admin/users'])
+            ->assertRedirect('/two-factor-challenge?redirect='.urlencode('/admin/users'));
+        $this->assertGuest();
+        $this->assertSame($with2fa->id, session('login.id'));
+        $this->postJson('/admin/login', ['email' => $with2fa->email, 'password' => 'password'])->assertOk()->assertJsonPath('two_factor', true);
+
+        $disabled = $this->admin(false, ['disabled_at' => now(), 'email' => 'disabled-admin@example.test']);
+        $this->from('/admin/login')->post('/admin/login', ['email' => 'disabled-admin@example.test', 'password' => 'password'])
+            ->assertRedirect('/admin/login')->assertSessionHasErrors('email');
+        $this->assertGuest();
+        $this->assertStringContainsString('disabled', session('errors')->first('email'));
+
+        $limited = User::factory()->create(['email' => 'limited-admin@example.test', 'password' => 'password']);
+        $limited->forceFill(['platform_admin' => true])->save();
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/admin/login', ['email' => 'limited-admin@example.test', 'password' => 'incorrect'])->assertUnprocessable();
+        }
+        $this->postJson('/admin/login', ['email' => 'limited-admin@example.test', 'password' => 'password'])->assertTooManyRequests();
+        $this->postJson('/api/auth/login', ['email' => 'limited-admin@example.test', 'password' => 'password'])->assertTooManyRequests();
+        $this->assertGuest();
     }
 
     public function test_organization_actions_change_subscription_limits_and_notes_with_audit(): void

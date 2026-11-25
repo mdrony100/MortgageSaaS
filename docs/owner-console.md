@@ -30,6 +30,8 @@ All of these must be true, or the request is refused (403 JSON for `/api/admin/*
 4. Two-factor authentication is confirmed, when `OWNER_CONSOLE_REQUIRE_2FA=true`. This defaults to **on when `APP_ENV=production`** and off locally.
 5. Not currently inside a support session.
 
+Sign in at `/admin/login`. That page uses the same password check and login rate limit as the customer sign-in, then starts a session only for `platform_admin` accounts and sends them to the owner console (or through the existing two-factor challenge when the account has it). Any other account sees an error and is not signed in. A visit to `/admin` while signed out goes to `/admin/login`, not the customer sign-in. `/login` is unchanged.
+
 Grant or revoke from the server shell. Both are audited (`platform.admin_granted` / `platform.admin_revoked`):
 
 ```bash
