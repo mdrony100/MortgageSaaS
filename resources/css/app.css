@@ -273,8 +273,13 @@ a.button.primary:hover{filter:brightness(.94);text-decoration:none}
 .file-page .back-link{margin-bottom:8px}
 .file-page .guided-review{padding:12px 16px}
 .review-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.guided-review h2{font-size:16px;margin:0}
-.compliance{margin:6px 0 12px;color:#7b8ba0;font-size:13px}
+.guided-review h2{font-size:19px;margin:0}
+.compliance{margin:8px 0 14px;color:#475569;font-size:15px;line-height:1.45}
+.file-page .muted,.file-page .field-help,.guided-review .muted{color:#475569}
+.guided-review .guide-card h2{font-size:19px}
+.guided-review .guide-card p,.guided-review .guide-card .primary,.file-page .fold summary{font-size:16px}
+.guided-review .guide-card .eyebrow{font-size:13px;font-weight:700;color:#0f766e}
+.file-page .badge{font-size:14px}
 .guided-review .guide-card{align-items:center}
 .guided-review .guide-card .primary,.guided-review .fold-body .primary,.file-page .sharing-card .primary{width:auto;align-self:center;background:#0e7c71;border-color:#0e7c71;color:#fff}
 .guide-actions{display:flex;align-items:center;gap:12px;flex:none}
@@ -290,15 +295,22 @@ a.button.primary:hover{filter:brightness(.94);text-decoration:none}
 .step-row li.locked{color:#6b7c90}
 .step-row li.step-arrow{border:0;background:transparent;padding:0;min-height:0;border-radius:0}
 .step-row-copy{min-width:0}
-.step-row-copy strong,.fold summary strong{display:block;font-size:15px}
-.step-row-copy small,.fold summary small{display:block;color:#6b7c90;font-weight:400;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step-row-copy strong,.fold summary strong{display:block;font-size:16px;line-height:1.3}
+.step-row-copy small,.fold summary small{display:block;color:#475569;font-weight:400;font-size:15px;line-height:1.4;white-space:normal}
 .fold{background:#fff;border:1px solid #e6edf4;border-radius:10px;margin:0 0 8px}
-.fold>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;cursor:pointer;list-style:none;min-height:48px}
+.fold>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px 14px;cursor:pointer;list-style:none;min-height:52px;border-radius:10px}
 .fold>summary::-webkit-details-marker{display:none}
-.fold>summary{display:flex}
-.fold>summary::marker{content:''}
-.fold>summary::after{content:"Expand";color:#0e7c71;font-size:13px;font-weight:650;flex:none}
-.fold[open]>summary::after{content:"Close"}
+.fold>summary::marker{content:none}
+.fold>summary:hover,.fold>summary:focus-visible{background:#f4fbf9}
+.fold-copy{min-width:0;flex:1}
+.fold-chevron{flex:none;color:#0e7c71;transition:transform .15s ease}
+.fold[open]>summary .fold-chevron{transform:rotate(180deg)}
+.file-page details:not(.fold)>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;padding:8px 0;cursor:pointer;list-style:none;font-size:16px}
+.file-page details:not(.fold)>summary::-webkit-details-marker{display:none}
+.file-page details:not(.fold)>summary::marker{content:none}
+.file-page details:not(.fold)>summary::after{content:"";flex:none;width:8px;height:8px;border-right:2px solid #0e7c71;border-bottom:2px solid #0e7c71;transform:rotate(45deg);transition:transform .15s ease}
+.file-page details:not(.fold)[open]>summary::after{transform:rotate(-135deg)}
+.file-page details:not(.fold)>summary:hover{color:#0f766e}
 .fold-body{padding:0 14px 14px}
 .dropzone{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;border:1.5px dashed #9fb0c3;border-radius:12px;padding:18px 16px;background:#f8fbfd;cursor:pointer;margin-bottom:12px}
 .dropzone.is-over{border-color:#0e7c71;background:#f3faf8}
@@ -330,8 +342,8 @@ button.quiet{background:#fff}
  .step-arrow-right{display:none}
  .step-arrow-down{display:block}
  .step-row li{padding:8px 10px;min-height:0}
- .step-row-copy strong{font-size:13px}
- .step-row-copy small{white-space:normal;font-size:12px}
+ .step-row-copy strong{font-size:16px}
+ .step-row-copy small{font-size:15px}
  .doc-row{grid-template-columns:1fr}
  .tip-pop{position:static;width:auto;margin-top:6px}
 }

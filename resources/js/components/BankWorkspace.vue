@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref,computed,onMounted,onBeforeUnmount,watch } from 'vue';
-import {api} from '../api';import DataPanel from './DataPanel.vue';import DocumentViewer from './DocumentViewer.vue';import StatusBadge from './StatusBadge.vue';import HelpNote from './HelpNote.vue';import NextStep from './NextStep.vue';import IssueReview from './IssueReview.vue';import GuidedSteps from './GuidedSteps.vue';import HowItWorks from './HowItWorks.vue';import FieldTip from './FieldTip.vue';import {bankTabLabel,explainIntegrity,explainStatus,flowFor,guideFor,helpText,readingProgress,reviewIssues,smoothScroll} from '../customerLanguage';
+import {api} from '../api';import DataPanel from './DataPanel.vue';import DocumentViewer from './DocumentViewer.vue';import StatusBadge from './StatusBadge.vue';import HelpNote from './HelpNote.vue';import NextStep from './NextStep.vue';import IssueReview from './IssueReview.vue';import GuidedSteps from './GuidedSteps.vue';import Fold from './Fold.vue';import HowItWorks from './HowItWorks.vue';import FieldTip from './FieldTip.vue';import {bankTabLabel,explainIntegrity,explainStatus,flowFor,guideFor,helpText,readingProgress,reviewIssues,smoothScroll} from '../customerLanguage';
 const props=defineProps<{file:any}>();const emit=defineEmits(['refresh','guide']);
 const state=ref<any>({}),error=ref(''),notice=ref(''),busy=ref(false),tab=ref('integrity'),runId=ref(''),source=ref<any>(),upload=ref<File>(),fictional=ref(false),selectedVersions=ref<number[]>([]),selectedAccounts=ref<string[]>([]),selectedTx=ref<number[]>([]),query=ref(''),filter=ref(''),category=ref('unresolved'),include=ref('policy'),reason=ref('source_verified'),notes=ref(''),ruleId=ref(''),workflow=ref('business'),months=ref(12),endMonth=ref(new Date().toISOString().slice(0,7)),ownership=ref(''),remaining=ref(''),accountA=ref(''),accountB=ref(''),condition=ref(''),explanation=ref(''),publicExplanation=ref(''),messageKind=ref('explanation'),preview=ref<any>(),ruleName=ref(''),ruleStatus=ref('draft'),ruleJson=ref(''),loanReady=ref(false),dragging=ref(false);
 const internal=computed(()=>props.file.permissions.review),root=computed(()=>'/api/files/'+props.file.id+'/bank'),runRoot=computed(()=>root.value+'/runs/'+state.value.run?.id),versions=computed(()=>props.file.documents.filter((d:any)=>d.category!=='fixture').flatMap((d:any)=>d.versions)),tx=computed(()=>state.value.transactions?.filter((t:any)=>(!filter.value||t.current_category===filter.value)&&(!query.value||(t.data.description+' '+t.posting_date+' '+t.id).toLowerCase().includes(query.value.toLowerCase())))||[]),latest=computed(()=>state.value.calculations?.at(-1)),sourceVersion=computed(()=>versions.value.find((v:any)=>v.id===source.value?.document_version_id)),reviewTabs=computed(()=>internal.value?['coverage','transactions','transfers','income','nsf','sustainability','integrity','conditions','history']:['conditions']);
@@ -14,7 +14,7 @@ const steps=computed(()=>flowFor(guide.value,{documents:versions.value.length,lo
 const issues=computed(()=>internal.value?reviewIssues(state.value.findings||[]):[]);
 const doneCount=computed(()=>(state.value.findings||[]).filter((f:any)=>['reviewed','resolved','rejected'].includes(f.status)).length);
 function confirmLoan(){loanReady.value=true}
-function syncFold(id:number,event:Event){const el=event.target as HTMLDetailsElement;if(event.target!==el)return;if(el.open)openSection.value=id;else if(openSection.value===id)openSection.value=0}
+function setSection(id:number,open:boolean){openSection.value=open?id:openSection.value===id?0:openSection.value}
 function onGuideAction(){const cta=guide.value.cta;if(cta==='retry'&&state.value.run)act(()=>api(runRoot.value+'/control/retry','POST'),'Pinned run retry requested.');if(cta==='start')start();openSection.value=cta==='upload'||cta==='details'||cta==='replace'?1:cta==='review'||cta==='export'?3:2;if(cta==='review'||cta==='export'){tab.value=internal.value?'integrity':'conditions';document.getElementById('finding-checklist')?.scrollIntoView({behavior:smoothScroll(),block:'start'})}}
 function onDrop(event:DragEvent){dragging.value=false;const file=event.dataTransfer?.files?.[0];if(!file)return;upload.value=file;addDocument()}
 async function quickFinding(f:any,status:string){f.nextStatus=status;await finding(f)}
@@ -49,13 +49,10 @@ async function saveRule(){await act(()=>api(root.value+'/rules','POST',{name:rul
 <GuidedSteps :steps="steps" />
 <NextStep :guide="guide" @act="onGuideAction"/>
 <p class="compliance">A person makes the decision. The tool only flags potential issues. This is not lending advice.</p>
-<details v-if="!internal" class="fold">
-  <summary><span><strong>Qualifying income</strong><small>{{ state.final_income?.income_usd ? '$'+state.final_income.income_usd : 'No final figure yet' }}</small></span></summary>
-  <div class="fold-body"><HelpNote :text="helpText.income"/><DataPanel :data="state.final_income||{notice:'No final income report issued.'}"/></div>
-</details>
-<details class="fold" :open="openSection===1" @toggle="syncFold(1,$event)">
-  <summary><span><strong>Documents &amp; details</strong><small>{{ steps[0]?.summary }}</small></span></summary>
-  <div class="fold-body">
+<Fold v-if="!internal" title="Qualifying income" :hint="state.final_income?.income_usd ? '$'+state.final_income.income_usd : 'No final figure yet'">
+  <HelpNote :text="helpText.income"/><DataPanel :data="state.final_income||{notice:'No final income report issued.'}"/>
+</Fold>
+<Fold title="Documents & details" :hint="steps[0]?.summary" :open="openSection===1" @toggle="setSection(1,$event)">
   <form v-if="file.permissions.upload" class="upload-form" @submit.prevent="addDocument">
     <label class="dropzone" :class="{'is-over':dragging}" @dragover.prevent="dragging=true" @dragleave.prevent="dragging=false" @drop.prevent="onDrop">
       <strong>Drop a PDF, PNG, or JPG here</strong>
@@ -107,11 +104,8 @@ async function saveRule(){await act(()=>api(root.value+'/rules','POST',{name:rul
       </label>
     </details>
   </div>
-  </div>
-</details>
-<details class="fold" :open="openSection===2" @toggle="syncFold(2,$event)">
-  <summary><span><strong>Process</strong><small>{{ steps[1]?.summary }}</small></span></summary>
-  <div class="fold-body">
+</Fold>
+<Fold title="Process" :hint="steps[1]?.summary" :open="openSection===2" @toggle="setSection(2,$event)">
   <p class="micro">No simulated analysis in this workspace.</p>
   <p v-if="guide.waiting" class="progress-plain">{{guide.body}}</p>
   <p v-else-if="state.run" class="muted">{{explainStatus(state.run.status).label}}</p>
@@ -139,11 +133,8 @@ async function saveRule(){await act(()=>api(root.value+'/rules','POST',{name:rul
       </form>
     </details>
   </details>
-  </div>
-</details>
-<details class="fold" :open="openSection===3" @toggle="syncFold(3,$event)">
-  <summary><span><strong>Review &amp; export</strong><small>{{ steps[2]?.summary }}</small></span></summary>
-  <div class="fold-body">
+</Fold>
+<Fold title="Review & export" :hint="steps[2]?.summary" :open="openSection===3" @toggle="setSection(3,$event)">
   <p v-if="!internal" class="muted">A reviewer checks internal findings. You can answer questions and read the income figure above.</p>
   <section v-if="internal" id="finding-checklist" aria-label="Findings checklist">
     <div class="section-heading"><h3>Findings</h3><span class="badge">{{doneCount}} of {{(state.findings||[]).length}} reviewed</span></div>
@@ -188,7 +179,6 @@ async function saveRule(){await act(()=>api(root.value+'/rules','POST',{name:rul
   </ul>
   <p>Open findings do not block the download. This is not a loan approval.</p>
 <h2>Versioned real exports</h2><template v-if="internal"><p>Preliminary reports may contain findings. Final income requires configured, approved completeness gates; it is not mortgage approval.</p><label>Deliberately broker-safe final explanation<textarea v-model="publicExplanation"/></label><div class="actions"><button :disabled="busy||!latest" @click="issue(false)">Issue preliminary internal report</button><button :disabled="busy||!latest" @click="issue(true)">Finalize income + separate broker report</button></div></template><article v-for="r in state.reports" class="document-card"><strong>Report {{r.data?.report_version||r.version}} · {{r.data?.audience||'broker'}} · {{r.data?.status||'final'}}</strong><div class="actions"><a v-for="format in ['xlsx','csv','pdf']" class="button" :href="root+'/runs/'+r.run_id+'/reports/'+r.id+'/'+format">Download {{format.toUpperCase()}}</a></div></article>
-  </div>
-</details>
+</Fold>
 </section>
 </template>

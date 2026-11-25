@@ -7,6 +7,7 @@ import HelpNote from './HelpNote.vue'
 import NextStep from './NextStep.vue'
 import IssueReview from './IssueReview.vue'
 import GuidedSteps from './GuidedSteps.vue'
+import Fold from './Fold.vue'
 import HowItWorks from './HowItWorks.vue'
 import FieldTip from './FieldTip.vue'
 import { appraisalTabLabel, documentTypeLabel, documentTypeOptions, explainIntegrity, explainStatus, failureGuide, flowFor, guessDocumentType, guideFor, helpText, occupancyOptions, optionLabel, readingProgress, reviewIssues, smoothScroll, transactionOptions } from '../customerLanguage'
@@ -173,11 +174,8 @@ const steps = computed(() => flowFor(guide.value, {
 const issues = computed(() => props.file.permissions?.review ? reviewIssues(state.value.findings || []) : [])
 const doneCount = computed(() => (state.value.findings || []).filter((f: any) => isClosed(f)).length)
 function confirmLoan() { loanReady.value = true }
-function syncFold(id: number, event: Event) {
-  const el = event.target as HTMLDetailsElement
-  if (event.target !== el) return
-  if (el.open) openSection.value = id
-  else if (openSection.value === id) openSection.value = 0
+function setSection(id: number, open: boolean) {
+  openSection.value = open ? id : openSection.value === id ? 0 : openSection.value
 }
 function onGuideAction() {
   const cta = guide.value.cta
@@ -200,9 +198,7 @@ onUnmounted(() => clearInterval(timer))
   <GuidedSteps :steps="steps" />
   <NextStep :guide="guide" @act="onGuideAction" />
   <p class="compliance">A person makes the decision. The tool only flags potential issues. This is not lending advice.</p>
-  <details class="fold" :open="openSection === 1" @toggle="syncFold(1, $event)">
-    <summary><span><strong>Documents &amp; details</strong><small>{{ steps[0]?.summary }}</small></span></summary>
-    <div class="fold-body">
+  <Fold title="Documents & details" :hint="steps[0]?.summary" :open="openSection === 1" @toggle="setSection(1, $event)">
       <form class="upload-form" @submit.prevent="addUpload">
         <label class="dropzone" :class="{ 'is-over': dragging }" @dragover.prevent="dragging = true" @dragleave.prevent="dragging = false" @drop.prevent="onDrop">
           <strong>Drop a PDF, PNG, or JPG here</strong>
@@ -287,11 +283,8 @@ onUnmounted(() => clearInterval(timer))
           </label>
         </details>
       </div>
-    </div>
-  </details>
-  <details class="fold" :open="openSection === 2" @toggle="syncFold(2, $event)">
-    <summary><span><strong>Process</strong><small>{{ steps[1]?.summary }}</small></span></summary>
-    <div class="fold-body">
+  </Fold>
+  <Fold title="Process" :hint="steps[1]?.summary" :open="openSection === 2" @toggle="setSection(2, $event)">
       <p v-if="guide.waiting || state.run" class="progress-plain">{{ guide.waiting ? guide.body : explainStatus(state.run.status).label }}</p>
       <p v-else class="muted">{{ selected.length }} documents ready. Nothing is read until you start processing.</p>
       <button v-if="running" type="button" class="quiet" @click="command('control', { operation: 'cancel' })">Cancel</button>
@@ -313,11 +306,8 @@ onUnmounted(() => clearInterval(timer))
         <DataPanel :show-evidence="true" :data="rows('document_batch')" />
         <p v-if="!state.run">Select preserved original versions to start. No uploaded file is replaced by sample analysis.</p>
       </details>
-    </div>
-  </details>
-  <details class="fold" :open="openSection === 3" @toggle="syncFold(3, $event)">
-    <summary><span><strong>Review &amp; export</strong><small>{{ steps[2]?.summary }}</small></span></summary>
-    <div class="fold-body">
+  </Fold>
+  <Fold title="Review & export" :hint="steps[2]?.summary" :open="openSection === 3" @toggle="setSection(3, $event)">
       <p v-if="!file.permissions.review" class="muted">A reviewer checks the findings. Questions for you stay with the file notes.</p>
       <section v-if="file.permissions.review" id="finding-checklist" aria-label="Findings checklist">
         <div class="section-heading">
@@ -493,8 +483,7 @@ onUnmounted(() => clearInterval(timer))
         <a v-for="format in ['pdf', 'xlsx']" :key="format" class="button" :href="rr + '/reports/' + r.id + '/' + format">Download {{ format }}</a>
       </article>
       </template>
-    </div>
-  </details>
+  </Fold>
   </template>
 </section>
 </template>
