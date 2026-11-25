@@ -11,6 +11,7 @@ use App\Bank\Reports\ReportService;
 use App\Bank\ReviewState;
 use App\Bank\RuleProfile;
 use App\Bank\TransferEngine;
+use App\Billing\PageCredits;
 use App\Billing\Usage;
 use App\Jobs\ProcessBankRun;
 use App\Models\Bank\Run;
@@ -90,6 +91,9 @@ class BankController extends Controller
         $options['months'] = (int) $options['months'];
         $options['transfer_window_days'] = min(30, max(0, (int) config('bank.transfer_window_days', 3)));
         $options['source_inventory'] = BankStatus::inventory($file);
+        if (! Run::where('idempotency_key', $key)->exists()) {
+            app(PageCredits::class)->assertCanSpend($file->organization_id, app(PageCredits::class)->pagesForVersions($versions), $file->id);
+        }
         $run = DB::transaction(function () use ($file, $r, $key, $options, $versions, $d) {
             LoanFile::whereKey($file->id)->lockForUpdate()->first();
             $old = Run::where('idempotency_key', $key)->first();

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Billing\CreditNotifier;
 use App\Jobs\SendWebsiteInquiryNotification;
+use App\Models\DemoRequest;
 use App\Models\WebsiteInquiry;
 use App\Website\Site;
 use Illuminate\Http\Request;
@@ -76,6 +78,59 @@ class PublicSiteController extends Controller
         }
 
         return redirect()->route('site.contact')->with('inquiry_saved', true);
+    }
+
+    public function demo()
+    {
+        return response()->view('site.demo', ['routeName' => 'site.demo']);
+    }
+
+    public function demoSubmit(Request $r)
+    {
+        $data = $r->validate([
+            'name' => 'required|string|max:120',
+            'company' => 'required|string|max:150',
+            'email' => 'required|string|email:rfc|max:190',
+            'phone' => 'required|string|max:40',
+            'monthly_volume' => 'required|string|max:120',
+            'message' => 'required|string|min:10|max:5000',
+            'company_website' => 'nullable|string|max:500',
+        ], [], ['email' => 'work email', 'monthly_volume' => 'monthly loan volume or pages', 'phone' => 'phone']);
+
+        $clean = fn (?string $v) => $v === null ? null : trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $v));
+        $message = $clean($data['message']);
+        $spam = filled($data['company_website'] ?? null) ? 'honeypot' : (preg_match_all('~https?://|www\.~i', (string) $message) > 3 ? 'link_heavy' : null);
+
+        try {
+            $demo = DemoRequest::create([
+                'name' => $clean($data['name']),
+                'company' => $clean($data['company']),
+                'email' => mb_strtolower((string) $clean($data['email'])),
+                'phone' => $clean($data['phone']),
+                'monthly_volume' => $clean($data['monthly_volume']),
+                'message' => $message,
+                'status' => 'new',
+                'is_spam' => $spam !== null,
+                'spam_reason' => $spam,
+                'source_hash' => hash_hmac('sha256', (string) $r->ip(), (string) config('app.key')),
+                'notification_status' => $spam ? 'skipped_spam' : 'pending',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Demo request could not be saved', ['exception_type' => get_class($e)]);
+
+            return back()->withInput()->withErrors(['form' => 'We could not save your request. Please try again later.']);
+        }
+
+        if (! $spam) {
+            try {
+                CreditNotifier::demoReceived($demo->fresh());
+            } catch (\Throwable $e) {
+                Log::warning('Demo request notification could not be sent', ['demo_request_id' => $demo->id, 'exception_type' => get_class($e)]);
+                DemoRequest::whereKey($demo->id)->update(['notification_status' => 'dispatch_failed', 'notification_error' => class_basename($e)]);
+            }
+        }
+
+        return redirect()->route('site.demo')->with('demo_saved', true);
     }
 
     public function sitemap()

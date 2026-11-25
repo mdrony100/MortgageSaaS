@@ -11,6 +11,7 @@ use App\Bank\Providers\OcrolusDetect;
 use App\Bank\Providers\OpenAIExtractor;
 use App\Bank\StatementExtractor;
 use App\Billing\FakeProvider;
+use App\Billing\PageCredits;
 use App\Billing\UnavailableProvider;
 use App\Contracts\EmailDelivery;
 use App\Contracts\PrivateFileStorage;
@@ -19,6 +20,7 @@ use App\Exceptions\MailDeliveryException;
 use App\Models\Document;
 use App\Models\ImpersonationSession;
 use App\Models\LoanFile;
+use App\Models\Organization;
 use App\Policies\DocumentPolicy;
 use App\Policies\LoanFilePolicy;
 use App\Services\Audit;
@@ -83,6 +85,13 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(max(1, (int) config('website.inquiry_rate_limit.per_minute')))->by('inquiry-m:'.$r->ip())->response(fn () => back()->withInput()->withErrors(['form' => 'Too many requests. Please wait a few minutes and try again.'])),
             Limit::perDay(max(1, (int) config('website.inquiry_rate_limit.per_day')))->by('inquiry-d:'.$r->ip())->response(fn () => back()->withInput()->withErrors(['form' => 'Too many requests. Please try again later.'])),
         ]);
+        RateLimiter::for('website-demo', fn (Request $r) => [
+            Limit::perMinute(max(1, (int) config('website.demo_rate_limit.per_minute')))->by('demo-m:'.$r->ip())->response(fn () => back()->withInput()->withErrors(['form' => 'Too many requests. Please wait a few minutes and try again.'])),
+            Limit::perDay(max(1, (int) config('website.demo_rate_limit.per_day')))->by('demo-d:'.$r->ip())->response(fn () => back()->withInput()->withErrors(['form' => 'Too many requests. Please try again later.'])),
+        ]);
+        Organization::created(function (Organization $org) {
+            app(PageCredits::class)->provision($org);
+        });
         RateLimiter::for('owner-console', fn (Request $r) => Limit::perMinute(180)->by('owner:'.($r->user()?->id ?: $r->ip())));
         RateLimiter::for('owner-actions', fn (Request $r) => Limit::perMinute(30)->by('owner-act:'.($r->user()?->id ?: $r->ip())));
         RateLimiter::for('impersonation', fn (Request $r) => Limit::perMinute(10)->by('imp:'.($r->user()?->id ?: $r->ip())));

@@ -3,13 +3,14 @@ import {ref,reactive,onMounted,computed,inject,nextTick} from 'vue';import {useR
 const route=useRoute(),d=ref<any>(null),error=ref(''),success=ref(''),busy=ref(false),note=ref(''),consoleMe=inject<any>('consoleMe',null);
 const supportAllowed=computed(()=>{const state=consoleMe&&typeof consoleMe==='object'&&'value' in consoleMe?consoleMe.value:consoleMe;return !!state?.impersonation?.allowed});
 const target=ref<any>(null),reason=ref(''),starting=ref(false);
-const form=reactive({plan_id:0,status:'active',reason:'',days:14,end_status:'active',file_limit:'' as any,member_limit:'' as any,storage_gb:'' as any});
+const form=reactive({plan_id:0,status:'active',reason:'',days:14,end_status:'active',file_limit:'' as any,member_limit:'' as any,storage_gb:'' as any,pages:100,credit_reason:''});
 const id=computed(()=>Number(route.params.id));
 function fill(x:any){d.value=x;const o=x.organization;form.plan_id=o.plan.id;form.status=o.subscription_status;form.reason='';form.file_limit=o.file_limit_override??'';form.member_limit=o.member_limit_override??'';form.storage_gb=o.storage_limit_bytes_override!=null?+(o.storage_limit_bytes_override/1073741824).toFixed(2):''}
 async function load(){error.value='';try{fill(await api('/api/admin/organizations/'+id.value))}catch(e:any){error.value=e.message}}
 async function act(payload:Record<string,unknown>,msg:string){busy.value=true;error.value='';success.value='';try{fill(await api('/api/admin/organizations/'+id.value+'/actions','POST',payload));success.value=msg}catch(e:any){error.value=e.message}finally{busy.value=false}}
 const nul=(v:any)=>v===''||v==null?null:Number(v);
 function saveLimits(){act({action:'set_limits',file_limit:nul(form.file_limit),member_limit:nul(form.member_limit),storage_gb:nul(form.storage_gb)},'Limit overrides saved.')}
+async function adjustCredits(){if(!form.credit_reason.trim()||!form.pages){error.value='Enter pages and a reason.';return}busy.value=true;error.value='';success.value='';try{const r=await api('/api/admin/organizations/'+id.value+'/credits','POST',{pages:Number(form.pages),reason:form.credit_reason});d.value.page_credits=r.credits;form.credit_reason='';success.value='Page balance updated.'}catch(e:any){error.value=e.message}finally{busy.value=false}}
 function suspend(){if(!form.reason.trim()){error.value='Enter a reason before suspending.';return}act({action:'suspend',reason:form.reason},'Organization suspended. Members now see a suspension message.')}
 async function addNote(){if(!note.value.trim())return;busy.value=true;error.value='';try{d.value.notes=(await api('/api/admin/organizations/'+id.value+'/notes','POST',{body:note.value})).notes;note.value='';success.value='Internal note added.'}catch(e:any){error.value=e.message}finally{busy.value=false}}
 const pct=(u:number,l:number)=>l>0?Math.min(100,Math.round(u/l*100)):100;
@@ -42,6 +43,11 @@ onMounted(load);
 <hr/><h3>Limit overrides</h3><p class="c-muted">Leave blank to use the plan limit. Overrides apply on top of the plan.</p>
 <form class="c-form c-form-3" @submit.prevent="saveLimits"><label>Files<input v-model="form.file_limit" type="number" min="0" :placeholder="String(d.organization.plan.file_limit)"/></label><label>Members<input v-model="form.member_limit" type="number" min="0" :placeholder="String(d.organization.plan.member_limit)"/></label><label>Storage (GB)<input v-model="form.storage_gb" type="number" min="0" step="0.5" :placeholder="String(d.organization.plan.storage_limit_bytes/1073741824)"/></label><div class="c-actions"><button class="c-btn" :disabled="busy">Save overrides</button></div></form>
 </div></div>
+<div v-if="d.page_credits" class="c-card"><h2>Page credits</h2>
+<p class="c-lead"><strong>{{d.page_credits.balance.toLocaleString()}}</strong> pages remaining · {{d.page_credits.used_this_period.toLocaleString()}} used this period<span v-if="d.page_credits.warning"> · {{d.page_credits.warning_message}}</span></p>
+<form class="c-form c-form-3" @submit.prevent="adjustCredits"><label>Pages to add or remove<input v-model.number="form.pages" type="number" required/></label><label class="c-grow">Reason<input v-model="form.credit_reason" required maxlength="500" placeholder="Why this balance is changing"/></label><div class="c-actions"><button class="c-btn" :disabled="busy">Adjust balance</button></div></form>
+<p class="c-muted">Use a negative number to remove pages. The balance cannot go below zero. This is recorded on the ledger with your name.</p>
+</div>
 <div v-if="target" class="c-card c-support" role="region" aria-labelledby="org-support-title">
 <h2 id="org-support-title">Log in as {{target.user.name}}</h2>
 <p>You will see the customer workspace as {{target.user.email}}. Password, billing, role changes and original document downloads stay blocked unless document downloads are allowed in Settings.</p>

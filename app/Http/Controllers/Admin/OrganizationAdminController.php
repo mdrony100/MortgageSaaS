@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Billing\PageCredits;
 use App\Http\Controllers\Controller;
 use App\Models\AuditEvent;
 use App\Models\Invitation;
@@ -68,6 +69,7 @@ class OrganizationAdminController extends Controller
             'history' => AuditEvent::where('organization_id', $org->id)->whereNull('loan_file_id')->where(fn ($q) => $q->where('action', 'like', 'admin.%')->orWhere('action', 'like', 'platform_%'))->latest('id')->limit(25)->get(['id', 'action', 'actor_id', 'metadata', 'created_at']),
             'statuses' => Organization::STATUSES,
             'plans' => Plan::orderBy('id')->get(['id', 'name', 'file_limit', 'member_limit', 'storage_limit_bytes']),
+            'page_credits' => app(PageCredits::class)->summary($org),
         ];
     }
 
@@ -137,6 +139,9 @@ class OrganizationAdminController extends Controller
                     break;
             }
             $org->save();
+            if ($action === 'change_plan') {
+                app(PageCredits::class)->adoptPlan($org->fresh(), $r->user()->id);
+            }
             $after = $org->only(array_keys($before));
             $changes = [];
             foreach ($after as $k => $v) {

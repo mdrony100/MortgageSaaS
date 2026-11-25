@@ -1,22 +1,23 @@
 @extends('site.layout')
 @section('content')
 @php $plans = \App\Website\Site::publishedPlans(); @endphp
-@include('site.partials.page-header', ['eyebrow' => 'Pricing', 'heading' => $plans ? 'Plans and pricing' : 'Contact for pricing', 'lead' => $plans ? 'Approved plans are listed below. Contact us with any questions.' : 'Pricing is tailored to your team. Request a demo or contact sales and we’ll discuss your workflow and requirements.'])
+@include('site.partials.page-header', ['eyebrow' => 'Pricing', 'heading' => $plans ? 'Plans and pricing' : 'Contact for pricing', 'lead' => $plans ? 'These prices are placeholders you can edit. Request a demo and the team will contact you. Payment is arranged offline.' : 'Pricing is tailored to your team. Request a demo or contact sales and we’ll discuss your workflow and requirements.'])
 
 <section class="site-section" aria-labelledby="pricing-heading">
     <div class="site-container">
         <h2 id="pricing-heading" class="sr-only">Pricing options</h2>
         @if ($plans)
-            <div class="grid gap-6 {{ [1 => 'md:grid-cols-1', 2 => 'md:grid-cols-2'][count($plans)] ?? 'md:grid-cols-3' }}">
+            <div class="grid gap-6 {{ [1 => 'md:grid-cols-1', 2 => 'md:grid-cols-2', 3 => 'md:grid-cols-3', 4 => 'md:grid-cols-2 xl:grid-cols-4'][count($plans)] ?? 'md:grid-cols-3' }}">
                 @foreach ($plans as $plan)
                     <article class="site-card flex flex-col">
                         <h3 class="site-h3 text-xl">{{ $plan['name'] }}</h3>
                         <p class="mt-2 text-2xl font-bold text-ink">{{ $plan['price_label'] }}</p>
+                        <p class="site-caption mt-2">Placeholder price. Payment is arranged offline.</p>
                         @if (!empty($plan['summary']))<p class="site-copy mt-2">{{ $plan['summary'] }}</p>@endif
                         @if (!empty($plan['includes']))
                             <ul class="site-benefits mt-5">@foreach ($plan['includes'] as $item)<li class="site-check"><span>{{ $item }}</span></li>@endforeach</ul>
                         @endif
-                        <a href="{{ route('site.contact') }}?type=pricing" class="site-btn site-btn-primary mt-6 justify-center">Contact Sales</a>
+                        <a href="{{ route('site.demo') }}" class="site-btn site-btn-primary mt-6 justify-center">Request a demo</a>
                     </article>
                 @endforeach
             </div>
@@ -32,8 +33,8 @@
                         <li class="site-check"><span>Versioned Excel and PDF reports.</span></li>
                     </ul>
                     <div class="mt-6 flex flex-wrap gap-3">
-                        <a href="{{ route('site.contact') }}?type=demo" class="site-btn site-btn-primary">Request a Demo</a>
-                        <a href="{{ route('site.contact') }}?type=pricing" class="site-btn site-btn-ghost">Contact Sales</a>
+                        <a href="{{ route('site.demo') }}" class="site-btn site-btn-primary">Request a Demo</a>
+                        <a href="{{ route('site.contact') }}" class="site-btn site-btn-ghost">Contact us</a>
                     </div>
                 </div>
                 <div class="site-card bg-tint">

@@ -385,7 +385,7 @@ class OwnerConsoleTest extends TestCase
         $mods = collect($d['loan_files_by_module'])->mapWithKeys(fn ($m) => [$m['module'] => $sum($m['series'])])->all();
         $this->assertEquals(['bank' => 1, 'appraisal' => 1], array_intersect_key($mods, ['bank' => 1, 'appraisal' => 1]));
         $this->assertSame(1, $sum($d['inquiries']));
-        $this->assertSame(['Starter' => 1, 'Team' => 0, 'Enterprise' => 0], collect($d['plan_distribution'])->pluck('count', 'label')->all());
+        $this->assertSame(['Starter' => 1, 'Team' => 0, 'Enterprise' => 0, 'Trial' => 0, 'Pro' => 0, 'Business' => 0], collect($d['plan_distribution'])->pluck('count', 'label')->all());
         $old = $this->getJson($this->url('analytics?from=2001-01-01&to=2001-03-01'))->assertOk()->json();
         $this->assertSame(0, $sum($old['signups']));
         $this->getJson($this->url('analytics?from=2001-01-01&to=2010-01-01'))->assertUnprocessable();
@@ -516,6 +516,7 @@ class OwnerConsoleTest extends TestCase
             ['post', '/api/organizations/'.$this->org->id.'/billing', ['action' => 'upgrade', 'plan_id' => 2, 'idempotency_key' => 'k1']],
             ['post', '/api/organizations/'.$this->org->id.'/invitations', ['email' => 'new@example.test', 'role' => 'admin']],
             ['post', '/api/organizations/'.$this->org->id.'/plan-requests', ['plan_id' => 2]],
+            ['post', '/api/organizations/'.$this->org->id.'/payment-requests', ['kind' => 'plan', 'plan_id' => 2]],
             ['post', '/api/files/'.$this->file->id.'/appraisal/guidelines', []],
             ['get', '/api/document-versions/'.$r->json('version.id').'/content', []],
             ['get', '/api/files/'.$this->file->id.'/appraisal/runs/1/artifacts/1', []],

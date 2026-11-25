@@ -8,7 +8,7 @@
             <h1 id="hero-heading" class="site-hero-title mt-5">Understand mortgage documents.<br> Review every detail with confidence.</h1>
             <p class="site-lead mt-6">Review bank statements, spot potential document issues, and check appraisal and rental income details—all in one workspace.</p>
             <div class="mt-9 flex flex-wrap gap-3">
-                <a href="{{ route('site.contact') }}?type=demo" class="site-btn site-btn-primary">Request a Demo</a>
+                <a href="{{ route('site.demo') }}" class="site-btn site-btn-primary">Request a Demo</a>
                 <a href="#walkthrough" class="site-btn site-btn-ghost" data-walkthrough-start>See How It Works</a>
             </div>
             <p class="site-caption mt-6">Your team makes the decisions. {{ \App\Website\Site::name() }} doesn’t approve or decline loans.</p>

@@ -4,6 +4,7 @@ namespace App\Bank;
 
 use App\Bank\ProcessingException as RuntimeException;
 use App\Bank\Providers\IntegrityProvider;
+use App\Billing\PageCredits;
 use App\Jobs\PollBankIntegrity;
 use App\Models\Bank\Run;
 use App\Models\DocumentVersion;
@@ -78,6 +79,13 @@ class Pipeline
                 $seen[$input->sha256] = $version->id;
                 $this->stage($run, 'Extracting');
                 $manifest = app(DocumentParser::class)->parse($path, $tmp.'/derived');
+                app(PageCredits::class)->consume($run->organization_id, count($manifest['pages']), 'bank:'.$run->id.':'.$version->id, [
+                    'reason' => 'Bank statement pages processed',
+                    'actor_id' => $run->requested_by,
+                    'loan_file_id' => $run->loan_file_id,
+                    'document_version_id' => $version->id,
+                    'pipeline' => 'bank',
+                ], true);
                 foreach ($manifest['metadata'] as $key => $value) {
                     if (! in_array($key, ['creationDate', 'modDate'], true) || ! preg_match('/^D:\d{14}(?:[Z+\-].*)?$/D', $value)) {
                         $manifest['metadata'][$key] = Ledger::redact($value);

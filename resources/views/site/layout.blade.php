@@ -52,11 +52,11 @@
                 <a href="/dashboard" class="site-btn site-btn-primary site-btn-sm">Open Dashboard</a>
             @else
                 <a href="/login" class="site-btn site-btn-ghost site-btn-sm">Sign In</a>
-                <a href="{{ route('site.contact') }}?type=demo" class="site-btn site-btn-primary site-btn-sm">Request a Demo</a>
+                <a href="{{ route('site.demo') }}" class="site-btn site-btn-primary site-btn-sm">Request a Demo</a>
             @endif
         </div>
         <div class="flex items-center gap-3 xl:hidden">
-            <a href="{{ $signedIn ? '/dashboard' : route('site.contact').'?type=demo' }}" class="site-btn site-btn-primary site-btn-sm hidden md:inline-flex">{{ $signedIn ? 'Open Dashboard' : 'Request a Demo' }}</a>
+            <a href="{{ $signedIn ? '/dashboard' : route('site.demo') }}" class="site-btn site-btn-primary site-btn-sm hidden md:inline-flex">{{ $signedIn ? 'Open Dashboard' : 'Request a Demo' }}</a>
             <button type="button" class="site-menu-button" data-menu-button aria-expanded="false" aria-controls="site-mobile-nav">
                 <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
                 <span>Menu</span>
@@ -74,7 +74,7 @@
                     <a href="/dashboard" class="site-btn site-btn-primary justify-center">Open Dashboard</a>
                 @else
                     <a href="/login" class="site-btn site-btn-ghost justify-center">Sign In</a>
-                    <a href="{{ route('site.contact') }}?type=demo" class="site-btn site-btn-primary justify-center">Request a Demo</a>
+                    <a href="{{ route('site.demo') }}" class="site-btn site-btn-primary justify-center">Request a Demo</a>
                 @endif
             </li>
         </ul>
@@ -108,7 +108,7 @@
             <h2 class="site-footer-heading">Company</h2>
             <ul class="mt-3 space-y-0.5">
                 <li><a href="{{ route('site.contact') }}">Contact</a></li>
-                <li><a href="{{ route('site.contact') }}?type=demo">Request a Demo</a></li>
+                <li><a href="{{ route('site.demo') }}">Request a Demo</a></li>
                 <li><a href="{{ $signedIn ? '/dashboard' : '/login' }}">{{ $signedIn ? 'Open Dashboard' : 'Sign In' }}</a></li>
                 @if (config('website.contact.email'))
                     <li><a href="mailto:{{ config('website.contact.email') }}">{{ config('website.contact.email') }}</a></li>

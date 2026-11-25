@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {ref,onMounted,onBeforeUnmount,watch,provide} from 'vue';import {useRoute} from 'vue-router';
-import {LayoutDashboard,BarChart3,Wallet,ClipboardCheck,Building2,Users,Layers,Inbox,LifeBuoy,FileDown,ScrollText,SlidersHorizontal,Activity,Menu,X,LogOut,ExternalLink,ShieldAlert} from 'lucide-vue-next';
+import {LayoutDashboard,BarChart3,Wallet,ClipboardCheck,Building2,Users,Layers,CreditCard,Inbox,MessagesSquare,LifeBuoy,FileDown,ScrollText,SlidersHorizontal,Activity,Menu,X,LogOut,ExternalLink,ShieldAlert} from 'lucide-vue-next';
 import {api} from './util';
 const route=useRoute(),open=ref(false),me=ref<any>(null),error=ref(''),brandIcon='/images/brand/non-qm-doc-icon.png';
 provide('consoleMe',me);
@@ -12,7 +12,9 @@ const nav=[
  {to:'/organizations',label:'Organizations',icon:Building2},
  {to:'/users',label:'Users',icon:Users},
  {to:'/plans',label:'Plans & billing',icon:Layers},
+ {to:'/payment-requests',label:'Payment requests',icon:CreditCard,badge:'pending_payment_requests'},
  {to:'/inquiries',label:'Website inquiries',icon:Inbox,badge:'new_inquiries'},
+ {to:'/demo-requests',label:'Demo requests',icon:MessagesSquare,badge:'new_demo_requests'},
  {to:'/support-tickets',label:'Support tickets',icon:LifeBuoy,badge:'open_tickets'},
  {to:'/reports',label:'Reports',icon:FileDown},
  {to:'/audit',label:'Audit log',icon:ScrollText},
