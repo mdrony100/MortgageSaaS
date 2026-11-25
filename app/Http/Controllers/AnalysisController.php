@@ -20,7 +20,7 @@ class AnalysisController extends Controller
     public function load(Request $r, LoanFile $file)
     {
         Gate::authorize('update', $file);
-        abort_unless($file->is_demo, 422, 'Use an explicitly fictional demo file. Uploaded documents do not trigger analysis.');
+        abort_unless($file->is_demo, 422, 'Load sample analysis is only available on a practice file.');
         $d = $r->validate(['idempotency_key' => 'required|string|max:80']);
         $key = hash('sha256', $file->organization_id.':'.$file->id.':sample:'.$d['idempotency_key']);
         $run = AnalysisRun::firstOrCreate(['idempotency_key' => $key], ['id' => (string) Str::uuid(), 'organization_id' => $file->organization_id, 'loan_file_id' => $file->id, 'module' => 'all', 'stage' => 'sample_fixture', 'status' => 'queued', 'is_demo' => true]);
@@ -80,7 +80,7 @@ class AnalysisController extends Controller
         abort_unless($a, 422, 'Load sample analysis first.');
         Audit::record('sample_report.previewed', $file->organization_id, $file->id, [], 'shared');
 
-        return ['title' => 'SAMPLE '.strtoupper($module).' report', 'notice' => 'Fictional demonstration only. Not a loan decision or verified analysis. Open findings do not block this sample preview.', 'borrower' => $file->borrower->name, 'file' => $file->name, 'run_id' => $a['run_id'], 'ruleset_version' => 1, 'data' => $a['data'][$module], 'downloads' => 'Not available in Phase 1.'];
+        return ['title' => 'SAMPLE '.strtoupper($module).' report', 'notice' => 'Practice sample only. Not a loan decision or a completed review of uploaded documents. Open findings do not block this preview.', 'borrower' => $file->borrower->name, 'file' => $file->name, 'run_id' => $a['run_id'], 'ruleset_version' => 1, 'data' => $a['data'][$module], 'downloads' => 'Not available in Phase 1.'];
     }
 
     public function export(Request $r, LoanFile $file)
@@ -95,6 +95,6 @@ class AnalysisController extends Controller
         $org = $r->integer('organization_id');
         abort_unless(Access::reviewer($r->user(), $org), 403);
 
-        return ['notice' => 'Fictional draft guidelines only. No approved investor rules or Fannie Mae checks configured.', 'rulesets' => Ruleset::where('organization_id', $org)->get()];
+        return ['notice' => 'Draft guidelines for this organization. No approved investor rules or Fannie Mae checks are configured.', 'rulesets' => Ruleset::where('organization_id', $org)->get()];
     }
 }

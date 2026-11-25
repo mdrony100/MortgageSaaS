@@ -2,6 +2,7 @@ import {describe,it,expect,vi,beforeEach} from 'vitest';
 import {mount,flushPromises} from '@vue/test-utils';
 import {createPinia,setActivePinia} from 'pinia';
 import Dashboard from '../../resources/js/views/Dashboard.vue';
+import CreateFile from '../../resources/js/views/CreateFile.vue';
 import FileSteps from '../../resources/js/components/FileSteps.vue';
 import StatusBadge from '../../resources/js/components/StatusBadge.vue';
 import {useAuth} from '../../resources/js/stores/auth';
@@ -67,6 +68,26 @@ describe('customer-facing language',()=>{
     const w=mount(StatusBadge,{props:{code:'Unscanned'}});
     expect(w.text()).toContain('Not virus-scanned');
     expect(w.text()).toContain('not certified clean');
+  });
+});
+
+describe('create loan file',()=>{
+  beforeEach(()=>{
+    setActivePinia(createPinia());
+    const auth=useAuth();
+    auth.user={id:1,name:'Avery Sample',email:'avery@example.test',email_verified_at:'2026-01-01'} as any;
+    auth.orgId=1;
+    auth.memberships=[{organization_id:1,role:'owner',organization:{id:1,name:'Sample Co'}}] as any;
+    vi.mocked(api).mockResolvedValue([]);
+  });
+  it('does not offer a practice file and uses production placeholders',async()=>{
+    const w=mount(CreateFile,{global:{stubs:{RouterLink:{template:'<a><slot/></a>'}}}});
+    await flushPromises();
+    expect(w.text()).not.toMatch(/practice file/i);
+    expect(w.text()).not.toMatch(/fictional/i);
+    expect(w.find('input[type="checkbox"]').exists()).toBe(false);
+    expect(w.find('input[placeholder="e.g. 123 Main St refinance"]').exists()).toBe(true);
+    expect(w.find('input[placeholder="Borrower full name"]').exists()).toBe(true);
   });
 });
 

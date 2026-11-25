@@ -26,7 +26,7 @@ onMounted(load);
 </tbody></table></div><Pager :page="page" @go="(p:number)=>{filters.page=p;load()}"/></div>
 <article v-if="selected" class="c-card">
 <h2>{{selected.organization?.name}}</h2>
-<p class="c-muted">{{title(selected)}} · ${{selected.amount}} placeholder · {{when(selected.created_at)}}</p>
+<p class="c-muted">{{title(selected)}} · ${{selected.amount}} · {{when(selected.created_at)}}</p>
 <p v-if="selected.note">{{selected.note}}</p>
 <p v-if="selected.status!=='pending'"><Badge :value="selected.status" :label="statuses[selected.status]"/> <span v-if="selected.payment_method">{{selected.payment_method}} · {{selected.payment_reference}}</span><span v-if="selected.decision_reason"> · {{selected.decision_reason}}</span></p>
 <template v-else>

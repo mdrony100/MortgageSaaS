@@ -1,7 +1,7 @@
 @extends('site.layout')
 @section('content')
 @php $plans = \App\Website\Site::publishedPlans(); @endphp
-@include('site.partials.page-header', ['eyebrow' => 'Pricing', 'heading' => $plans ? 'Plans and pricing' : 'Contact for pricing', 'lead' => $plans ? 'These prices are placeholders you can edit. Request a demo and the team will contact you. Payment is arranged offline.' : 'Pricing is tailored to your team. Request a demo or contact sales and we’ll discuss your workflow and requirements.', 'headerInnerClass' => 'pt-16 pb-3 md:pt-24 md:pb-4'])
+@include('site.partials.page-header', ['eyebrow' => 'Pricing', 'heading' => $plans ? 'Plans and pricing' : 'Contact for pricing', 'lead' => $plans ? 'Monthly prices for each plan. Request a demo and the team will contact you. Payment is arranged offline.' : 'Pricing is tailored to your team. Request a demo or contact sales and we’ll discuss your workflow and requirements.', 'headerInnerClass' => 'pt-16 pb-3 md:pt-24 md:pb-4'])
 
 <section class="pt-2 pb-12 md:pt-6 md:pb-16" aria-labelledby="pricing-heading">
     <div class="site-container">
@@ -12,7 +12,7 @@
                     <article class="site-card site-plan-card">
                         <h3 class="site-h3">{{ $plan['name'] }}</h3>
                         <p class="site-plan-price">{{ $plan['price_label'] }}</p>
-                        <p class="site-caption mt-2">Placeholder price. Payment is arranged offline.</p>
+                        <p class="site-caption mt-2">Payment is arranged offline.</p>
                         @if (!empty($plan['summary']))<p class="site-copy mt-2">{{ $plan['summary'] }}</p>@endif
                         @if (!empty($plan['includes']))
                             <ul class="site-benefits">@foreach ($plan['includes'] as $item)<li class="site-check"><span>{{ $item }}</span></li>@endforeach</ul>

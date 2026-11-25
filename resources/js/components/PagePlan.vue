@@ -66,7 +66,7 @@ onMounted(() => { load() })
 <article class="stat"><div><span>Pages remaining</span><strong>{{ data.balance.toLocaleString() }}</strong><small>Includes monthly pages and any top-ups</small></div></article>
 </div>
 <div class="meter" role="meter" :aria-valuenow="data.percent_used" aria-valuemin="0" aria-valuemax="100" aria-label="Pages used this period"><span :style="{ width: Math.min(100, data.percent_used) + '%' }" :class="{ hot: data.warning }"></span></div>
-<p class="micro">Placeholder price ${{ data.plan.display_monthly_price }} / month. The period refreshes {{ data.period_ends_at ? new Date(data.period_ends_at).toLocaleDateString() : 'monthly' }}.</p>
+<p class="micro">${{ data.plan.display_monthly_price }} / month. The period refreshes {{ data.period_ends_at ? new Date(data.period_ends_at).toLocaleDateString() : 'monthly' }}.</p>
 
 <template v-if="canRequest">
 <div class="plan-actions">
@@ -87,7 +87,7 @@ onMounted(() => { load() })
 <p v-if="pendingPack" class="notice">A top-up request is already waiting for review.</p>
 <p v-else-if="!packs.length">This plan does not have a page pack yet. Ask for a plan change instead.</p>
 <template v-else>
-<label>Pack<select v-model.number="packPages" required><option v-for="p in packs" :key="p.pages" :value="p.pages">{{ p.label }} — ${{ p.price }} placeholder</option></select></label>
+<label>Pack<select v-model.number="packPages" required><option v-for="p in packs" :key="p.pages" :value="p.pages">{{ p.label }} — ${{ p.price }}</option></select></label>
 <label>Note (optional)<textarea v-model="note" rows="3" maxlength="1000"></textarea></label>
 <button class="primary" :disabled="busy || !packPages">{{ busy ? 'Sending…' : 'Send top-up request' }}</button>
 </template>
@@ -98,7 +98,7 @@ onMounted(() => { load() })
 <ul v-if="requests.length" class="plan-rows">
 <li v-for="request in requests" :key="request.id">
 <span class="plan-icon" aria-hidden="true"><Layers v-if="request.kind === 'plan'" :size="18"/><Plus v-else :size="18"/></span>
-<div class="plan-row-copy"><strong>{{ label(request) }}</strong><small>${{ request.amount }} placeholder · {{ when(request.created_at) }}<template v-if="request.decision_reason"> · {{ request.decision_reason }}</template></small></div>
+<div class="plan-row-copy"><strong>{{ label(request) }}</strong><small>${{ request.amount }} · {{ when(request.created_at) }}<template v-if="request.decision_reason"> · {{ request.decision_reason }}</template></small></div>
 <span class="plan-pill" :class="request.status">{{ request.status }}</span>
 </li>
 </ul>

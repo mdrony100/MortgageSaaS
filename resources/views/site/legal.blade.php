@@ -17,7 +17,7 @@
         @else
             <div class="rounded-xl border-2 border-amber-400 bg-amber-50 p-5" role="note">
                 <p class="text-lg font-bold text-amber-900">DRAFT — not an approved legal document</p>
-                <p class="mt-2 text-amber-900">This page is development placeholder copy. It has not been reviewed or approved and is not the {{ strtolower($heading) }} of any company. The final text, the legal entity, contact address, governing jurisdiction and any retention periods will be published after legal approval.</p>
+                <p class="mt-2 text-amber-900">It has not been reviewed or approved and is not the {{ strtolower($heading) }} of any company. The final text, the legal entity, contact address, governing jurisdiction and any retention periods will be published after legal approval.</p>
             </div>
             <div class="site-prose mt-8">
                 @if ($doc === 'privacy')

@@ -18,7 +18,7 @@
                     @foreach ([['AR', 'Alex R.', 'Owner', 'site-badge-navy', 'Full access', 'bg-ink text-white'], ['JM', 'Jordan M.', 'Underwriter', 'site-badge-teal', 'Full review', 'bg-cyan-700 text-white'], ['SK', 'Sam K.', 'Processor', 'site-badge-teal', 'Upload and notes', 'bg-cyan-100 text-cyan-900'], ['TP', 'Taylor P.', 'Broker', 'site-badge-slate', 'Limited view', 'bg-slate-200 text-slate-800']] as [$ini, $name, $role, $badge, $access, $avatar])
                         <li class="flex items-center gap-3">
                             <span class="inline-flex h-11 w-11 flex-none items-center justify-center rounded-full font-bold {{ $avatar }}" aria-hidden="true">{{ $ini }}</span>
-                            <span class="min-w-0 flex-1"><span class="block font-semibold text-ink">{{ $name }} <span class="sr-only">(fictional)</span></span><span class="site-caption">{{ $access }}</span></span>
+                            <span class="min-w-0 flex-1"><span class="block font-semibold text-ink">{{ $name }}</span><span class="site-caption">{{ $access }}</span></span>
                             <span class="site-badge {{ $badge }}">{{ $role }}</span>
                         </li>
                     @endforeach
@@ -33,7 +33,7 @@
                     @endforeach
                 </ol>
             </div>
-            <figcaption class="site-caption sm:col-span-2">Fictional team members and activity. Role names match the platform: owner, admin, underwriter, processor and broker.</figcaption>
+            <figcaption class="site-caption sm:col-span-2">Sample team and activity. Role names match the platform: owner, admin, underwriter, processor and broker.</figcaption>
         </figure>
     </div>
 </section>

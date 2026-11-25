@@ -74,12 +74,12 @@ class FileController extends Controller
     public function store(Request $r, Organization $organization)
     {
         abort_unless(in_array(Access::role($r->user(), $organization->id), ['owner', 'admin', 'underwriter', 'processor'], true), 403);
-        $d = $r->validate(['name' => 'required|string|max:150', 'reference' => 'nullable|string|max:80', 'borrower_id' => ['required', Rule::exists('borrowers', 'id')->where('organization_id', $organization->id)], 'module' => ['required', Rule::in(['bank', 'appraisal', 'dscr'])], 'is_demo' => 'required|boolean']);
+        $d = $r->validate(['name' => 'required|string|max:150', 'reference' => 'nullable|string|max:80', 'borrower_id' => ['required', Rule::exists('borrowers', 'id')->where('organization_id', $organization->id)], 'module' => ['required', Rule::in(['bank', 'appraisal', 'dscr'])]]);
         $f = DB::transaction(function () use ($r, $organization, $d) {
             $org = Organization::lockForUpdate()->findOrFail($organization->id);
             Entitlements::files($org);
 
-            return LoanFile::create($d + ['organization_id' => $org->id, 'created_by' => $r->user()->id]);
+            return LoanFile::create($d + ['organization_id' => $org->id, 'created_by' => $r->user()->id, 'is_demo' => false]);
         });
         Audit::record('file.created', $organization->id, $f->id, [], 'shared');
 

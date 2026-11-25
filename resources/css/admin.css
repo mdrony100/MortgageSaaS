@@ -131,3 +131,13 @@ th{padding:8px 12px}
 .c-grid-2,.c-grid-3,.c-plan-grid,.c-report-grid{gap:10px;margin-bottom:12px}
 @media(max-width:960px){.c-main{padding:16px 14px 28px}}
 @media(max-width:640px){.c-stats{grid-template-columns:1fr}.c-stat-value{font-size:20px}.c-card{padding:12px}.c-stat-hint{max-width:none;margin-left:0}}
+
+/* Revenue metrics: equal columns, same type scale as the other console pages. */
+.c-billing-line{margin:0 0 12px}
+.c-stats.c-stats-even{grid-template-columns:repeat(3,minmax(0,1fr))}
+.c-stats-even>.c-stat{min-width:0;height:100%}
+.c-stats-even .c-stat-value{font-size:22px;font-weight:750;letter-spacing:-.01em;overflow-wrap:anywhere}
+.c-card.c-flush .c-pad p{margin:0}
+td.c-empty{padding:28px 16px;text-align:center;background:#f8fafc}
+@media(max-width:960px){.c-stats.c-stats-even{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.c-stats.c-stats-even{grid-template-columns:1fr}.c-stats-even .c-stat-value{font-size:20px}}

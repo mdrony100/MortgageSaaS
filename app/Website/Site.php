@@ -110,11 +110,9 @@ class Site
 
     /**
      * Customer reviews for the public site. Only entries explicitly marked approved in
-     * config/website.php are ever shown. When none are approved, non-production
-     * environments show clearly labelled placeholders for design review, and production
-     * hides the section entirely.
+     * config/website.php are shown. With none approved, the section is omitted.
      *
-     * @return array{mode: 'approved'|'placeholder'|'none', items: array<int, array<string, mixed>>}
+     * @return array{mode: 'approved'|'none', items: array<int, array<string, mixed>>}
      */
     public static function reviews(): array
     {
@@ -124,14 +122,8 @@ class Site
         if ($approved) {
             return ['mode' => 'approved', 'items' => $approved];
         }
-        if (app()->environment('production')) {
-            return ['mode' => 'none', 'items' => []];
-        }
 
-        return ['mode' => 'placeholder', 'items' => [
-            ['quote' => 'Approved quote goes here.', 'name' => 'Approved customer name', 'role' => 'Role, Company (approved)'],
-            ['quote' => 'Approved quote goes here.', 'name' => 'Approved customer name', 'role' => 'Role, Company (approved)'],
-        ]];
+        return ['mode' => 'none', 'items' => []];
     }
 
     public static function faq(): array

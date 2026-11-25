@@ -97,7 +97,7 @@ class PublicWebsiteTest extends TestCase
     public function test_pricing_lists_database_plans_with_demo_calls_to_action(): void
     {
         $this->seed();
-        $html = $this->get('/pricing')->assertOk()->assertSee('Plans and pricing')->assertSee('Request a demo')->assertSee('Starter')->assertSee('Pro')->assertSee('Business')->assertSee('Trial')->assertSee('placeholder', false)->getContent();
+        $html = $this->get('/pricing')->assertOk()->assertSee('Plans and pricing')->assertSee('Request a demo')->assertSee('Starter')->assertSee('Pro')->assertSee('Business')->assertSee('Trial')->assertSee('Payment is arranged offline', false)->assertDontSee('placeholders')->getContent();
         $this->assertStringContainsString(route('site.demo'), $html);
         foreach (['Buy now', 'Free trial', 'Subscribe', 'Checkout'] as $bad) {
             $this->assertStringNotContainsStringIgnoringCase($bad, $html);
@@ -386,8 +386,10 @@ class PublicWebsiteTest extends TestCase
     public function test_review_placeholders_only_outside_production_and_never_invented(): void
     {
         $html = $this->get('/')->assertOk()->getContent();
-        $this->assertStringContainsString('data-review-mode="placeholder"', $html);
-        $this->assertStringContainsString('Placeholder — not a real customer review', $html);
+        $this->assertStringNotContainsString('data-review-mode="placeholder"', $html);
+        $this->assertStringNotContainsString('Placeholder — not a real customer review', $html);
+        $this->assertStringNotContainsString('Development preview only', $html);
+        $this->assertStringNotContainsString('reviews-heading', $html);
         $this->assertStringContainsString('Built for your workflow', $html);
         $this->assertDoesNotMatchRegularExpression('~★|star rating|\d+\+? (customers|teams|lenders)~i', $html);
 

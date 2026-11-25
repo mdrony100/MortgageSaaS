@@ -146,7 +146,7 @@ class BankController extends Controller
             abort_unless(Access::admin($r->user(), $file->organization_id), 403);
         }
         if ($d['status'] === 'example') {
-            abort_unless(app()->environment(['local', 'testing']) && $file->is_demo, 422, 'Examples are restricted to fictional development files');
+            abort_unless(app()->environment(['local', 'testing']) && $file->is_demo, 422, 'Examples are only available on a practice file');
         }
         $policy = RuleProfile::validate($d['policy']);
         if ($d['status'] !== 'approved') {
