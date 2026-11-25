@@ -131,3 +131,71 @@ th{padding:8px 12px}
 .c-grid-2,.c-grid-3,.c-plan-grid,.c-report-grid{gap:10px;margin-bottom:12px}
 @media(max-width:960px){.c-main{padding:16px 14px 28px}}
 @media(max-width:640px){.c-stats{grid-template-columns:1fr}.c-stat-value{font-size:20px}.c-card{padding:12px}.c-stat-hint{max-width:none;margin-left:0}}
+
+/* Support desk: two panes inside the viewport, with a readable thread even on a short laptop. */
+.c-main:has(.desk){max-width:none;overflow-x:clip}
+.desk{min-width:0;max-width:100%;display:flex;flex-direction:column}
+.desk-filters{align-items:flex-end}
+.desk-filters label{flex:0 1 200px;min-width:160px}
+.desk-filters .desk-search{flex:1 1 240px;max-width:420px}
+.desk-filters select,.desk-filters input{width:100%;min-width:0}
+.desk-filters .desk-apply{flex:none;width:auto;align-self:flex-end}
+.desk-panes{min-height:560px;height:max(560px,calc(100dvh - 300px));min-width:0;max-width:100%;display:grid;grid-template-columns:minmax(260px,360px) minmax(0,1fr);gap:12px;align-items:stretch}
+.desk-panes>*{min-width:0;max-width:100%}
+.desk-list,.desk-thread{display:flex;flex-direction:column;min-width:0;min-height:0;max-width:100%;background:#fff;border:1px solid var(--c-line);border-radius:10px;overflow:hidden}
+.desk-list-scroll,.desk-msgs{flex:1;min-height:0;overflow:auto}
+.desk-row{display:flex;flex-direction:column;align-items:stretch;gap:4px;width:100%;max-width:100%;padding:12px 14px;border:0;border-bottom:1px solid #edf0f5;border-radius:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;box-shadow:inset 3px 0 0 transparent}
+.desk-row:hover{background:#f8fafc}
+.desk-row.is-selected{background:#eef2ff;box-shadow:inset 3px 0 0 var(--c-indigo)}
+.desk-row-top{display:flex;align-items:center;gap:8px;min-width:0}
+.desk-dot{width:8px;height:8px;border-radius:50%;background:var(--c-indigo);flex:none}
+.desk-subject{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;font-weight:650;color:var(--c-ink)}
+.desk-row.is-unread .desk-subject{font-weight:750}
+.desk-time{flex:none;font-size:14px;color:var(--c-muted);white-space:nowrap}
+.desk-who{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;color:var(--c-muted)}
+.desk-badges{display:flex;flex-wrap:wrap;gap:4px}
+.desk-badges .c-badge{margin:0}
+.desk-none{margin:0;padding:18px 16px;color:var(--c-muted);font-size:15px}
+.desk-list .c-pager,.desk-list .c-pager-count{margin:0;padding:10px 14px;border-top:1px solid var(--c-line);background:#f8fafc;font-size:14px;color:var(--c-muted)}
+.desk-list .c-pager{flex-wrap:wrap;justify-content:space-between}
+.desk-list .c-pager .c-btn{min-height:36px;padding:6px 10px;font-size:14px}
+.desk-thread-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px 16px;padding:14px 16px;border-bottom:1px solid var(--c-line);min-width:0}
+.desk-thread-title{min-width:0;flex:1}
+.desk-thread-title h2{margin:0;overflow-wrap:anywhere}
+.desk-thread-title p{margin:4px 0 0;overflow-wrap:anywhere}
+.desk-thread-tools{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-left:auto;flex:none;max-width:100%}
+.desk-thread-tools .c-badge{margin:0}
+.desk-status{flex-direction:row;align-items:center;gap:8px;font-size:14px;font-weight:650}
+.desk-status select{width:auto;min-width:8.5rem;max-width:100%;min-height:40px}
+.desk-back{display:none;align-items:center;gap:6px;margin:0 0 6px;padding:0;border:0;background:none;color:var(--c-indigo-d);font:inherit;font-size:14px;font-weight:650;cursor:pointer;min-height:32px}
+.desk-msgs{display:flex;flex-direction:column;gap:12px;padding:16px}
+.desk-bubble{max-width:min(78%,640px);padding:10px 12px;border-radius:12px;border:1px solid var(--c-line);background:#f8fafc;min-width:0}
+.desk-bubble.is-customer{align-self:flex-start}
+.desk-bubble.is-admin{align-self:flex-end;background:#eef2ff;border-color:#c7d2fe}
+.desk-bubble-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:6px}
+.desk-bubble-top strong{font-size:16px;font-weight:650;color:var(--c-ink)}
+.desk-bubble-top .c-badge{margin:0}
+.desk-bubble-top time{margin-left:auto;font-size:14px;color:var(--c-muted)}
+.desk-bubble .c-pre,.desk-file{overflow-wrap:anywhere;font-size:16px}
+.desk-file{margin:8px 0 0;font-size:14px}
+.desk-reply{flex:none;display:flex;flex-direction:column;gap:8px;padding:12px 16px;border-top:1px solid var(--c-line);background:#fff}
+.desk-reply label{min-width:0}
+.desk-reply textarea{width:100%;min-width:0;max-width:100%;min-height:64px}
+.desk-reply-bar{display:flex;justify-content:flex-end}
+.desk-send{width:auto;flex:none;align-self:flex-end}
+.desk-empty{align-items:center;justify-content:center;text-align:center;padding:32px 20px;color:var(--c-muted)}
+.desk-empty h2{color:var(--c-ink)}
+.desk-empty p{margin:0;max-width:36ch;font-size:16px}
+@media(max-width:800px){
+ .desk.has-ticket .c-head,.desk.has-ticket .desk-filters{display:none}
+ .desk-panes{display:block;height:auto;min-height:0}
+ .desk-list,.desk-thread{height:auto;max-height:none;overflow:visible}
+ .desk-list-scroll,.desk-msgs{overflow:visible}
+ .desk.has-ticket .desk-list{display:none}
+ .desk:not(.has-ticket) .desk-thread{display:none}
+ .desk-back{display:inline-flex}
+ .desk-filters label,.desk-filters .desk-search{flex:1 1 100%;max-width:none}
+ .desk-bubble{max-width:100%}
+ .desk-thread-head{flex-wrap:wrap}
+ .desk-thread-tools{width:100%;justify-content:flex-start}
+}
