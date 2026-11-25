@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Customer-facing page credits. Separate from the OpenAI processing budget.
+ * Customer-facing page credits. This is the only usage limit for OpenAI processing.
  * Balance never goes below zero. Unused monthly pages stay in the balance, and
  * a new monthly allocation is added when the period rolls.
  */

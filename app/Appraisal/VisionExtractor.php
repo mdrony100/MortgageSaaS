@@ -30,15 +30,17 @@ class VisionExtractor implements Extractor
                 throw new ContinueReview('Bounded vision checkpoint; queued continuation, not failed analysis');
             }
             $call = DB::transaction(function () use ($r, $key) {
-                $limit = DB::table('bank_limits')->where('organization_id', $r->organization_id)->lockForUpdate()->first();
                 $old = Store::query($r, 'review_calls')->where('record_key', $key)->first();
                 if ($old) {
                     return $old;
-                }$cost = config('review.reservation_micro_usd');
-                $used = Store::query($r, 'review_calls')->get()->sum(fn ($x) => json_decode($x->data, true)['reserved_micro_usd']);
-                if (! $limit || $cost <= 0 || $limit->reserved_micro_usd + $cost > $limit->limit_micro_usd || $used + $cost > $limit->per_run_limit_micro_usd) {
-                    throw new ProcessingException('Approved processing budget unavailable');
-                }DB::table('bank_limits')->where('organization_id', $r->organization_id)->increment('reserved_micro_usd', $cost);
+                }
+                // Page credits are the usage limit. Record the configured ceiling when a
+                // bank_limits row already exists; never block on a missing or zero budget.
+                $cost = max(0, (int) config('review.reservation_micro_usd'));
+                $limit = DB::table('bank_limits')->where('organization_id', $r->organization_id)->lockForUpdate()->first();
+                if ($limit && $cost > 0) {
+                    DB::table('bank_limits')->where('organization_id', $r->organization_id)->increment('reserved_micro_usd', $cost);
+                }
                 $id = DB::table('review_calls')->insertGetId(['run_id' => $r->id, 'organization_id' => $r->organization_id, 'loan_file_id' => $r->loan_file_id, 'kind' => 'vision', 'record_key' => $key, 'data' => Ledger::json(['status' => 'reserved', 'reserved_micro_usd' => $cost]), 'created_at' => now(), 'updated_at' => now()]);
 
                 return DB::table('review_calls')->find($id);
