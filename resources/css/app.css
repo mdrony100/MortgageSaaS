@@ -37,7 +37,7 @@ label,small,.micro,.badge,.eyebrow,code,.stat span,th,.data-grid dt,.workspace-s
 .breadcrumb a:hover{background:none;color:#0e7490;text-decoration:underline}
 .breadcrumb [aria-current="page"]{color:#102840;font-weight:750}
 #app-nav a.router-link-exact-active{box-shadow:inset 3px 0 0 #36bbac}
-.file-steps{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 18px;padding:0}
+.file-steps{list-style:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:0 0 18px;padding:0}
 .file-steps li{display:flex;gap:10px;align-items:flex-start;background:white;border:1px solid #d5deea;border-radius:8px;padding:12px;color:#3e4e63}
 .file-steps li.current{border-color:#22c6e6;background:#f3faf8;color:#102840}
 .file-steps li.done{border-color:#b7ddd6}
@@ -267,3 +267,47 @@ a.button.primary:hover{filter:brightness(.94);text-decoration:none}
  .app-shell>aside{width:min(320px,88vw)}
 }
 @media(min-width:801px){.app-shell>aside{width:280px}.main-shell{margin-left:280px;width:calc(100% - 280px)}}
+
+.compliance{margin:0 0 12px;color:#3e4e63;font-size:16px}
+.how-works{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;background:#f3faf8;border:1px solid #b7ddd6;border-radius:10px;padding:12px 14px;margin:0 0 12px}
+.how-works p{margin:4px 0 0}
+.how-works button{flex:none}
+.guided-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.guided-step{background:#fff;border:1px solid #d5deea;border-radius:10px;overflow:hidden}
+.guided-step.current,.guided-step.blocked{border-color:#22c6e6}
+.guided-step.blocked{border-color:#c2410c}
+.guided-step.done{background:#f8fbfa}
+.guided-step.locked{background:#f7f9fb;color:#5c6d82}
+.guided-step-head{display:flex;align-items:center;gap:10px;padding:10px 12px;min-height:44px}
+.guided-step-copy{min-width:0;flex:1}
+.guided-step-copy strong{display:block}
+.guided-step-copy small{display:block;color:#52657d}
+.guided-step-body{padding:4px 14px 16px}
+.guided-step .file-step-index{flex:none}
+.dropzone{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;border:1.5px dashed #9fb0c3;border-radius:12px;padding:28px 16px;background:#f8fbfd;cursor:pointer;margin-bottom:12px}
+.dropzone.is-over{border-color:#22c6e6;background:#f3faf8}
+.dropzone input{margin-top:8px}
+.doc-rows{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.doc-row{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(180px,.8fr) auto;gap:10px 14px;align-items:end;border:1px solid #e0e7ef;border-radius:10px;padding:12px}
+.doc-row-name{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.doc-row small{grid-column:1/-1}
+.field-help{margin:-4px 0 10px;color:#52657d;font-size:14px}
+.field-tip{display:inline-flex;position:relative;margin-left:6px;vertical-align:middle}
+.tip-btn{width:22px;height:22px;min-height:22px;padding:0;border-radius:50%;font-size:13px;line-height:1}
+.tip-pop{position:absolute;z-index:5;left:0;top:28px;width:min(280px,70vw);background:#102840;color:#fff;border-radius:8px;padding:8px 10px;font-size:14px}
+.advanced{margin-top:12px}
+.advanced summary{cursor:pointer;font-weight:700;min-height:44px}
+.check-item{border:1px solid #e0e7ef;border-radius:10px;padding:12px;margin:0 0 10px}
+.check-item.done{background:#f8fbfa}
+.check-item header{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.progress-plain{font-size:16px}
+.report-contents{margin:8px 0 12px;padding-left:18px}
+.loan-form fieldset,.guided-step fieldset{border:1px solid #e0e7ef;border-radius:10px;padding:12px;margin:0 0 12px}
+button.quiet{background:transparent}
+@media(max-width:800px){
+ .how-works,.guided-step-head,.check-item header{flex-direction:column;align-items:stretch}
+ .doc-row{grid-template-columns:1fr}
+ .guided-step-body .actions,.check-item .actions{flex-direction:column}
+ .guided-step-body .actions button,.check-item .actions button,.dropzone,.how-works button{width:100%}
+ .tip-pop{position:static;width:auto;margin-top:6px}
+}

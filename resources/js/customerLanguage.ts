@@ -79,20 +79,118 @@ export function explainStatus(code?: string | null): StatusCopy {
 }
 
 export const fileSteps = [
-  { id: 1, label: 'Upload', hint: 'Upload bank statements or the appraisal for this borrower.' },
-  { id: 2, label: 'Processing', hint: 'Wait while the documents are read. You can leave and come back.' },
-  { id: 3, label: 'Review findings', hint: 'A person checks potential issues. Nothing is approved or declined automatically.' },
-  { id: 4, label: 'Export report', hint: 'Download Excel or PDF. Open findings do not block the export.' },
+  { id: 1, label: 'Add documents', hint: 'Upload bank statements or the appraisal for this borrower.' },
+  { id: 2, label: 'Loan details', hint: 'Add occupancy, the transaction, and how many units.' },
+  { id: 3, label: 'Run processing', hint: 'Start reading the documents. You can leave and come back.' },
+  { id: 4, label: 'Review findings', hint: 'A person checks potential issues. Nothing is approved or declined automatically.' },
+  { id: 5, label: 'Export report', hint: 'Download Excel or PDF. Open findings do not block the export.' },
 ] as const
 
-export function plainFailure(code?: string | null): string {
-  if (!code) return 'Something went wrong while reading the file. Check that it is an unlocked PDF, PNG, or JPG, then start analysis again.'
-  if (/unavailable|unscanned/i.test(code)) return 'The virus scan could not run, so this file is not certified clean. Processing stopped. Ask an administrator about scanning, or use a practice file for a fictional sample.'
-  if (/rejected|scanfailed|scan failed/i.test(code)) return 'The security scan stopped this file. Upload a different copy, then start analysis again.'
-  return code
+export type FailureCta = 'retry' | 'replace' | 'admin'
+
+/** One plain-language failure, and the single action that fits it. Raw codes are never shown. */
+export function failureGuide(code?: string | null): { body: string; cta: FailureCta; button: string } {
+  const raw = String(code || '')
+  if (/budget unavailable|budget .*exhausted/i.test(raw)) {
+    return { body: "Processing budget isn't set up or is used up — ask an administrator.", cta: 'admin', button: 'Contact support' }
+  }
+  if (/rejected|infected|quarantined/i.test(raw) && !/scanner unavailable|malware scan unavailable|unscanned/i.test(raw)) {
+    return { body: 'The security scan stopped this file. Upload a different copy, then start processing again.', cta: 'replace', button: 'Replace the file' }
+  }
+  if (/scanfailed|scan failed/i.test(raw)) {
+    return { body: 'The security scan could not finish. Try again with an unlocked PDF, PNG, or JPG.', cta: 'retry', button: 'Try again' }
+  }
+  if (/scanner unavailable|malware scan unavailable|unscanned/i.test(raw)) {
+    return { body: 'The virus scan could not run, so this file is not certified clean. Processing stopped. Ask an administrator about scanning, or use a practice file for a fictional sample.', cta: 'admin', button: 'Contact support' }
+  }
+  if (/password|encrypted|locked pdf/i.test(raw)) {
+    return { body: 'This file looks locked. Upload an unlocked PDF, PNG, or JPG, then try again.', cta: 'replace', button: 'Replace the file' }
+  }
+  if (/page limit|image review limit|limit exceeded|limit reached/i.test(raw)) {
+    return { body: 'This file is larger than the processing limit. Use fewer documents, or ask an administrator, then try again.', cta: 'admin', button: 'Contact support' }
+  }
+  if (/hash mismatch|scope invalid/i.test(raw)) {
+    return { body: 'The saved file does not match what was uploaded. Upload the document again.', cta: 'replace', button: 'Replace the file' }
+  }
+  if (/provider|rate limit|replay|operator review|concurrent provider|openai|manual review required/i.test(raw)) {
+    return { body: 'Reading stopped because a required service needs an administrator. Nothing was approved or declined.', cta: 'admin', button: 'Contact support' }
+  }
+  if (/bounded attempts/i.test(raw)) {
+    return { body: 'Processing stopped after several tries. Check that the file is an unlocked PDF, PNG, or JPG, then try again.', cta: 'retry', button: 'Try again' }
+  }
+  return { body: 'Something went wrong while reading the file. Check that it is an unlocked PDF, PNG, or JPG, then try again.', cta: 'retry', button: 'Try again' }
 }
 
-export type GuideCta = 'upload' | 'start' | 'wait' | 'review' | 'export' | 'retry' | 'none' | 'create'
+export function plainFailure(code?: string | null): string {
+  return failureGuide(code).body
+}
+
+export const documentTypeOptions = [
+  { value: 'uncertain', label: 'Not sure yet' },
+  { value: 'appraisal', label: 'Appraisal' },
+  { value: 'sales_comparison', label: 'Sales comparison' },
+  { value: 'rental_schedule', label: 'Rent schedule' },
+  { value: 'operating_income', label: 'Operating income' },
+  { value: 'addendum', label: 'Addendum' },
+  { value: 'photo', label: 'Photo' },
+  { value: 'sketch', label: 'Sketch' },
+  { value: 'map', label: 'Map' },
+  { value: 'contract', label: 'Purchase contract' },
+  { value: 'contract_amendment', label: 'Contract amendment' },
+  { value: 'lease', label: 'Lease' },
+  { value: 'lease_amendment', label: 'Lease amendment' },
+  { value: 'rent_roll', label: 'Rent roll' },
+  { value: 'rent_payment', label: 'Rent payment' },
+  { value: 'repair_completion', label: 'Repair completion' },
+  { value: 'revised_appraisal', label: 'Revised appraisal' },
+] as const
+
+export const occupancyOptions = [
+  { value: 'primary', label: 'Primary home' },
+  { value: 'second_home', label: 'Second home' },
+  { value: 'investment', label: 'Investment' },
+  { value: 'unknown', label: 'Not set yet' },
+] as const
+
+export const transactionOptions = [
+  { value: 'purchase', label: 'Purchase' },
+  { value: 'rate_term', label: 'Rate and term refinance' },
+  { value: 'cash_out', label: 'Cash-out refinance' },
+  { value: 'unknown', label: 'Not set yet' },
+] as const
+
+/** Guess a document type from the file name. The reviewer can change it. Values sent to the API stay the same. */
+export function guessDocumentType(name?: string | null): string {
+  const n = String(name || '').toLowerCase()
+  if (/lease/.test(n)) return 'lease'
+  if (/1007|rent[-_\s]?schedule|rental[-_\s]?schedule/.test(n)) return 'rental_schedule'
+  if (/216|operating/.test(n)) return 'operating_income'
+  if (/1025|1004|1073|appraisal/.test(n)) return 'appraisal'
+  if (/photo/.test(n)) return 'photo'
+  if (/sketch/.test(n)) return 'sketch'
+  if (/amendment/.test(n) && /contract/.test(n)) return 'contract_amendment'
+  if (/contract/.test(n)) return 'contract'
+  if (/rent[-_\s]?roll/.test(n)) return 'rent_roll'
+  if (/addendum/.test(n)) return 'addendum'
+  return 'uncertain'
+}
+
+export function documentTypeLabel(value?: string | null, name?: string | null): string {
+  const n = String(name || '').toLowerCase()
+  if (/1025/.test(n) && (value === 'appraisal' || value === 'uncertain' || !value || /1025/.test(n))) return 'Appraisal form 1025'
+  if (/1004/.test(n)) return 'Appraisal form 1004'
+  if (/1073/.test(n) && value === 'appraisal') return 'Appraisal form 1073'
+  if (value === 'rental_schedule' || /1007/.test(n)) return 'Rent schedule (form 1007)'
+  if (value === 'operating_income' || /(?:form[-_\s]?216|\b216\b)/.test(n)) return 'Operating income (form 216)'
+  if (value === 'lease' || (/lease/.test(n) && value !== 'lease_amendment')) return 'Lease'
+  return documentTypeOptions.find((option) => option.value === value)?.label || 'Document'
+}
+
+export function optionLabel(options: readonly { value: string; label: string }[], value?: string | null): string {
+  return options.find((option) => option.value === value)?.label || 'Not set yet'
+}
+
+export type GuideCta = 'upload' | 'details' | 'start' | 'wait' | 'review' | 'export' | 'retry' | 'replace' | 'admin' | 'none' | 'create'
 
 export type Guide = {
   step: number
@@ -120,43 +218,108 @@ export function guideFor(opts: {
   const subject = opts.subject || 'bank statements'
   const canReview = opts.canReview !== false
   if (opts.archived) {
-    return { step: 4, badge: 'Archived', tone: '', title: 'This file is archived', body: 'Open File actions and choose Restore if you need it again.', hint: 'Archived files stay out of the active list.', waiting: false, action: '', cta: 'none' }
+    return { step: 5, badge: 'Archived', tone: '', title: 'This file is archived', body: 'Open File actions and choose Restore if you need it again.', hint: 'Archived files stay out of the active list.', waiting: false, action: '', cta: 'none' }
   }
   if (!opts.documents) {
-    return { step: 1, badge: 'Ready to upload', tone: '', title: `Upload ${subject}`, body: 'Add a PDF, PNG, or JPG up to 20 MB. The file is only stored until you start analysis.', hint: 'Upload the documents for this borrower.', waiting: false, action: `Upload ${subject}`, cta: 'upload' }
+    return { step: 1, badge: 'Ready to upload', tone: '', title: `Upload ${subject}`, body: 'Add a PDF, PNG, or JPG up to 20 MB. The file is only stored until you start processing.', hint: 'Upload the documents for this borrower.', waiting: false, action: 'Upload documents', cta: 'upload' }
   }
   const status = opts.runStatus || ''
   if (!status) {
     if (!canReview) {
-      return { step: 2, badge: 'Ready to start', tone: 'amber', title: 'Waiting for a reviewer', body: 'Your documents are saved. A reviewer starts the analysis. Uploading only stores the file.', hint: 'A reviewer starts analysis.', waiting: false, action: '', cta: 'none' }
+      return { step: 2, badge: 'Waiting for a reviewer', tone: 'amber', title: 'Waiting for a reviewer', body: 'Your documents are saved. A reviewer fills in the loan details and starts processing. Uploading only stores the file.', hint: 'A reviewer starts processing.', waiting: false, action: '', cta: 'none' }
     }
-    return { step: 2, badge: 'Ready to start', tone: 'amber', title: 'Start analysis', body: 'Uploading only stores the file. Nothing is read until you start analysis.', hint: 'Start analysis when you are ready.', waiting: false, action: 'Start analysis', cta: 'start' }
+    return { step: 2, badge: 'Loan details', tone: 'amber', title: 'Fill loan details', body: 'Add occupancy, the transaction, and how many units. Uploading only stores the file. Nothing is read until you start processing.', hint: 'Fill in the loan details.', waiting: false, action: 'Fill loan details', cta: 'details' }
   }
   if (processingStatuses.includes(status)) {
     const copy = explainStatus(status)
-    return { step: 2, badge: copy.label, tone: 'amber', title: copy.label, body: copy.help, hint: 'You can leave this page and come back.', waiting: true, action: '', cta: 'wait' }
+    return { step: 3, badge: copy.label, tone: 'amber', title: copy.label, body: copy.help, hint: 'You can leave this page and come back.', waiting: true, action: '', cta: 'wait' }
   }
   if (status === 'Failed') {
-    return { step: 2, badge: 'Processing failed', tone: 'red', title: 'Processing failed', body: plainFailure(opts.failure), hint: 'Use an unlocked PDF, PNG, or JPG, then try again.', waiting: false, action: canReview ? 'Try again' : '', cta: 'retry' }
+    const failure = failureGuide(opts.failure)
+    const reviewerAction = failure.cta === 'admin' || canReview
+    return { step: 3, badge: 'Processing failed', tone: 'red', title: 'Processing failed', body: failure.body, hint: failure.body, waiting: false, action: reviewerAction ? failure.button : '', cta: reviewerAction ? failure.cta : 'none' }
   }
-  if (status === 'NeedsReview' || status === 'PartiallyCompleted' || status === 'Cancelled') {
+  if (status === 'Cancelled') {
+    const copy = explainStatus(status)
+    return { step: 3, badge: copy.label, tone: 'amber', title: 'Processing was cancelled', body: copy.help, hint: 'Start processing again when you are ready.', waiting: false, action: canReview ? 'Start processing' : '', cta: canReview ? 'start' : 'none' }
+  }
+  if (status === 'NeedsReview' || status === 'PartiallyCompleted') {
     const copy = explainStatus(status)
     return {
-      step: 3,
+      step: 4,
       badge: copy.label,
       tone: 'amber',
       title: canReview ? 'Review what was flagged' : 'A reviewer is checking this file',
-      body: canReview ? 'Open an issue to see it on the document. A person decides what it means. Nothing is approved or declined automatically.' : 'Questions for you and the export are on this page. Internal findings stay with the reviewer.',
-      hint: canReview ? 'Click an issue to open that page.' : 'Check questions and the export.',
+      body: canReview ? 'Work through each flagged item. A person decides what it means. Nothing is approved or declined automatically.' : 'Questions for you and the export are on this page. Internal findings stay with the reviewer.',
+      hint: canReview ? 'Accept, dismiss, or add a note on each item.' : 'Check questions and the export.',
       waiting: false,
       action: canReview ? 'Review findings' : 'See questions',
       cta: 'review',
     }
   }
   if (status === 'Completed' || opts.hasReport) {
-    return { step: 4, badge: 'Ready to export', tone: 'teal', title: 'Export the report', body: 'Download Excel or PDF. Open findings do not block the export. This is not a loan approval.', hint: 'Download the report.', waiting: false, action: 'Export report', cta: 'export' }
+    return { step: 5, badge: 'Ready to export', tone: 'teal', title: 'Export the report', body: 'Download Excel or PDF. Open findings do not block the export. This is not a loan approval.', hint: 'Download the report.', waiting: false, action: 'Download report', cta: 'export' }
   }
-  return { step: 2, badge: 'Ready to start', tone: 'amber', title: canReview ? 'Start analysis' : 'Waiting for a reviewer', body: 'Uploading only stores the file. Nothing is read until analysis starts.', hint: 'Start analysis when you are ready.', waiting: false, action: canReview ? 'Start analysis' : '', cta: canReview ? 'start' : 'none' }
+  if (status === 'draft') {
+    return { step: 1, badge: 'Ready to upload', tone: '', title: `Upload ${subject}`, body: explainStatus('draft').help, hint: 'Upload the documents for this borrower.', waiting: false, action: 'Upload documents', cta: 'upload' }
+  }
+  if (status === 'in_review') {
+    return { step: 4, badge: explainStatus('in_review').label, tone: 'amber', title: 'Review what was flagged', body: explainStatus('in_review').help, hint: 'A person is checking the findings.', waiting: false, action: canReview ? 'Review findings' : 'See questions', cta: 'review' }
+  }
+  if (status === 'complete') {
+    return { step: 5, badge: 'Ready to export', tone: 'teal', title: 'Export the report', body: explainStatus('complete').help, hint: 'Download the report.', waiting: false, action: 'Download report', cta: 'export' }
+  }
+  const copy = explainStatus(status)
+  return { step: 3, badge: copy.label, tone: copy.tone, title: copy.label, body: copy.help, hint: 'Refresh the page if this stays unchanged.', waiting: false, action: '', cta: 'none' }
+}
+
+export type FlowStepState = 'done' | 'current' | 'blocked' | 'locked' | 'ready'
+
+export type FlowStep = {
+  id: number
+  label: string
+  state: FlowStepState
+  summary: string
+  lockReason: string
+}
+
+const lockReasons: Record<number, string> = {
+  1: 'Add documents to begin.',
+  2: 'Add documents first.',
+  3: 'Fill in the loan details first.',
+  4: 'Processing has to finish before findings are ready.',
+  5: 'Finish processing before you export the report.',
+}
+
+/** Done, current, blocked, and locked states for the five-step review. */
+export function flowFor(guide: Guide, info: {
+  documents: number
+  loanSummary: string
+  processingSummary: string
+  findingSummary: string
+  exportSummary: string
+  reviewReady?: boolean
+  unlock?: number[]
+}): FlowStep[] {
+  const current = guide.step
+  const failed = guide.tone === 'red' && current === 3
+  return fileSteps.map((step) => {
+    let state: FlowStepState
+    if (failed && step.id === 3) state = 'blocked'
+    else if (step.id < current) state = 'done'
+    else if (step.id === current) state = 'current'
+    else if (step.id === 5 && current >= 4) state = 'ready'
+    else if (step.id === 4 && info.reviewReady && current < 4) state = 'ready'
+    else state = 'locked'
+    if (state === 'locked' && info.unlock?.includes(step.id)) state = 'ready'
+    const summary = ['', info.documents ? `${info.documents} document${info.documents === 1 ? '' : 's'} added` : 'No documents yet', info.loanSummary, info.processingSummary, info.findingSummary, info.exportSummary][step.id] || ''
+    return { id: step.id, label: step.label, state, summary, lockReason: lockReasons[step.id] || 'Finish the earlier steps first.' }
+  })
+}
+
+export function readingProgress(done: number, total: number): string {
+  if (total <= 0) return 'Reading the documents. You can leave this page and come back.'
+  return `Reading ${done} of ${total} documents. You can leave this page and come back.`
 }
 
 export function stepFor(opts: { documents: number; runStatus?: string | null; hasReport?: boolean; archived?: boolean; canReview?: boolean; subject?: string; failure?: string | null }): number {
