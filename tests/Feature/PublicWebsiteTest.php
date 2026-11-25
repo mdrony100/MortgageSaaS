@@ -9,6 +9,7 @@ use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\User;
 use App\Models\WebsiteInquiry;
+use App\Website\DemoCaptcha;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Mail;
@@ -34,6 +35,17 @@ class PublicWebsiteTest extends TestCase
     private function valid(array $override = []): array
     {
         return array_replace(['name' => 'Fictional Prospect', 'email' => 'Prospect@Example.test', 'company' => 'Example Lending Co', 'role' => 'Processor', 'inquiry_type' => 'demo', 'message' => 'Please show us the bank statement workflow.', 'homepage_url' => ''], $override);
+    }
+
+    /** @param  array<string, mixed>  $override */
+    private function contactPayload(array $override = []): array
+    {
+        $this->get('/contact');
+        $question = session(DemoCaptcha::CONTACT_KEY);
+
+        return $this->valid(array_replace([
+            'captcha' => (string) ((int) $question['a'] + (int) $question['b']),
+        ], $override));
     }
 
     private function orgUser(string $role): User
@@ -161,17 +173,46 @@ class PublicWebsiteTest extends TestCase
         $this->from('/contact')->post('/contact', $this->valid(['email' => 'not-an-email', 'inquiry_type' => 'loan_application', 'message' => 'short']))->assertSessionHasErrors(['email', 'inquiry_type', 'message']);
         $this->from('/contact')->post('/contact', $this->valid(['message' => str_repeat('a', 5001)]))->assertSessionHasErrors(['message']);
         $this->assertSame(0, WebsiteInquiry::count());
-        $html = $this->get('/contact')->getContent();
+        $html = $this->get('/contact')->assertSee('placeholder="Jane Smith"', false)
+            ->assertSee('placeholder="jane@yourcompany.com"', false)
+            ->assertSee('placeholder="Your company name"', false)
+            ->assertSee('placeholder="e.g. Underwriter, Broker"', false)
+            ->assertSee('placeholder="How can we help?"', false)
+            ->assertSee('placeholder="Your answer"', false)
+            ->assertSee('What is ', false)
+            ->assertDontSee('name="phone"', false)
+            ->getContent();
         $this->assertStringNotContainsString('type="file"', $html);
         $this->assertStringNotContainsString('enctype="multipart', $html);
         $this->assertDoesNotMatchRegularExpression('~name="(account|routing|ssn|bank)~i', $html);
+    }
+
+    public function test_contact_captcha_rejects_a_wrong_answer_and_accepts_a_correct_one(): void
+    {
+        Bus::fake();
+        config(['website.inquiry_notify_email' => 'sales@example.test']);
+
+        $missing = $this->from('/contact')->post('/contact', $this->contactPayload(['captcha' => '']));
+        $missing->assertRedirect('/contact')->assertSessionHasErrors(['captcha' => 'Answer the question so we know this is a person.']);
+        $this->assertSame(0, WebsiteInquiry::count());
+
+        $wrong = $this->from('/contact')->post('/contact', $this->contactPayload(['captcha' => '0', 'email' => 'wrong-captcha@example.test']));
+        $wrong->assertRedirect('/contact')->assertSessionHasErrors(['captcha' => 'That answer does not match. Please try the new question.']);
+        $this->assertNull(WebsiteInquiry::where('email', 'wrong-captcha@example.test')->first());
+        $refreshed = session(DemoCaptcha::CONTACT_KEY);
+        $this->assertIsArray($refreshed);
+        $this->get('/contact')->assertSee('What is '.$refreshed['a'].' + '.$refreshed['b'].'?', false);
+
+        $this->from('/contact')->post('/contact', $this->contactPayload(['email' => 'captcha-ok@example.test']))
+            ->assertRedirect('/contact')->assertSessionHas('inquiry_saved', true);
+        $this->assertNotNull(WebsiteInquiry::where('email', 'captcha-ok@example.test')->first());
     }
 
     public function test_valid_submission_is_saved_before_success_and_notification_is_queued(): void
     {
         Bus::fake();
         config(['website.inquiry_notify_email' => 'sales@example.test']);
-        $this->from('/contact')->post('/contact', $this->valid())->assertRedirect('/contact')->assertSessionHas('inquiry_saved', true);
+        $this->from('/contact')->post('/contact', $this->contactPayload())->assertRedirect('/contact')->assertSessionHas('inquiry_saved', true);
         $i = WebsiteInquiry::sole();
         $this->assertSame(['Fictional Prospect', 'prospect@example.test', 'Example Lending Co', 'Processor', 'demo', 'new', false, 'queued'], [$i->name, $i->email, $i->company, $i->role, $i->inquiry_type, $i->status, $i->is_spam, $i->notification_status]);
         $this->assertNotSame('127.0.0.1', $i->source_hash);
@@ -183,7 +224,7 @@ class PublicWebsiteTest extends TestCase
     {
         Mail::fake();
         config(['website.inquiry_notify_email' => 'sales@example.test']);
-        $this->post('/contact', $this->valid());
+        $this->post('/contact', $this->contactPayload());
         $i = WebsiteInquiry::sole();
         Mail::assertSent(WebsiteInquiryReceived::class, fn ($m) => $m->hasTo('sales@example.test') && $m->hasReplyTo('prospect@example.test'));
         $this->assertSame('sent', $i->notification_status);
@@ -194,7 +235,7 @@ class PublicWebsiteTest extends TestCase
     {
         config(['website.inquiry_notify_email' => 'sales@example.test', 'mail.default' => 'failing']);
         config(['mail.mailers.failing' => ['transport' => 'smtp', 'host' => '127.0.0.1', 'port' => 1, 'timeout' => 1]]);
-        $r = $this->from('/contact')->post('/contact', $this->valid());
+        $r = $this->from('/contact')->post('/contact', $this->contactPayload());
         $r->assertRedirect('/contact')->assertSessionHas('inquiry_saved', true)->assertSessionHasNoErrors();
         $i = WebsiteInquiry::sole();
         $this->assertSame('failed', $i->notification_status);
@@ -206,7 +247,7 @@ class PublicWebsiteTest extends TestCase
     {
         Bus::fake();
         config(['website.inquiry_notify_email' => null]);
-        $this->post('/contact', $this->valid())->assertSessionHas('inquiry_saved', true);
+        $this->post('/contact', $this->contactPayload())->assertSessionHas('inquiry_saved', true);
         $this->assertSame('not_configured', WebsiteInquiry::sole()->notification_status);
         Bus::assertNothingDispatched();
     }
@@ -215,8 +256,8 @@ class PublicWebsiteTest extends TestCase
     {
         Bus::fake();
         config(['website.inquiry_notify_email' => 'sales@example.test']);
-        $this->post('/contact', $this->valid(['homepage_url' => 'http://spam.example']))->assertSessionHas('inquiry_saved', true);
-        $this->post('/contact', $this->valid(['email' => 'b@example.test', 'message' => 'see http://a.example http://b.example http://c.example http://d.example']));
+        $this->post('/contact', $this->contactPayload(['homepage_url' => 'http://spam.example']))->assertSessionHas('inquiry_saved', true);
+        $this->post('/contact', $this->contactPayload(['email' => 'b@example.test', 'message' => 'see http://a.example http://b.example http://c.example http://d.example']));
         $this->assertSame(['honeypot', 'link_heavy'], WebsiteInquiry::orderBy('id')->pluck('spam_reason')->all());
         $this->assertSame(2, WebsiteInquiry::where('is_spam', true)->where('notification_status', 'skipped_spam')->count());
         Bus::assertNothingDispatched();
@@ -227,9 +268,9 @@ class PublicWebsiteTest extends TestCase
         Bus::fake();
         RateLimiter::clear('website-inquiry');
         config(['website.inquiry_rate_limit.per_minute' => 2]);
-        $this->from('/contact')->post('/contact', $this->valid())->assertSessionHas('inquiry_saved');
-        $this->from('/contact')->post('/contact', $this->valid())->assertSessionHas('inquiry_saved');
-        $this->from('/contact')->post('/contact', $this->valid())->assertRedirect('/contact')->assertSessionHasErrors('form');
+        $this->from('/contact')->post('/contact', $this->contactPayload())->assertSessionHas('inquiry_saved');
+        $this->from('/contact')->post('/contact', $this->contactPayload())->assertSessionHas('inquiry_saved');
+        $this->from('/contact')->post('/contact', $this->contactPayload())->assertRedirect('/contact')->assertSessionHasErrors('form');
         $this->assertSame(2, WebsiteInquiry::count());
     }
 

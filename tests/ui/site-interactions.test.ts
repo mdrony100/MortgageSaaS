@@ -63,6 +63,44 @@ describe('sample DSCR calculator widget',()=>{
  });
 });
 
+describe('phone country prefix',()=>{
+ it('keeps the country selector inside one field and searches from the dropdown',()=>{
+  document.body.innerHTML=`<form><div class="phone-field" data-calling-code><div class="phone-prefix"><select name="phone_country" class="phone-native"><option value="US" data-name="United States" data-dial="1" data-flag="🇺🇸" selected>🇺🇸 +1</option><option value="GB" data-name="United Kingdom" data-dial="44" data-flag="🇬🇧">🇬🇧 +44</option><option value="MX" data-name="Mexico" data-dial="52" data-flag="🇲🇽">🇲🇽 +52</option></select><button type="button" class="phone-prefix-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="phone-country-list"><span data-flag>🇺🇸</span><span data-dial>+1</span></button><div class="phone-menu" id="phone-country-list" hidden><input type="search" placeholder="Search country" autocomplete="off"><ul role="listbox" aria-label="Country calling code"></ul></div></div><input id="phone" name="phone" class="phone-number" type="tel"></div></form>`;
+  const root=document.querySelector('[data-calling-code]') as HTMLElement;
+  site.initCallingCode(root);
+  const button=root.querySelector('button') as HTMLButtonElement;
+  const select=root.querySelector('select') as HTMLSelectElement;
+  const menu=root.querySelector('.phone-menu') as HTMLElement;
+  const search=menu.querySelector('input') as HTMLInputElement;
+  expect(menu.hidden).toBe(true);
+  expect(button.querySelector('[data-dial]')!.textContent).toBe('+1');
+  expect(root.querySelector('#phone')).not.toBeNull();
+  button.click();
+  expect(button.getAttribute('aria-expanded')).toBe('true');
+  expect(menu.hidden).toBe(false);
+  search.value='mex';
+  search.dispatchEvent(new Event('input'));
+  expect(menu.querySelectorAll('[role="option"]').length).toBe(1);
+  expect(menu.textContent).toContain('Mexico');
+  menu.querySelector('[role="option"]')!.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));
+  expect(select.value).toBe('MX');
+  expect(button.querySelector('[data-dial]')!.textContent).toBe('+52');
+  expect(menu.hidden).toBe(true);
+  button.click();
+  search.value='king';
+  search.dispatchEvent(new Event('input'));
+  search.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
+  expect(select.value).toBe('GB');
+  button.click();
+  search.value='zzz';
+  search.dispatchEvent(new Event('input'));
+  expect(menu.querySelector('[role="option"]')).toBeNull();
+  expect(menu.textContent).toContain('No matching country');
+  search.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+  expect(menu.hidden).toBe(true);
+ });
+});
+
 describe('reveal animation safety',()=>{
  it('does not hide content when reduced motion is requested',()=>{
   document.body.innerHTML='<section data-reveal>Visible</section>';

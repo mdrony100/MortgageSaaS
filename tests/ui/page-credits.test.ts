@@ -103,4 +103,19 @@ describe('owner console payment requests and plans',()=>{
     expect(mocked).toHaveBeenCalledWith('/api/admin/demo-requests/6/notes','POST',{body:'Called the office.'});
     expect(w.text()).toContain('Staff');
   });
+
+  it('leaves the volume blank when a demo request has none', async () => {
+    const row = {id: 7, name: 'No Volume', email: 'empty@example.test', company: 'Example Lending', phone: '+12015550123', monthly_volume: null, status: 'new', is_spam: false, message: null, notes: [], created_at: '2026-11-21T00:00:00Z'};
+    mocked.mockResolvedValueOnce({requests: {data: [row], current_page: 1, last_page: 1, total: 1}, statuses: {new: 'New'}, notification_configured: true});
+    const w = mount(DemoRequests);
+    await flushPromises();
+    expect(w.text()).toContain('—');
+    expect(w.text()).not.toContain('undefined');
+    expect(w.text()).not.toContain('null');
+    mocked.mockResolvedValueOnce({request: row});
+    await w.find('button.c-link-btn').trigger('click');
+    await flushPromises();
+    expect(w.text()).toContain('empty@example.test · +12015550123 ·');
+    expect(w.text()).not.toContain('empty@example.test · +12015550123 · ·');
+  });
 });

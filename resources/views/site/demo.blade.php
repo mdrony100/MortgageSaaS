@@ -2,9 +2,8 @@
 @section('content')
 @php
     $field = fn ($name) => $errors->has($name) ? 'aria-invalid=true aria-describedby='.$name.'-error' : '';
-    $selectedCountry = old('phone_country', 'US');
 @endphp
-@include('site.partials.page-header', ['eyebrow' => 'Demo', 'heading' => 'Request a demo', 'lead' => 'Tell us about your team and how many loans or pages you review each month. We will contact you to arrange a time. This form does not start a subscription.'])
+@include('site.partials.page-header', ['eyebrow' => 'Demo', 'heading' => 'Request a demo', 'lead' => 'Tell us about your team. We will contact you to arrange a time. This form does not start a subscription.'])
 
 <section class="site-section">
     <div class="site-container grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
@@ -39,28 +38,7 @@
                             <input id="company" name="company" type="text" required maxlength="150" autocomplete="organization" placeholder="Acme Lending" value="{{ old('company') }}" {!! $field('company') !!}>
                             @error('company')<p class="site-error" id="company-error">{{ $message }}</p>@enderror
                         </div>
-                        <div class="site-field phone-span">
-                            <label for="phone">Phone <span aria-hidden="true">*</span></label>
-                            <div class="phone-row" data-calling-code>
-                                <div class="phone-code">
-                                    <label for="phone-country-search" class="sr-only">Search country</label>
-                                    <input id="phone-country-search" type="search" placeholder="Search country" autocomplete="off" aria-controls="phone_country">
-                                    <select id="phone_country" name="phone_country" required {!! $field('phone_country') !!}>
-                                        @foreach ($countries as $country)
-                                            <option value="{{ $country['iso'] }}" @selected($selectedCountry === $country['iso'])>{{ $country['flag'] }} {{ $country['name'] }} +{{ $country['dial'] }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <input id="phone" name="phone" type="tel" required maxlength="30" autocomplete="tel" placeholder="201 555 0123" value="{{ old('phone') }}" {!! $field('phone') !!}>
-                            </div>
-                            @error('phone')<p class="site-error" id="phone-error">{{ $message }}</p>@enderror
-                            @error('phone_country')<p class="site-error" id="phone_country-error">{{ $message }}</p>@enderror
-                        </div>
-                    </div>
-                    <div class="site-field">
-                        <label for="monthly_volume">Monthly loan volume or pages <span aria-hidden="true">*</span></label>
-                        <input id="monthly_volume" name="monthly_volume" type="text" required maxlength="120" placeholder="For example, 40 loans or 3,000 pages" value="{{ old('monthly_volume') }}" {!! $field('monthly_volume') !!}>
-                        @error('monthly_volume')<p class="site-error" id="monthly_volume-error">{{ $message }}</p>@enderror
+                        @include('site.partials.phone-field', ['countries' => $countries])
                     </div>
                     <div class="site-field">
                         <label for="captcha">What is {{ $captcha['a'] }} + {{ $captcha['b'] }}? <span aria-hidden="true">*</span></label>

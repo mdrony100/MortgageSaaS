@@ -214,16 +214,21 @@ class PageCreditsTest extends TestCase
             ->assertSee('placeholder="jane@company.com"', false)
             ->assertSee('placeholder="Acme Lending"', false)
             ->assertSee('placeholder="201 555 0123"', false)
-            ->assertSee('placeholder="For example, 40 loans or 3,000 pages"', false)
-            ->assertSee('United States +1', false)
+            ->assertSee('class="phone-field"', false)
+            ->assertSee('data-name="United States"', false)
             ->assertSee('What is ', false)
+            ->assertDontSee('Monthly loan volume or pages', false)
+            ->assertDontSee('name="monthly_volume"', false)
+            ->assertDontSee('class="phone-row"', false)
             ->assertDontSee('name="message"', false);
+        $this->assertMatchesRegularExpression('/<option value="US"[^>]*selected/', $this->get('/request-demo')->getContent());
 
         $payload = $this->demoPayload();
         $this->post('/request-demo', $payload)->assertRedirect('/request-demo')->assertSessionHas('demo_saved');
         $saved = DemoRequest::firstOrFail();
         $this->assertSame('prospect@example.test', $saved->email);
         $this->assertSame('+12015550123', $saved->phone);
+        $this->assertNull($saved->monthly_volume);
         $this->assertNull($saved->message);
         $this->assertSame('new', $saved->status);
         $this->assertFalse($saved->is_spam);
@@ -277,7 +282,6 @@ class PageCreditsTest extends TestCase
             'email' => 'Prospect@Example.test',
             'phone_country' => 'US',
             'phone' => '201 555 0123',
-            'monthly_volume' => '40 loans',
             'captcha' => (string) ((int) $question['a'] + (int) $question['b']),
             'company_website' => '',
         ], $override);
