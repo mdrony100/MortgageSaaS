@@ -17,35 +17,38 @@ describe('customer-facing language',()=>{
     expect(explainStatus('Unscanned').help).toMatch(/not certified clean/i);
     expect(explainStatus('Failed').label).toBe('Processing failed');
     expect(explainStatus('Failed').help).toMatch(/unlocked PDF/);
-    expect(fileSteps.map(step=>step.label)).toEqual(['Add documents','Loan details','Run processing','Review findings','Export report']);
+    expect(fileSteps.map(step=>step.label)).toEqual(['Documents & details','Process','Review & export']);
   });
-  it('names the four loan-file steps and marks the current one',()=>{
+  it('names the three loan-file steps and marks the current one',()=>{
     const w=mount(FileSteps,{props:{current:1}});
     expect(w.text()).toContain('Upload bank statements');
-    expect(w.find('[aria-current="step"]').text()).toContain('Upload');
-    expect(w.text()).toContain('Export report');
+    expect(w.find('[aria-current="step"]').text()).toContain('Documents');
+    expect(w.text()).toContain('Review & export');
   });
   it('keeps the step and the badge on the same moment',()=>{
     const ready=guideFor({documents:2,runStatus:null,canReview:true});
-    expect(ready.step).toBe(2);
+    expect(ready.step).toBe(1);
     expect(ready.badge).toBe('Loan details');
     expect(ready.waiting).toBe(false);
     expect(ready.cta).toBe('details');
     const reading=guideFor({documents:2,runStatus:'Extracting'});
-    expect(reading.step).toBe(3);
+    expect(reading.step).toBe(2);
     expect(reading.badge).toBe('Reading the document');
     expect(reading.waiting).toBe(true);
     const review=guideFor({documents:2,runStatus:'NeedsReview'});
-    expect(review.step).toBe(4);
+    expect(review.step).toBe(3);
     expect(review.cta).toBe('review');
     const failed=guideFor({documents:1,runStatus:'Failed',failure:'Malware scan Unavailable'});
-    expect(failed.step).toBe(3);
+    expect(failed.step).toBe(2);
     expect(failed.body).toMatch(/not certified clean/i);
     expect(failed.body).not.toMatch(/Malware scan/);
-    expect(failed.cta).toBe('admin');
+    expect(failed.action).toBe('Try again');
+    expect(failed.cta).toBe('retry');
+    expect(failed.support).toBe(true);
+    expect(guideFor({documents:1,runStatus:'Failed',failure:'Approved processing budget unavailable'}).action).toBe('Try again');
     expect(guideFor({documents:0}).step).toBe(1);
     expect(guideFor({documents:1,runStatus:'Completed'}).cta).toBe('export');
-    expect(guideFor({documents:1,runStatus:'Completed'}).step).toBe(5);
+    expect(guideFor({documents:1,runStatus:'Completed'}).step).toBe(3);
     expect(plainFailure('Approved processing budget unavailable')).toBe("Processing budget isn't set up or is used up — ask an administrator.");
     expect(plainFailure('Organization budget exhausted')).toBe("Processing budget isn't set up or is used up — ask an administrator.");
     expect(plainFailure('Approved processing budget unavailable')).not.toMatch(/virus|certified clean/i);

@@ -1,24 +1,21 @@
 <script setup lang="ts">
 import { ref,computed,onMounted,onBeforeUnmount,watch } from 'vue';
-import {useRouter} from 'vue-router';
 import {api} from '../api';import DataPanel from './DataPanel.vue';import DocumentViewer from './DocumentViewer.vue';import StatusBadge from './StatusBadge.vue';import HelpNote from './HelpNote.vue';import NextStep from './NextStep.vue';import IssueReview from './IssueReview.vue';import GuidedSteps from './GuidedSteps.vue';import HowItWorks from './HowItWorks.vue';import FieldTip from './FieldTip.vue';import {bankTabLabel,explainIntegrity,explainStatus,flowFor,guideFor,helpText,readingProgress,reviewIssues,smoothScroll} from '../customerLanguage';
 const props=defineProps<{file:any}>();const emit=defineEmits(['refresh','guide']);
-let router:ReturnType<typeof useRouter>|null=null;try{router=useRouter()}catch{router=null}
-const state=ref<any>({}),error=ref(''),notice=ref(''),busy=ref(false),tab=ref('integrity'),runId=ref(''),source=ref<any>(),upload=ref<File>(),fictional=ref(false),selectedVersions=ref<number[]>([]),selectedAccounts=ref<string[]>([]),selectedTx=ref<number[]>([]),query=ref(''),filter=ref(''),category=ref('unresolved'),include=ref('policy'),reason=ref('source_verified'),notes=ref(''),ruleId=ref(''),workflow=ref('business'),months=ref(12),endMonth=ref(new Date().toISOString().slice(0,7)),ownership=ref(''),remaining=ref(''),accountA=ref(''),accountB=ref(''),condition=ref(''),explanation=ref(''),publicExplanation=ref(''),messageKind=ref('explanation'),preview=ref<any>(),ruleName=ref(''),ruleStatus=ref('draft'),ruleJson=ref(''),loanReady=ref(false),expanded=ref<number|null>(null),dragging=ref(false);
+const state=ref<any>({}),error=ref(''),notice=ref(''),busy=ref(false),tab=ref('integrity'),runId=ref(''),source=ref<any>(),upload=ref<File>(),fictional=ref(false),selectedVersions=ref<number[]>([]),selectedAccounts=ref<string[]>([]),selectedTx=ref<number[]>([]),query=ref(''),filter=ref(''),category=ref('unresolved'),include=ref('policy'),reason=ref('source_verified'),notes=ref(''),ruleId=ref(''),workflow=ref('business'),months=ref(12),endMonth=ref(new Date().toISOString().slice(0,7)),ownership=ref(''),remaining=ref(''),accountA=ref(''),accountB=ref(''),condition=ref(''),explanation=ref(''),publicExplanation=ref(''),messageKind=ref('explanation'),preview=ref<any>(),ruleName=ref(''),ruleStatus=ref('draft'),ruleJson=ref(''),loanReady=ref(false),dragging=ref(false);
 const internal=computed(()=>props.file.permissions.review),root=computed(()=>'/api/files/'+props.file.id+'/bank'),runRoot=computed(()=>root.value+'/runs/'+state.value.run?.id),versions=computed(()=>props.file.documents.filter((d:any)=>d.category!=='fixture').flatMap((d:any)=>d.versions)),tx=computed(()=>state.value.transactions?.filter((t:any)=>(!filter.value||t.current_category===filter.value)&&(!query.value||(t.data.description+' '+t.posting_date+' '+t.id).toLowerCase().includes(query.value.toLowerCase())))||[]),latest=computed(()=>state.value.calculations?.at(-1)),sourceVersion=computed(()=>versions.value.find((v:any)=>v.id===source.value?.document_version_id)),reviewTabs=computed(()=>internal.value?['coverage','transactions','transfers','income','nsf','sustainability','integrity','conditions','history']:['conditions']);
 const baseGuide=computed(()=>guideFor({documents:versions.value.length,runStatus:state.value.run?.status||null,hasReport:!!state.value.reports?.length,canReview:internal.value,subject:'bank statements',failure:state.value.run?.error_code}));
-const guide=computed(()=>{let g=baseGuide.value;if(g.cta==='details'&&loanReady.value)g={...g,step:3,badge:'Ready to start',tone:'amber',title:'Start processing',body:'Uploading only stores the file. Nothing is read until you start processing.',hint:'Start processing when the loan details look right.',waiting:false,action:'Start processing',cta:'start'};const findings=state.value.findings||[];const open=findings.filter((f:any)=>!['reviewed','resolved','rejected'].includes(f.status)).length;if(g.cta==='review'&&internal.value&&open>0){const noun=open===1?'item':'items';g={...g,title:`Review ${open} flagged ${noun}`,action:`Review ${open} flagged ${noun}`,body:'Work through each flagged item. A person decides what it means. Nothing is approved or declined automatically.'}}if(g.waiting){const total=versions.value.length;const done=(state.value.statements||[]).length;g={...g,body:readingProgress(Math.min(done,total||done),total||done)}}return g});
+const guide=computed(()=>{let g=baseGuide.value;if(g.cta==='details'&&loanReady.value)g={...g,step:2,badge:'Ready to start',tone:'amber',title:'Start processing',body:'Uploading only stores the file. Nothing is read until you start processing.',hint:'Start processing when the loan details look right.',waiting:false,action:'Start processing',cta:'start'};const findings=state.value.findings||[];const open=findings.filter((f:any)=>!['reviewed','resolved','rejected'].includes(f.status)).length;if(g.cta==='review'&&internal.value&&open>0){const noun=open===1?'item':'items';g={...g,title:`Review ${open} flagged ${noun}`,action:`Review ${open} flagged ${noun}`,body:'Work through each flagged item. A person decides what it means. Nothing is approved or declined automatically.'}}if(g.waiting){const total=versions.value.length;const done=(state.value.statements||[]).length;g={...g,body:readingProgress(Math.min(done,total||done),total||done)}}return g});
 watch(guide,(g)=>emit('guide',g),{immediate:true});
-watch(()=>guide.value.step,()=>{expanded.value=null});
-const openId=computed(()=>expanded.value??guide.value.step);
+const openSection=ref(0),running=computed(()=>['Queued','Validating','Extracting','Reconciling','Analyzing'].includes(state.value.run?.status||''));
 const loanSummary=computed(()=>`${workflow.value==='business'?'Business':'Personal'} · ${months.value} months · ending ${endMonth.value}`);
 const findingSummary=computed(()=>{const findings=state.value.findings||[];if(!findings.length)return 'No flagged items yet';const done=findings.filter((f:any)=>['reviewed','resolved','rejected'].includes(f.status)).length;return `${done} of ${findings.length} reviewed`});
-const steps=computed(()=>flowFor(guide.value,{documents:versions.value.length,loanSummary:loanSummary.value,processingSummary:state.value.run?explainStatus(state.value.run.status).label:'Not started',findingSummary:findingSummary.value,exportSummary:state.value.reports?.length?'Report ready to download':'Excel, CSV, and PDF, when processing has finished',reviewReady:(state.value.findings||[]).length>0,unlock:internal.value?[]:[4,5]}));
+const steps=computed(()=>flowFor(guide.value,{documents:versions.value.length,loanSummary:loanSummary.value,processingSummary:state.value.run&&state.value.inputs_fresh===false?'Newer documents were uploaded after this run. Old issued reports are unchanged.':(state.value.run?explainStatus(state.value.run.status).label:'Not started'),findingSummary:findingSummary.value,exportSummary:state.value.reports?.length?'Report ready':'Export when processing finishes',reviewReady:(state.value.findings||[]).length>0,unlock:internal.value?[]:[3]}));
 const issues=computed(()=>internal.value?reviewIssues(state.value.findings||[]):[]);
 const doneCount=computed(()=>(state.value.findings||[]).filter((f:any)=>['reviewed','resolved','rejected'].includes(f.status)).length);
-function toggle(id:number){expanded.value=expanded.value===id?null:id}
 function confirmLoan(){loanReady.value=true}
-function onGuideAction(){const cta=guide.value.cta;if(cta==='admin'){if(router)router.push('/support/new');else window.location.assign('/support/new');return}if(cta==='retry'&&state.value.run)act(()=>api(runRoot.value+'/control/retry','POST'),'Pinned run retry requested.');const step=cta==='upload'||cta==='replace'?1:cta==='details'?2:cta==='start'||cta==='retry'?3:cta==='review'?4:cta==='export'?5:guide.value.step;expanded.value=step;if(cta==='review'){tab.value=internal.value?'integrity':'conditions';document.getElementById('finding-checklist')?.scrollIntoView({behavior:smoothScroll(),block:'start'})}}
+function syncFold(id:number,event:Event){const el=event.target as HTMLDetailsElement;if(event.target!==el)return;if(el.open)openSection.value=id;else if(openSection.value===id)openSection.value=0}
+function onGuideAction(){const cta=guide.value.cta;if(cta==='retry'&&state.value.run)act(()=>api(runRoot.value+'/control/retry','POST'),'Pinned run retry requested.');if(cta==='start')start();openSection.value=cta==='upload'||cta==='details'||cta==='replace'?1:cta==='review'||cta==='export'?3:2;if(cta==='review'||cta==='export'){tab.value=internal.value?'integrity':'conditions';document.getElementById('finding-checklist')?.scrollIntoView({behavior:smoothScroll(),block:'start'})}}
 function onDrop(event:DragEvent){dragging.value=false;const file=event.dataTransfer?.files?.[0];if(!file)return;upload.value=file;addDocument()}
 async function quickFinding(f:any,status:string){f.nextStatus=status;await finding(f)}
 let poll:ReturnType<typeof setInterval>;
@@ -48,19 +45,17 @@ async function saveRule(){await act(()=>api(root.value+'/rules','POST',{name:rul
 <section class="bank-workspace guided-review" role="tabpanel">
 <p class="alert" v-if="error" role="alert">{{error}}</p>
 <p class="alert success" v-if="notice" role="status">{{notice}}</p>
-<HowItWorks />
+<div class="review-title"><h2>Bank statement review</h2><HowItWorks /></div>
 <p class="compliance">A person makes the decision. The tool only flags potential issues. This is not lending advice.</p>
-<p class="micro">No simulated analysis in this workspace.</p>
 <NextStep :guide="guide" @act="onGuideAction"/>
-<p v-if="state.run&&!state.inputs_fresh" class="alert warning">Newer documents were uploaded after this run. Start a new review for them. Old issued reports are unchanged.</p>
-<div class="actions"><button type="button" :disabled="busy" @click="load">Refresh</button></div>
-<section v-if="!internal" class="broker-summary">
-  <h2>Qualifying income</h2>
-  <HelpNote :text="helpText.income"/>
-  <DataPanel :data="state.final_income||{notice:'No final income report issued.'}"/>
-</section>
-<GuidedSteps :steps="steps" :open-id="openId" @toggle="toggle">
-<template #step-1>
+<details v-if="!internal" class="fold">
+  <summary><span><strong>Qualifying income</strong><small>{{ state.final_income?.income_usd ? '$'+state.final_income.income_usd : 'No final figure yet' }}</small></span></summary>
+  <div class="fold-body"><HelpNote :text="helpText.income"/><DataPanel :data="state.final_income||{notice:'No final income report issued.'}"/></div>
+</details>
+<GuidedSteps :steps="steps" />
+<details class="fold" :open="openSection===1" @toggle="syncFold(1,$event)">
+  <summary><span><strong>Documents &amp; details</strong><small>{{ steps[0]?.summary }}</small></span></summary>
+  <div class="fold-body">
   <form v-if="file.permissions.upload" class="upload-form" @submit.prevent="addDocument">
     <label class="dropzone" :class="{'is-over':dragging}" @dragover.prevent="dragging=true" @dragleave.prevent="dragging=false" @drop.prevent="onDrop">
       <strong>Drop a PDF, PNG, or JPG here</strong>
@@ -86,8 +81,6 @@ async function saveRule(){await act(()=>api(root.value+'/rules','POST',{name:rul
     </li>
   </ul>
   <p v-else class="muted">No statements yet.</p>
-</template>
-<template #step-2>
   <p v-if="!internal" class="muted">A reviewer chooses business or personal, and the months to include. Uploading only stores the file.</p>
   <div v-else class="loan-form">
     <fieldset>
@@ -106,7 +99,7 @@ async function saveRule(){await act(()=>api(root.value+'/rules','POST',{name:rul
         <input type="month" v-model="endMonth" aria-label="Last month" required/>
       </label>
     </fieldset>
-    <button type="button" class="primary" @click="confirmLoan">Continue to processing</button>
+    <button type="button" @click="confirmLoan">Continue to processing</button>
     <details class="advanced"><summary>Advanced</summary>
       <label>Versioned rule
         <FieldTip text="An approved profile tells the review which deposits can count. Without one, the income figure is withheld."/>
@@ -114,18 +107,22 @@ async function saveRule(){await act(()=>api(root.value+'/rules','POST',{name:rul
       </label>
     </details>
   </div>
-</template>
-<template #step-3>
-  <p v-if="guide.tone==='red'" class="progress-plain">Processing stopped. Use the action at the top of the page.</p>
-  <p v-else class="progress-plain">{{state.run?(guide.waiting?guide.body:explainStatus(state.run.status).help):'Nothing is read until you start processing.'}}</p>
-  <div v-if="internal&&state.run" class="actions">
-    <button v-if="guide.cta==='retry'" type="button" class="quiet" :disabled="busy||!['Failed','PartiallyCompleted'].includes(state.run.status)" @click="act(()=>api(runRoot+'/control/retry','POST'), 'Pinned run retry requested.')">Try again</button>
-    <button type="button" class="quiet" :disabled="busy||!['Queued','Validating','Extracting','Reconciling','Analyzing'].includes(state.run.status)" @click="act(()=>api(runRoot+'/control/cancel','POST'),'Cancellation requested; active provider request may finish without another submission.')">Cancel</button>
   </div>
-  <form v-if="internal" class="form-stack start-processing" @submit.prevent="start">
+</details>
+<details class="fold" :open="openSection===2" @toggle="syncFold(2,$event)">
+  <summary><span><strong>Process</strong><small>{{ steps[1]?.summary }}</small></span></summary>
+  <div class="fold-body">
+  <p class="micro">No simulated analysis in this workspace.</p>
+  <p v-if="guide.waiting" class="progress-plain">{{guide.body}}</p>
+  <p v-else-if="state.run" class="muted">{{explainStatus(state.run.status).label}}</p>
+  <p v-else class="muted">Nothing is read until you start processing.</p>
+  <div class="actions">
+    <button type="button" :disabled="busy" @click="load">Refresh</button>
+    <button v-if="running" type="button" class="quiet" @click="act(()=>api(runRoot+'/control/cancel','POST'),'Cancellation requested; active provider request may finish without another submission.')">Cancel</button>
+  </div>
+  <form v-if="internal && versions.length" class="form-stack start-processing" @submit.prevent="start">
     <h3>Start real analysis</h3>
     <p>{{selectedVersions.length}} document{{selectedVersions.length===1?'':'s'}} will be read. Uploading only stores the file until you start.</p>
-    <button class="primary" :disabled="busy||!selectedVersions.length">Start processing</button>
   </form>
   <details v-if="internal" class="advanced"><summary>Advanced</summary>
     <label>Run history<select v-model="runId" aria-label="Run history" @change="load"><option value="">Latest run</option><option v-for="r in state.runs" :key="r.id" :value="r.id">{{explainStatus(r.status).label}}</option></select></label>
@@ -142,8 +139,11 @@ async function saveRule(){await act(()=>api(root.value+'/rules','POST',{name:rul
       </form>
     </details>
   </details>
-</template>
-<template #step-4>
+  </div>
+</details>
+<details class="fold" :open="openSection===3" @toggle="syncFold(3,$event)">
+  <summary><span><strong>Review &amp; export</strong><small>{{ steps[2]?.summary }}</small></span></summary>
+  <div class="fold-body">
   <p v-if="!internal" class="muted">A reviewer checks internal findings. You can answer questions and read the income figure above.</p>
   <section v-if="internal" id="finding-checklist" aria-label="Findings checklist">
     <div class="section-heading"><h3>Findings</h3><span class="badge">{{doneCount}} of {{(state.findings||[]).length}} reviewed</span></div>
@@ -180,8 +180,6 @@ async function saveRule(){await act(()=>api(root.value+'/rules','POST',{name:rul
 <aside v-if="source" class="source-pane"><div class="section-heading"><h3>Preserved original source</h3><button type="button" @click="source=null">Close</button></div><p>{{source.excerpt}}</p><p>Page-only reference unless the native location is verified.</p><DocumentViewer v-if="sourceVersion" :version="sourceVersion" :page="source.page" :region="source.region"/><p v-else>Source version is not available to your role.</p></aside>
   </div>
   <IssueReview v-if="internal && (issues.length || versions.length)" :issues="issues" :versions="versions" :statements="state.statements || []" :transactions="state.transactions || []"/>
-</template>
-<template #step-5>
   <h3>What the report contains</h3>
   <ul class="report-contents">
     <li>Qualifying income for the months a reviewer confirmed</li>
@@ -190,7 +188,7 @@ async function saveRule(){await act(()=>api(root.value+'/rules','POST',{name:rul
   </ul>
   <p>Open findings do not block the download. This is not a loan approval.</p>
 <h2>Versioned real exports</h2><template v-if="internal"><p>Preliminary reports may contain findings. Final income requires configured, approved completeness gates; it is not mortgage approval.</p><label>Deliberately broker-safe final explanation<textarea v-model="publicExplanation"/></label><div class="actions"><button :disabled="busy||!latest" @click="issue(false)">Issue preliminary internal report</button><button :disabled="busy||!latest" @click="issue(true)">Finalize income + separate broker report</button></div></template><article v-for="r in state.reports" class="document-card"><strong>Report {{r.data?.report_version||r.version}} · {{r.data?.audience||'broker'}} · {{r.data?.status||'final'}}</strong><div class="actions"><a v-for="format in ['xlsx','csv','pdf']" class="button" :href="root+'/runs/'+r.run_id+'/reports/'+r.id+'/'+format">Download {{format.toUpperCase()}}</a></div></article>
-</template>
-</GuidedSteps>
+  </div>
+</details>
 </section>
 </template>

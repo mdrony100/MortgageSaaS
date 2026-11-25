@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { api } from '../api'
 import DataPanel from './DataPanel.vue'
 import DocumentViewer from './DocumentViewer.vue'
@@ -14,9 +13,6 @@ import { appraisalTabLabel, documentTypeLabel, documentTypeOptions, explainInteg
 
 const props = defineProps<{ file: any; module?: string }>()
 const emit = defineEmits(['refresh', 'guide'])
-let router: ReturnType<typeof useRouter> | null = null
-try { router = useRouter() } catch { router = null }
-
 const state = ref<any>({})
 const tab = ref('')
 const error = ref('')
@@ -34,7 +30,6 @@ const guideline = ref('')
 const context = ref({ loan_occupancy: 'unknown', transaction: 'unknown', program: '', units: 1 })
 const loanReady = ref(false)
 const contextHydrated = ref(false)
-const expanded = ref<number | null>(null)
 const dragging = ref(false)
 const detailTabs = ['facts', 'photos', 'rent', 'calculations', 'findings', 'revisions', 'guidelines', 'notes']
 const closedFinding = ['reviewed', 'resolved', 'dismissed']
@@ -128,7 +123,7 @@ async function saveFindingNote(f: any) {
   f.addingNote = false
 }
 
-watch(() => props.file.id, () => { runId.value = ''; selected.value = []; classifications.value = {}; state.value = {}; source.value = null; input.value = freshInput(); loanReady.value = false; contextHydrated.value = false; expanded.value = null; tab.value = ''; load() })
+watch(() => props.file.id, () => { runId.value = ''; selected.value = []; classifications.value = {}; state.value = {}; source.value = null; input.value = freshInput(); loanReady.value = false; contextHydrated.value = false; openSection.value = 0; tab.value = ''; load() })
 watch(runId, () => { source.value = null; input.value = freshInput() })
 watch(versions, (list) => {
   const next = { ...classifications.value }
@@ -143,7 +138,7 @@ const baseGuide = computed(() => guideFor({ documents: versions.value.filter((v:
 const guide = computed(() => {
   let g = baseGuide.value
   if (g.cta === 'details' && loanReady.value) {
-    g = { ...g, step: 3, badge: 'Ready to start', tone: 'amber', title: 'Start processing', body: 'Uploading only stores the file. Nothing is read until you start processing.', hint: 'Start processing when the loan details look right.', waiting: false, action: 'Start processing', cta: 'start' }
+    g = { ...g, step: 2, badge: 'Ready to start', tone: 'amber', title: 'Start processing', body: 'Uploading only stores the file. Nothing is read until you start processing.', hint: 'Start processing when the loan details look right.', waiting: false, action: 'Start processing', cta: 'start' }
   }
   const findings = state.value.findings || []
   const open = findings.filter((f: any) => !isClosed(f)).length
@@ -158,8 +153,8 @@ const guide = computed(() => {
   return g
 })
 watch(guide, (g) => emit('guide', g), { immediate: true })
-watch(() => guide.value.step, () => { expanded.value = null })
-const openId = computed(() => expanded.value ?? guide.value.step)
+const openSection = ref(0)
+const running = computed(() => ['Queued', 'Validating', 'Extracting', 'Reconciling', 'Analyzing'].includes(state.value.run?.status || ''))
 const loanSummary = computed(() => `${optionLabel(occupancyOptions, context.value.loan_occupancy)} · ${optionLabel(transactionOptions, context.value.transaction)} · ${context.value.units} unit${context.value.units === 1 ? '' : 's'}`)
 const findingSummary = computed(() => {
   const findings = state.value.findings || []
@@ -178,14 +173,18 @@ const steps = computed(() => flowFor(guide.value, {
 const issues = computed(() => props.file.permissions?.review ? reviewIssues(state.value.findings || []) : [])
 const doneCount = computed(() => (state.value.findings || []).filter((f: any) => isClosed(f)).length)
 function confirmLoan() { loanReady.value = true }
-function toggle(id: number) { expanded.value = expanded.value === id ? null : id }
+function syncFold(id: number, event: Event) {
+  const el = event.target as HTMLDetailsElement
+  if (event.target !== el) return
+  if (el.open) openSection.value = id
+  else if (openSection.value === id) openSection.value = 0
+}
 function onGuideAction() {
   const cta = guide.value.cta
-  if (cta === 'admin') { if (router) router.push('/support/new'); else window.location.assign('/support/new'); return }
   if (cta === 'retry' && state.value.run) command('control', { operation: 'retry' })
-  const step = cta === 'upload' || cta === 'replace' ? 1 : cta === 'details' ? 2 : cta === 'start' || cta === 'retry' ? 3 : cta === 'review' ? 4 : cta === 'export' ? 5 : guide.value.step
-  expanded.value = step
-  if (cta === 'review') document.getElementById('finding-checklist')?.scrollIntoView({ behavior: smoothScroll(), block: 'start' })
+  if (cta === 'start') start()
+  openSection.value = cta === 'upload' || cta === 'details' || cta === 'replace' ? 1 : cta === 'review' || cta === 'export' ? 3 : 2
+  if (cta === 'review' || cta === 'export') document.getElementById('finding-checklist')?.scrollIntoView({ behavior: smoothScroll(), block: 'start' })
 }
 let timer: any
 onMounted(async () => { await load(); timer = setInterval(load, 4000) })
@@ -193,15 +192,17 @@ onUnmounted(() => clearInterval(timer))
 </script>
 <template>
 <section class="card guided-review" role="tabpanel">
-  <h2>{{ module === 'dscr' ? 'Rental income review' : 'Appraisal / Rental Income Review' }}</h2>
-  <HowItWorks />
+  <div class="review-title"><h2>{{ module === 'dscr' ? 'Rental income review' : 'Appraisal / Rental Income Review' }}</h2><HowItWorks /></div>
   <p class="compliance">A person makes the decision. The tool only flags potential issues. This is not lending advice.</p>
   <NextStep :guide="guide" @act="onGuideAction" />
-  <p v-if="busy" role="status">Saving or processing request…</p>
+  <p v-if="busy" role="status">Saving…</p>
   <p v-if="error" role="alert" class="alert error">{{ error }}</p>
   <p v-if="state.audience === 'restricted'">{{ state.notice }}</p>
-  <GuidedSteps v-else :steps="steps" :open-id="openId" @toggle="toggle">
-    <template #step-1>
+  <template v-else>
+  <GuidedSteps :steps="steps" />
+  <details class="fold" :open="openSection === 1" @toggle="syncFold(1, $event)">
+    <summary><span><strong>Documents &amp; details</strong><small>{{ steps[0]?.summary }}</small></span></summary>
+    <div class="fold-body">
       <form class="upload-form" @submit.prevent="addUpload">
         <label class="dropzone" :class="{ 'is-over': dragging }" @dragover.prevent="dragging = true" @dragleave.prevent="dragging = false" @drop.prevent="onDrop">
           <strong>Drop a PDF, PNG, or JPG here</strong>
@@ -239,8 +240,6 @@ onUnmounted(() => clearInterval(timer))
         </li>
       </ul>
       <p v-else class="muted">No documents yet. Add the appraisal, rent schedule, and leases.</p>
-    </template>
-    <template #step-2>
       <p v-if="!file.permissions.review" class="muted">A reviewer enters occupancy, the transaction, and the unit count.</p>
       <div v-else class="loan-form">
         <fieldset>
@@ -269,7 +268,7 @@ onUnmounted(() => clearInterval(timer))
             <input v-model="context.program" aria-label="Program or investor" placeholder="Optional" />
           </label>
         </fieldset>
-        <button class="primary" type="button" @click="confirmLoan">Continue to processing</button>
+        <button type="button" @click="confirmLoan">Continue to processing</button>
         <details class="advanced">
           <summary>Advanced</summary>
           <label>Revision of an earlier review
@@ -288,18 +287,15 @@ onUnmounted(() => clearInterval(timer))
           </label>
         </details>
       </div>
-    </template>
-    <template #step-3>
-      <p v-if="guide.tone === 'red'" class="progress-plain">Processing stopped. Use the action at the top of the page.</p>
-      <p v-else-if="state.run" class="progress-plain">{{ guide.waiting ? guide.body : explainStatus(state.run.status).help }}</p>
-      <p v-else class="progress-plain">{{ selected.length ? selected.length + ' documents will be read.' : 'Choose at least one document in Add documents.' }} Nothing is read until you start processing.</p>
-      <div v-if="state.run" class="actions">
-        <button type="button" class="quiet" @click="command('control', { operation: 'cancel' })">Cancel processing</button>
-        <button v-if="state.run.status === 'Failed' && guide.cta === 'retry'" type="button" class="quiet" @click="command('control', { operation: 'retry' })">Try again</button>
-      </div>
-      <form v-if="file.permissions.review" class="form-stack start-processing" @submit.prevent="start">
-        <button class="primary" :disabled="busy || !selected.length">Start processing</button>
-      </form>
+    </div>
+  </details>
+  <details class="fold" :open="openSection === 2" @toggle="syncFold(2, $event)">
+    <summary><span><strong>Process</strong><small>{{ steps[1]?.summary }}</small></span></summary>
+    <div class="fold-body">
+      <p v-if="guide.waiting || state.run" class="progress-plain">{{ guide.waiting ? guide.body : explainStatus(state.run.status).label }}</p>
+      <p v-else class="muted">{{ selected.length }} documents ready. Nothing is read until you start processing.</p>
+      <button v-if="running" type="button" class="quiet" @click="command('control', { operation: 'cancel' })">Cancel</button>
+      <form v-if="file.permissions.review" class="form-stack start-processing" @submit.prevent="start"></form>
       <details class="advanced">
         <summary>Advanced</summary>
         <div class="actions">
@@ -317,8 +313,11 @@ onUnmounted(() => clearInterval(timer))
         <DataPanel :show-evidence="true" :data="rows('document_batch')" />
         <p v-if="!state.run">Select preserved original versions to start. No uploaded file is replaced by sample analysis.</p>
       </details>
-    </template>
-    <template #step-4>
+    </div>
+  </details>
+  <details class="fold" :open="openSection === 3" @toggle="syncFold(3, $event)">
+    <summary><span><strong>Review &amp; export</strong><small>{{ steps[2]?.summary }}</small></span></summary>
+    <div class="fold-body">
       <p v-if="!file.permissions.review" class="muted">A reviewer checks the findings. Questions for you stay with the file notes.</p>
       <section v-if="file.permissions.review" id="finding-checklist" aria-label="Findings checklist">
         <div class="section-heading">
@@ -485,25 +484,18 @@ onUnmounted(() => clearInterval(timer))
       </div>
       <IssueReview v-if="issues.length" :issues="issues" :versions="versions" />
       </template>
-    </template>
-    <template #step-5>
       <p v-if="!file.permissions.review" class="muted">A reviewer exports the report. Open findings do not block that download.</p>
       <template v-else>
-      <h3>What the report contains</h3>
-      <ul class="report-contents">
-        <li>Each flagged item and the decision recorded for it</li>
-        <li>Rent, payment, and DSCR figures a reviewer confirmed</li>
-        <li>The guideline version used for this run</li>
-      </ul>
-      <p>Open findings do not block downloads. Every issue and provisional calculation stays visible. This is not a loan approval.</p>
+      <p>The report lists flagged items, confirmed figures, and the guideline version. Open findings do not block downloads. This is not a loan approval.</p>
       <button class="primary" type="button" :disabled="!state.run" @click="command('report')">Export report</button>
       <article v-for="r in rows('report')" :key="r.id" class="note-card">
         Report {{ r.data.report_version }} · {{ r.data.hash }}
         <a v-for="format in ['pdf', 'xlsx']" :key="format" class="button" :href="rr + '/reports/' + r.id + '/' + format">Download {{ format }}</a>
       </article>
       </template>
-    </template>
-  </GuidedSteps>
+    </div>
+  </details>
+  </template>
 </section>
 </template>
 <style scoped>

@@ -1,18 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-const storageKey = 'nqm-how-review-works'
-const open = ref(typeof localStorage === 'undefined' || localStorage.getItem(storageKey) !== 'dismissed')
-function dismiss() {
-  open.value = false
-  try { localStorage.setItem(storageKey, 'dismissed') } catch { /* private mode */ }
-}
+const open = ref(false)
 </script>
 <template>
-<aside v-if="open" class="how-works" aria-label="How this works">
-  <div>
-    <strong>How this works</strong>
-    <p>Add the documents, confirm the loan details, then run processing. When it finishes, work through each flagged item and export the report. You can leave while processing runs.</p>
-  </div>
-  <button type="button" @click="dismiss">Dismiss</button>
-</aside>
+<span class="field-tip how-help">
+  <button type="button" class="tip-btn" :aria-expanded="open ? 'true' : 'false'" aria-label="How this works" @click="open = !open">?</button>
+  <span v-if="open" class="tip-pop" role="note">Add the documents and loan details, run processing, then review what was flagged and export. You can leave while processing runs.</span>
+</span>
 </template>

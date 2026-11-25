@@ -79,11 +79,9 @@ export function explainStatus(code?: string | null): StatusCopy {
 }
 
 export const fileSteps = [
-  { id: 1, label: 'Add documents', hint: 'Upload bank statements or the appraisal for this borrower.' },
-  { id: 2, label: 'Loan details', hint: 'Add occupancy, the transaction, and how many units.' },
-  { id: 3, label: 'Run processing', hint: 'Start reading the documents. You can leave and come back.' },
-  { id: 4, label: 'Review findings', hint: 'A person checks potential issues. Nothing is approved or declined automatically.' },
-  { id: 5, label: 'Export report', hint: 'Download Excel or PDF. Open findings do not block the export.' },
+  { id: 1, label: 'Documents & details', hint: 'Upload bank statements or the appraisal, then add the loan details.' },
+  { id: 2, label: 'Process', hint: 'Start reading the documents. You can leave and come back.' },
+  { id: 3, label: 'Review & export', hint: 'Check what was flagged, then export the report.' },
 ] as const
 
 export type FailureCta = 'retry' | 'replace' | 'admin'
@@ -202,6 +200,8 @@ export type Guide = {
   waiting: boolean
   action: string
   cta: GuideCta
+  /** Small text link beside the one primary button. Not a second action. */
+  support?: boolean
 }
 
 const processingStatuses = ['Queued', 'Validating', 'Extracting', 'Reconciling', 'Analyzing']
@@ -218,39 +218,38 @@ export function guideFor(opts: {
   const subject = opts.subject || 'bank statements'
   const canReview = opts.canReview !== false
   if (opts.archived) {
-    return { step: 5, badge: 'Archived', tone: '', title: 'This file is archived', body: 'Open File actions and choose Restore if you need it again.', hint: 'Archived files stay out of the active list.', waiting: false, action: '', cta: 'none' }
+    return { step: 3, badge: 'Archived', tone: '', title: 'This file is archived', body: 'Open File actions and choose Restore if you need it again.', hint: 'Archived files stay out of the active list.', waiting: false, action: '', cta: 'none' }
   }
   if (!opts.documents) {
-    return { step: 1, badge: 'Ready to upload', tone: '', title: `Upload ${subject}`, body: 'Add a PDF, PNG, or JPG up to 20 MB. The file is only stored until you start processing.', hint: 'Upload the documents for this borrower.', waiting: false, action: 'Upload documents', cta: 'upload' }
+    return { step: 1, badge: 'Ready to upload', tone: '', title: `Upload ${subject}`, body: 'Add a PDF, PNG, or JPG up to 20 MB.', hint: 'Upload the documents for this borrower.', waiting: false, action: 'Upload documents', cta: 'upload' }
   }
   const status = opts.runStatus || ''
   if (!status) {
     if (!canReview) {
-      return { step: 2, badge: 'Waiting for a reviewer', tone: 'amber', title: 'Waiting for a reviewer', body: 'Your documents are saved. A reviewer fills in the loan details and starts processing. Uploading only stores the file.', hint: 'A reviewer starts processing.', waiting: false, action: '', cta: 'none' }
+      return { step: 1, badge: 'Waiting for a reviewer', tone: 'amber', title: 'Waiting for a reviewer', body: 'Your documents are saved. A reviewer starts processing. Uploading only stores the file.', hint: 'A reviewer starts processing.', waiting: false, action: '', cta: 'none' }
     }
-    return { step: 2, badge: 'Loan details', tone: 'amber', title: 'Fill loan details', body: 'Add occupancy, the transaction, and how many units. Uploading only stores the file. Nothing is read until you start processing.', hint: 'Fill in the loan details.', waiting: false, action: 'Fill loan details', cta: 'details' }
+    return { step: 1, badge: 'Loan details', tone: 'amber', title: 'Fill loan details', body: 'Add occupancy, the transaction, and how many units. Uploading only stores the file.', hint: 'Fill in the loan details.', waiting: false, action: 'Fill loan details', cta: 'details' }
   }
   if (processingStatuses.includes(status)) {
     const copy = explainStatus(status)
-    return { step: 3, badge: copy.label, tone: 'amber', title: copy.label, body: copy.help, hint: 'You can leave this page and come back.', waiting: true, action: '', cta: 'wait' }
+    return { step: 2, badge: copy.label, tone: 'amber', title: copy.label, body: copy.help, hint: 'You can leave this page and come back.', waiting: true, action: '', cta: 'wait' }
   }
   if (status === 'Failed') {
     const failure = failureGuide(opts.failure)
-    const reviewerAction = failure.cta === 'admin' || canReview
-    return { step: 3, badge: 'Processing failed', tone: 'red', title: 'Processing failed', body: failure.body, hint: failure.body, waiting: false, action: reviewerAction ? failure.button : '', cta: reviewerAction ? failure.cta : 'none' }
+    return { step: 2, badge: 'Processing failed', tone: 'red', title: 'Processing failed', body: failure.body, hint: failure.body, waiting: false, action: canReview ? 'Try again' : '', cta: canReview ? 'retry' : 'none', support: failure.cta === 'admin' }
   }
   if (status === 'Cancelled') {
     const copy = explainStatus(status)
-    return { step: 3, badge: copy.label, tone: 'amber', title: 'Processing was cancelled', body: copy.help, hint: 'Start processing again when you are ready.', waiting: false, action: canReview ? 'Start processing' : '', cta: canReview ? 'start' : 'none' }
+    return { step: 2, badge: copy.label, tone: 'amber', title: 'Processing was cancelled', body: copy.help, hint: 'Start processing again when you are ready.', waiting: false, action: canReview ? 'Start processing' : '', cta: canReview ? 'start' : 'none' }
   }
   if (status === 'NeedsReview' || status === 'PartiallyCompleted') {
     const copy = explainStatus(status)
     return {
-      step: 4,
+      step: 3,
       badge: copy.label,
       tone: 'amber',
       title: canReview ? 'Review what was flagged' : 'A reviewer is checking this file',
-      body: canReview ? 'Work through each flagged item. A person decides what it means. Nothing is approved or declined automatically.' : 'Questions for you and the export are on this page. Internal findings stay with the reviewer.',
+      body: canReview ? 'Work through each flagged item. Nothing is approved or declined automatically.' : 'Questions and the export are in Review & export.',
       hint: canReview ? 'Accept, dismiss, or add a note on each item.' : 'Check questions and the export.',
       waiting: false,
       action: canReview ? 'Review findings' : 'See questions',
@@ -258,19 +257,19 @@ export function guideFor(opts: {
     }
   }
   if (status === 'Completed' || opts.hasReport) {
-    return { step: 5, badge: 'Ready to export', tone: 'teal', title: 'Export the report', body: 'Download Excel or PDF. Open findings do not block the export. This is not a loan approval.', hint: 'Download the report.', waiting: false, action: 'Download report', cta: 'export' }
+    return { step: 3, badge: 'Ready to export', tone: 'teal', title: 'Export the report', body: 'Download Excel or PDF. Open findings do not block the export.', hint: 'Download the report.', waiting: false, action: 'Download report', cta: 'export' }
   }
   if (status === 'draft') {
     return { step: 1, badge: 'Ready to upload', tone: '', title: `Upload ${subject}`, body: explainStatus('draft').help, hint: 'Upload the documents for this borrower.', waiting: false, action: 'Upload documents', cta: 'upload' }
   }
   if (status === 'in_review') {
-    return { step: 4, badge: explainStatus('in_review').label, tone: 'amber', title: 'Review what was flagged', body: explainStatus('in_review').help, hint: 'A person is checking the findings.', waiting: false, action: canReview ? 'Review findings' : 'See questions', cta: 'review' }
+    return { step: 3, badge: explainStatus('in_review').label, tone: 'amber', title: 'Review what was flagged', body: explainStatus('in_review').help, hint: 'A person is checking the findings.', waiting: false, action: canReview ? 'Review findings' : 'See questions', cta: 'review' }
   }
   if (status === 'complete') {
-    return { step: 5, badge: 'Ready to export', tone: 'teal', title: 'Export the report', body: explainStatus('complete').help, hint: 'Download the report.', waiting: false, action: 'Download report', cta: 'export' }
+    return { step: 3, badge: 'Ready to export', tone: 'teal', title: 'Export the report', body: explainStatus('complete').help, hint: 'Download the report.', waiting: false, action: 'Download report', cta: 'export' }
   }
   const copy = explainStatus(status)
-  return { step: 3, badge: copy.label, tone: copy.tone, title: copy.label, body: copy.help, hint: 'Refresh the page if this stays unchanged.', waiting: false, action: '', cta: 'none' }
+  return { step: 2, badge: copy.label, tone: copy.tone, title: copy.label, body: copy.help, hint: 'Refresh the page if this stays unchanged.', waiting: false, action: '', cta: 'none' }
 }
 
 export type FlowStepState = 'done' | 'current' | 'blocked' | 'locked' | 'ready'
@@ -285,13 +284,11 @@ export type FlowStep = {
 
 const lockReasons: Record<number, string> = {
   1: 'Add documents to begin.',
-  2: 'Add documents first.',
-  3: 'Fill in the loan details first.',
-  4: 'Processing has to finish before findings are ready.',
-  5: 'Finish processing before you export the report.',
+  2: 'Add documents and loan details first.',
+  3: 'Processing has to finish first.',
 }
 
-/** Done, current, blocked, and locked states for the five-step review. */
+/** Done, current, blocked, and locked states for the three-step review. */
 export function flowFor(guide: Guide, info: {
   documents: number
   loanSummary: string
@@ -302,18 +299,18 @@ export function flowFor(guide: Guide, info: {
   unlock?: number[]
 }): FlowStep[] {
   const current = guide.step
-  const failed = guide.tone === 'red' && current === 3
+  const failed = guide.tone === 'red' && current === 2
+  const documents = info.documents ? `${info.documents} document${info.documents === 1 ? '' : 's'}` : 'No documents yet'
+  const reviewLine = [info.findingSummary, info.exportSummary].filter(Boolean).join(' · ')
   return fileSteps.map((step) => {
     let state: FlowStepState
-    if (failed && step.id === 3) state = 'blocked'
+    if (failed && step.id === 2) state = 'blocked'
     else if (step.id < current) state = 'done'
     else if (step.id === current) state = 'current'
-    else if (step.id === 5 && current >= 4) state = 'ready'
-    else if (step.id === 4 && info.reviewReady && current < 4) state = 'ready'
     else state = 'locked'
     if (state === 'locked' && info.unlock?.includes(step.id)) state = 'ready'
-    const summary = ['', info.documents ? `${info.documents} document${info.documents === 1 ? '' : 's'} added` : 'No documents yet', info.loanSummary, info.processingSummary, info.findingSummary, info.exportSummary][step.id] || ''
-    return { id: step.id, label: step.label, state, summary, lockReason: lockReasons[step.id] || 'Finish the earlier steps first.' }
+    const summary = ['', info.documents && info.loanSummary ? `${documents} · ${info.loanSummary}` : documents, info.processingSummary, reviewLine][step.id] || ''
+    return { id: step.id, label: step.label, state, summary, lockReason: lockReasons[step.id] || 'Finish the earlier step first.' }
   })
 }
 
