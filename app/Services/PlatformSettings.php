@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Bank\DocumentParser;
 use App\Bank\Scanner;
+use App\Mail\BrandedMessage;
 use App\Models\PlatformSetting;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
@@ -62,6 +63,16 @@ class PlatformSettings
         'website_contact_email' => ['config' => 'website.contact.email', 'type' => 'string', 'rules' => 'nullable|email|max:255'],
         'website_contact_phone' => ['config' => 'website.contact.phone', 'type' => 'string', 'rules' => 'nullable|string|max:40'],
         'website_legal_company_name' => ['config' => 'website.legal.company_name', 'type' => 'string', 'rules' => 'nullable|string|max:160'],
+        'notify_admin_signups' => ['config' => 'notifications.groups.admin_signups', 'type' => 'bool', 'rules' => 'sometimes|boolean'],
+        'notify_admin_website' => ['config' => 'notifications.groups.admin_website', 'type' => 'bool', 'rules' => 'sometimes|boolean'],
+        'notify_admin_billing' => ['config' => 'notifications.groups.admin_billing', 'type' => 'bool', 'rules' => 'sometimes|boolean'],
+        'notify_admin_support' => ['config' => 'notifications.groups.admin_support', 'type' => 'bool', 'rules' => 'sometimes|boolean'],
+        'notify_admin_credits' => ['config' => 'notifications.groups.admin_credits', 'type' => 'bool', 'rules' => 'sometimes|boolean'],
+        'notify_customer_account' => ['config' => 'notifications.groups.customer_account', 'type' => 'bool', 'rules' => 'sometimes|boolean'],
+        'notify_customer_team' => ['config' => 'notifications.groups.customer_team', 'type' => 'bool', 'rules' => 'sometimes|boolean'],
+        'notify_customer_billing' => ['config' => 'notifications.groups.customer_billing', 'type' => 'bool', 'rules' => 'sometimes|boolean'],
+        'notify_customer_support' => ['config' => 'notifications.groups.customer_support', 'type' => 'bool', 'rules' => 'sometimes|boolean'],
+        'notify_customer_processing' => ['config' => 'notifications.groups.customer_processing', 'type' => 'bool', 'rules' => 'sometimes|boolean'],
         'impersonation_enabled' => ['config' => 'platform.impersonation.enabled', 'type' => 'bool', 'rules' => 'sometimes|boolean'],
         'impersonation_minutes' => ['config' => 'platform.impersonation.minutes', 'type' => 'int', 'rules' => 'nullable|integer|min:5|max:240'],
         'impersonation_allow_document_download' => ['config' => 'platform.impersonation.allow_document_download', 'type' => 'bool', 'rules' => 'sometimes|boolean'],
@@ -207,12 +218,16 @@ class PlatformSettings
         try {
             config(['mail.mailers.smtp.timeout' => 10]);
             Mail::purge($mailer);
-            Mail::mailer($mailer)->raw(
-                'This is a Non-QM Doc AI settings test. No customer data is included.',
-                function ($message) use ($user) {
-                    $message->to($user->email)->subject('Non-QM Doc AI test email');
-                }
-            );
+            Mail::mailer($mailer)->to($user->email)->send(new BrandedMessage(
+                'Non-QM Doc AI test email',
+                'Test email',
+                ['This is a Non-QM Doc AI settings test. No customer data is included.'],
+                'Open Non-QM Doc AI',
+                rtrim((string) config('app.url'), '/').'/admin/settings',
+                [],
+                'You received this because a platform admin sent a settings test to their own sign-in address.',
+                'Settings test from Non-QM Doc AI.',
+            ));
         } catch (\Throwable) {
             return ['ok' => false, 'message' => 'The test email could not be sent. Check the host, port, and password, then try again.'];
         }

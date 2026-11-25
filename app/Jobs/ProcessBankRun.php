@@ -8,6 +8,7 @@ use App\Bank\ProcessingException;
 use App\Billing\Usage;
 use App\Jobs\Concerns\UsesAnalysisQueue;
 use App\Models\Bank\Run;
+use App\Services\NotificationMail;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
@@ -48,6 +49,10 @@ class ProcessBankRun implements ShouldQueue
             app(Usage::class)->reserve($r->organization_id, 'bank:'.$r->idempotency_key);
             $pipeline->execute($r);
             app(Usage::class)->finish($r->organization_id, 'bank:'.$r->idempotency_key, 'completed');
+            $done = $r->fresh();
+            if ($done && in_array($done->status, ['Completed', 'PartiallyCompleted', 'NeedsReview'], true)) {
+                NotificationMail::processing('bank', 'ready', (int) $done->organization_id, (int) $done->loan_file_id, (int) $done->requested_by, (string) $done->id);
+            }
         } catch (\Throwable $e) {
             if ($r->fresh()->status === 'Cancelled') {
                 app(Usage::class)->finish($r->organization_id, 'bank:'.$r->idempotency_key, 'cancelled');
@@ -77,12 +82,15 @@ class ProcessBankRun implements ShouldQueue
         if ($exception instanceof ParserConfigurationException) {
             $r->update(['status' => 'Failed', 'stage' => 'Failed', 'error_code' => $exception->getMessage()]);
             app(Usage::class)->finish($r->organization_id, 'bank:'.$r->idempotency_key, 'failed');
-
-            return;
+        } else {
+            if ($r->status !== 'Cancelled') {
+                $r->update(['status' => 'Failed', 'stage' => 'Failed', 'error_code' => 'Bounded attempts exhausted; review source and provider status']);
+            }
+            app(Usage::class)->finish($r->organization_id, 'bank:'.$r->idempotency_key, $r->fresh()->status === 'Cancelled' ? 'cancelled' : 'failed');
         }
-        if ($r->status !== 'Cancelled') {
-            $r->update(['status' => 'Failed', 'stage' => 'Failed', 'error_code' => 'Bounded attempts exhausted; review source and provider status']);
+        $fresh = $r->fresh();
+        if ($fresh && $fresh->status === 'Failed') {
+            NotificationMail::processing('bank', 'failed', (int) $fresh->organization_id, (int) $fresh->loan_file_id, (int) $fresh->requested_by, (string) $fresh->id);
         }
-        app(Usage::class)->finish($r->organization_id, 'bank:'.$r->idempotency_key, $r->status === 'Cancelled' ? 'cancelled' : 'failed');
     }
 }

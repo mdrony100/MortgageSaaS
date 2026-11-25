@@ -54,7 +54,7 @@ class SupportTicketController extends Controller
             Audit::record('support_ticket.status_changed', $ticket->organization_id, null, ['ticket_id' => $ticket->id, 'from' => $from, 'to' => $data['status']]);
             $creator = $ticket->user;
             if ($creator) {
-                SupportDesk::notify([$creator->email], 'Support ticket update: '.$ticket->subject, "Ticket #{$ticket->id} ({$ticket->subject}) is now {$data['status']}.\n\nSign in to your workspace and open Support tickets to read the thread.");
+                SupportDesk::notify([$creator->email], 'Support ticket update: '.$ticket->subject, "Ticket #{$ticket->id} ({$ticket->subject}) is now {$data['status']}.\n\nSign in to your workspace and open Support tickets to read the thread.\n\n".rtrim((string) config('app.url'), '/').'/support/'.$ticket->id, 'customer_support');
             }
         }
 
@@ -71,7 +71,7 @@ class SupportTicketController extends Controller
         });
         $creator = $ticket->user;
         if ($creator && strcasecmp($creator->email, $request->user()->email) !== 0) {
-            SupportDesk::notify([$creator->email], 'Support ticket reply: '.$ticket->subject, "Non-QM Doc AI replied on ticket #{$ticket->id} ({$ticket->subject}).\n\nSign in to your workspace and open Support tickets to read the reply.");
+            SupportDesk::notify([$creator->email], 'Support ticket reply: '.$ticket->subject, "Non-QM Doc AI replied on ticket #{$ticket->id} ({$ticket->subject}).\n\nSign in to your workspace and open Support tickets to read the reply.\n\n".rtrim((string) config('app.url'), '/').'/support/'.$ticket->id, 'customer_support');
         }
 
         return response()->json(['ticket' => SupportDesk::detail($ticket->fresh())], 201);

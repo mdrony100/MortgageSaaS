@@ -9,9 +9,11 @@ use App\Models\LoanFile;
 use App\Models\Membership;
 use App\Models\Note;
 use App\Models\Organization;
+use App\Models\User;
 use App\Services\Access;
 use App\Services\Audit;
 use App\Services\Entitlements;
+use App\Services\NotificationMail;
 use App\Services\Present;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -117,8 +119,13 @@ class FileController extends Controller
     {
         Gate::authorize('share', $file);
         $d = $r->validate(['user_id' => ['required', 'integer', Rule::exists('memberships', 'user_id')->where('organization_id', $file->organization_id)]]);
+        $previous = FileShare::where('loan_file_id', $file->id)->where('user_id', $d['user_id'])->first();
+        $wasActive = $previous && $previous->revoked_at === null;
         $s = FileShare::updateOrCreate(['loan_file_id' => $file->id, 'user_id' => $d['user_id']], ['organization_id' => $file->organization_id, 'shared_by' => $r->user()->id, 'revoked_at' => null]);
         Audit::record('file.shared', $file->organization_id, $file->id, ['user_id' => $s->user_id], 'shared');
+        if (! $wasActive && ($recipient = User::find($d['user_id']))) {
+            NotificationMail::fileShared($file, $recipient, $r->user());
+        }
 
         return $s;
     }

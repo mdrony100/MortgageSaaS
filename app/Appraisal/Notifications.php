@@ -6,6 +6,7 @@ use App\Mail\ReviewReady;
 use App\Models\LoanFile;
 use App\Models\Review\Run;
 use App\Models\User;
+use App\Services\NotificationMail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
@@ -14,7 +15,7 @@ class Notifications
 {
     public function ready(Run $r): void
     {
-        if (! config('review.email_notifications')) {
+        if (! config('review.email_notifications') || ! NotificationMail::enabled('customer_processing')) {
             return;
         }$user = User::find($r->requested_by);
         $file = LoanFile::find($r->loan_file_id);
@@ -31,7 +32,7 @@ class Notifications
         if (! $claimed) {
             return;
         }try {
-            Mail::to($user->email)->send(new ReviewReady(url('/files/'.$file->id)));
+            Mail::to($user->email)->queue(new ReviewReady(url('/files/'.$file->id)));
             $status = 'submitted';
         } catch (\Throwable) {
             $status = 'delivery_unknown_manual_follow_up';
