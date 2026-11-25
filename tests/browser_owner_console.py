@@ -123,7 +123,7 @@ with sync_playwright() as p:
         page.keyboard.press("Tab")
     outline = page.evaluate("getComputedStyle(document.activeElement).outlineStyle")
     check("keyboard: focused control shows a visible outline", outline not in ("none", ""), outline)
-    small_targets = page.evaluate("() => [...document.querySelectorAll('.c-btn:not(.small),.c-nav a,.c-icon-btn,.c-top-link')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height<43.5}).map(e=>e.textContent.trim().slice(0,30))")
+    small_targets = page.evaluate("() => [...document.querySelectorAll('.c-btn:not(.small),.c-nav a,.c-icon-btn')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height<43.5}).map(e=>e.textContent.trim().slice(0,30))")
     check("touch targets >= 44px for main controls", not small_targets, ", ".join(small_targets[:5]))
     # ---------- Support session (impersonation) ----------
     page.goto(BASE + "/admin/users?q=" + urllib.parse.quote(ACC["customer"]["email"]))

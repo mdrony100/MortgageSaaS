@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Organization;
+use App\Models\Plan;
 use App\Models\PlatformRequest;
 use App\Services\Access;
 use App\Services\Audit;
+use App\Services\NotificationMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -33,6 +35,8 @@ class PlanRequestController extends Controller
 
             return $req;
         });
+        $planName = Plan::whereKey($req->payload['plan_id'] ?? null)->value('name') ?? 'another plan';
+        NotificationMail::planChangeRequested($organization->name, (string) $planName);
 
         return response()->json(['request' => $req->only(['id', 'status', 'payload', 'created_at']), 'message' => 'Request sent. Non-QM Doc AI will review it; no payment is taken here.'], 201);
     }

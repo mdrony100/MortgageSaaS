@@ -23,14 +23,26 @@ const groups:Group[]=[
   {key:'integrity_provider',label:'Provider',kind:'select',options:[{value:'disabled',label:'Disabled'},{value:'ocrolus',label:'Ocrolus'}]},
   {key:'ocrolus_token',label:'Ocrolus access token',secret:true},
  ]},
- {id:'billing',title:'Billing',lead:'Test mode uses the sandbox provider and does not charge cards. Live mode stores the provider and keys for an approved adapter.',fields:[
-  {key:'billing_provider',label:'Provider',kind:'select',options:[{value:'disabled',label:'Disabled'},{value:'fake',label:'Test provider'},{value:'stripe',label:'Stripe'}]},
-  {key:'billing_mode',label:'Mode',kind:'select',options:[{value:'test',label:'Test'},{value:'live',label:'Live'}]},
+ {id:'billing',title:'Billing',lead:'Payments are collected offline and approved manually. Stripe is stored here only when a card provider is connected. No card is charged from this screen.',fields:[
+  {key:'billing_provider',label:'Billing',kind:'select',options:[{value:'disabled',label:'Offline payments (manual approval)'},{value:'fake',label:'Offline payments (manual approval)'},{value:'stripe',label:'Stripe'}]},
+  {key:'billing_mode',label:'Mode',kind:'select',options:[{value:'test',label:'Manual approval'},{value:'live',label:'Card provider'}]},
   {key:'billing_secret',label:'Billing secret key',secret:true},
   {key:'billing_webhook_secret',label:'Webhook secret',secret:true},
  ]},
- {id:'mail',title:'Email',lead:'SMTP settings override the server environment. The test email goes only to your sign-in address.',check:'smtp',email:true,fields:[
-  {key:'mail_mailer',label:'Mailer',kind:'select',options:[{value:'smtp',label:'SMTP'},{value:'log',label:'Log'},{value:'sendmail',label:'Sendmail'},{value:'array',label:'Array (tests)'}]},
+ {id:'notifications',title:'Email notifications',lead:'Each group is on unless you turn it off. Password reset and email verification always send. Messages are queued, and a failure to send does not undo the action the person just took.',fields:[
+  {key:'notify_admin_signups',label:'Admin: new organization signups',kind:'bool'},
+  {key:'notify_admin_website',label:'Admin: website inquiries and demo requests',kind:'bool'},
+  {key:'notify_admin_billing',label:'Admin: payment and plan requests',kind:'bool'},
+  {key:'notify_admin_support',label:'Admin: new support tickets and customer replies',kind:'bool'},
+  {key:'notify_admin_credits',label:'Admin: page credits low or used up',kind:'bool'},
+  {key:'notify_customer_account',label:'Customer: welcome and demo confirmation',kind:'bool'},
+  {key:'notify_customer_team',label:'Customer: team invites, membership, and file sharing',kind:'bool'},
+  {key:'notify_customer_billing',label:'Customer: payment requests, credits, and trial or period reminders',kind:'bool'},
+  {key:'notify_customer_support',label:'Customer: support replies and status changes',kind:'bool'},
+  {key:'notify_customer_processing',label:'Customer: loan file processing finished or failed',kind:'bool'},
+ ]},
+ {id:'mail',title:'Email',lead:'SMTP settings override the server environment. A check message is sent only to your sign-in address.',check:'smtp',email:true,fields:[
+  {key:'mail_mailer',label:'Mailer',kind:'select',options:[{value:'smtp',label:'SMTP'},{value:'log',label:'Log'},{value:'sendmail',label:'Sendmail'},{value:'array',label:'Array (does not send)'}]},
   {key:'mail_host',label:'Host',kind:'text'},
   {key:'mail_port',label:'Port',kind:'number'},
   {key:'mail_scheme',label:'Scheme',kind:'text',hint:'Leave blank to use the server environment. Common values are smtp and smtps.'},

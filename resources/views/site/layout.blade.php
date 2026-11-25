@@ -127,7 +127,7 @@
         </div>
     </div>
     <div class="border-t border-white/10">
-        <p class="site-container py-6 text-[0.9375rem] text-slate-300">Product previews on this site use fictional sample data. &copy; {{ date('Y') }} {{ config('website.legal.company_name') ?: $product }}.</p>
+        <p class="site-container py-6 text-[0.9375rem] text-slate-300">Product previews on this site use sample data. &copy; {{ date('Y') }} {{ config('website.legal.company_name') ?: $product }}.</p>
     </div>
 </footer>
 </body>

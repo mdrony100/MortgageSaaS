@@ -26,17 +26,11 @@
         <div class="max-w-3xl">
             <p class="site-eyebrow">Customer reviews</p>
             <h2 id="reviews-heading" class="site-h2 mt-3">What teams say</h2>
-            @if ($reviews['mode'] === 'placeholder')
-                <p class="mt-4 rounded-xl border-2 border-amber-400 bg-amber-50 p-4 font-semibold text-amber-900" role="note">Development preview only. No approved customer reviews exist yet, so this section is hidden in production.</p>
-            @endif
         </div>
         <div class="mt-10" data-carousel>
             <div class="grid gap-6 md:grid-cols-2">
                 @foreach ($reviews['items'] as $i => $item)
-                    <figure class="site-review {{ $reviews['mode'] === 'placeholder' ? 'site-review-placeholder' : '' }}" data-slide aria-roledescription="slide" aria-label="Review {{ $i + 1 }} of {{ count($reviews['items']) }}">
-                        @if ($reviews['mode'] === 'placeholder')
-                            <p class="site-badge site-badge-amber">Placeholder — not a real customer review</p>
-                        @endif
+                    <figure class="site-review" data-slide aria-roledescription="slide" aria-label="Review {{ $i + 1 }} of {{ count($reviews['items']) }}">
                         <blockquote class="mt-4 text-[1.25rem] leading-relaxed text-ink">“{{ $item['quote'] }}”</blockquote>
                         <figcaption class="mt-5 flex items-center gap-3">
                             @if ($reviews['mode'] === 'approved' && filled($item['photo'] ?? null))

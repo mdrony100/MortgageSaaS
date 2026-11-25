@@ -27,22 +27,22 @@
                     <div class="grid gap-5 md:grid-cols-2">
                         <div class="site-field">
                             <label for="name">Name <span aria-hidden="true">*</span></label>
-                            <input id="name" name="name" type="text" required maxlength="120" autocomplete="name" value="{{ old('name') }}" {!! $field('name') !!}>
+                            <input id="name" name="name" type="text" required maxlength="120" autocomplete="name" placeholder="Jane Smith" value="{{ old('name') }}" {!! $field('name') !!}>
                             @error('name')<p class="site-error" id="name-error">{{ $message }}</p>@enderror
                         </div>
                         <div class="site-field">
                             <label for="email">Work email <span aria-hidden="true">*</span></label>
-                            <input id="email" name="email" type="email" required maxlength="190" autocomplete="email" value="{{ old('email') }}" {!! $field('email') !!}>
+                            <input id="email" name="email" type="email" required maxlength="190" autocomplete="email" placeholder="jane@yourcompany.com" value="{{ old('email') }}" {!! $field('email') !!}>
                             @error('email')<p class="site-error" id="email-error">{{ $message }}</p>@enderror
                         </div>
                         <div class="site-field">
                             <label for="company">Company <span aria-hidden="true">*</span></label>
-                            <input id="company" name="company" type="text" required maxlength="150" autocomplete="organization" value="{{ old('company') }}" {!! $field('company') !!}>
+                            <input id="company" name="company" type="text" required maxlength="150" autocomplete="organization" placeholder="Your company name" value="{{ old('company') }}" {!! $field('company') !!}>
                             @error('company')<p class="site-error" id="company-error">{{ $message }}</p>@enderror
                         </div>
                         <div class="site-field">
                             <label for="role">Role <span class="font-normal text-slate-600">(optional)</span></label>
-                            <input id="role" name="role" type="text" maxlength="120" autocomplete="organization-title" value="{{ old('role') }}" {!! $field('role') !!}>
+                            <input id="role" name="role" type="text" maxlength="120" autocomplete="organization-title" placeholder="e.g. Underwriter, Broker" value="{{ old('role') }}" {!! $field('role') !!}>
                             @error('role')<p class="site-error" id="role-error">{{ $message }}</p>@enderror
                         </div>
                     </div>
@@ -57,9 +57,14 @@
                     </div>
                     <div class="site-field">
                         <label for="message">Message <span aria-hidden="true">*</span></label>
-                        <textarea id="message" name="message" required minlength="10" maxlength="5000" aria-describedby="message-hint{{ $errors->has('message') ? ' message-error' : '' }}" @if($errors->has('message')) aria-invalid="true" @endif>{{ old('message') }}</textarea>
+                        <textarea id="message" name="message" required minlength="10" maxlength="5000" placeholder="How can we help?" aria-describedby="message-hint{{ $errors->has('message') ? ' message-error' : '' }}" @if($errors->has('message')) aria-invalid="true" @endif>{{ old('message') }}</textarea>
                         <p id="message-hint" class="site-caption mt-2">Please don’t include borrower documents, account numbers or other financial account information.</p>
                         @error('message')<p class="site-error" id="message-error">{{ $message }}</p>@enderror
+                    </div>
+                    <div class="site-field">
+                        <label for="captcha">What is {{ $captcha['a'] }} + {{ $captcha['b'] }}? <span aria-hidden="true">*</span></label>
+                        <input id="captcha" name="captcha" type="text" inputmode="numeric" required maxlength="2" autocomplete="off" placeholder="Your answer" {!! $field('captcha') !!}>
+                        @error('captcha')<p class="site-error" id="captcha-error">{{ $message }}</p>@enderror
                     </div>
                     <div class="site-hp" aria-hidden="true">
                         <label for="homepage_url">Leave this field empty</label>
@@ -76,7 +81,7 @@
                 <ol class="mt-4 list-decimal space-y-2 pl-5 text-body">
                     <li>Your request is saved for our team to review.</li>
                     <li>We reply by email to arrange a time.</li>
-                    <li>Demos use fictional sample files only.</li>
+                    <li>A demo walks through the product with sample files.</li>
                 </ol>
             </div>
             @if (config('website.contact.email') || config('website.contact.phone'))

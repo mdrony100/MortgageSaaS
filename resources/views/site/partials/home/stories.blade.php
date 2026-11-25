@@ -27,7 +27,7 @@
                 <div class="mt-4">@include('site.partials.visual.deposit-chart')</div>
                 <div class="mt-6 overflow-x-auto">
                     <table class="site-table">
-                        <caption class="sr-only">Sample March deposits and how each one is treated (fictional)</caption>
+                        <caption class="sr-only">Sample March deposits and how each one is treated</caption>
                         <thead><tr><th scope="col">Deposit</th><th scope="col" class="site-num">Amount</th><th scope="col">Treatment</th></tr></thead>
                         <tbody>
                             <tr><td>Payroll — Sample Employer</td><td class="site-num">$4,250.00</td><td><span class="site-badge site-badge-teal">Counted</span></td></tr>
@@ -117,7 +117,7 @@
                         </div>
                         <div class="rounded-xl bg-accent-tint px-4 py-2 text-center"><p class="site-caption">DSCR</p><p class="text-2xl font-extrabold text-accent-dark">1.10</p></div>
                     </div>
-                    <figcaption class="sr-only">Illustrative property photo with a fictional rental summary.</figcaption>
+                    <figcaption class="sr-only">Illustrative property photo with a sample rental summary.</figcaption>
                 </figure>
                 @include('site.partials.home.dscr-calculator')
             </div>

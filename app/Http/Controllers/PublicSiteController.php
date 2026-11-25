@@ -21,8 +21,12 @@ class PublicSiteController extends Controller
     public function page(Request $r)
     {
         $name = $r->route()->getName();
+        $data = ['routeName' => $name];
+        if ($name === 'site.contact') {
+            $data['captcha'] = DemoCaptcha::current(DemoCaptcha::CONTACT_KEY);
+        }
 
-        return response()->view(self::VIEWS[$name], ['routeName' => $name]);
+        return response()->view(self::VIEWS[$name], $data);
     }
 
     public function legal(Request $r)
@@ -35,7 +39,7 @@ class PublicSiteController extends Controller
 
     public function submit(Request $r)
     {
-        $data = $r->validate([
+        $validator = Validator::make($r->all(), [
             'name' => 'required|string|max:120',
             'email' => 'required|string|email:rfc|max:190',
             'company' => 'required|string|max:150',
@@ -43,8 +47,26 @@ class PublicSiteController extends Controller
             'inquiry_type' => ['required', Rule::in(array_keys(config('website.inquiry_types')))],
             'message' => 'required|string|min:10|max:5000',
             'homepage_url' => 'nullable|string|max:500',
-        ], [], ['email' => 'work email', 'inquiry_type' => 'inquiry type']);
+            'captcha' => 'required|string|max:2',
+        ], [
+            'captcha.required' => 'Answer the question so we know this is a person.',
+        ], [
+            'email' => 'work email',
+            'inquiry_type' => 'inquiry type',
+            'captcha' => 'question',
+        ]);
 
+        $validator->fails();
+        if (! DemoCaptcha::matches($r->input('captcha'), DemoCaptcha::CONTACT_KEY)) {
+            $validator->errors()->add('captcha', 'That answer does not match. Please try the new question.');
+        }
+        if ($validator->errors()->isNotEmpty()) {
+            DemoCaptcha::refresh(DemoCaptcha::CONTACT_KEY);
+
+            return back()->withInput($r->except('captcha'))->withErrors($validator);
+        }
+
+        $data = $validator->validated();
         $clean = fn (?string $v) => $v === null ? null : trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $v));
         $message = $clean($data['message']);
         $spam = filled($data['homepage_url'] ?? null) ? 'honeypot' : (preg_match_all('~https?://|www\.~i', $message) > 3 ? 'link_heavy' : null);
@@ -66,8 +88,9 @@ class PublicSiteController extends Controller
             ]);
         } catch (\Throwable $e) {
             Log::error('Website inquiry could not be saved', ['exception_type' => get_class($e)]);
+            DemoCaptcha::refresh(DemoCaptcha::CONTACT_KEY);
 
-            return back()->withInput()->withErrors(['form' => 'We could not save your request. Please try again later.']);
+            return back()->withInput($r->except('captcha'))->withErrors(['form' => 'We could not save your request. Please try again later.']);
         }
 
         if (! $spam && $notify) {
@@ -79,6 +102,8 @@ class PublicSiteController extends Controller
                 WebsiteInquiry::whereKey($inquiry->id)->whereIn('notification_status', ['queued'])->update(['notification_status' => 'dispatch_failed', 'notification_error' => class_basename($e)]);
             }
         }
+
+        DemoCaptcha::forget(DemoCaptcha::CONTACT_KEY);
 
         return redirect()->route('site.contact')->with('inquiry_saved', true);
     }
@@ -100,7 +125,7 @@ class PublicSiteController extends Controller
             'email' => 'required|string|email:rfc|max:190',
             'phone_country' => 'required|string|size:2',
             'phone' => 'required|string|max:30',
-            'monthly_volume' => 'required|string|max:120',
+            'monthly_volume' => 'nullable|string|max:120',
             'captcha' => 'required|string|max:2',
             'company_website' => 'nullable|string|max:500',
         ], [
@@ -129,7 +154,8 @@ class PublicSiteController extends Controller
 
         $clean = fn (?string $v) => $v === null ? null : trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $v) ?? '');
         $volume = $clean($r->input('monthly_volume'));
-        $spam = filled($r->input('company_website')) ? 'honeypot' : (preg_match_all('~https?://|www\.~i', (string) $volume) > 3 ? 'link_heavy' : null);
+        $volume = $volume === '' ? null : $volume;
+        $spam = filled($r->input('company_website')) ? 'honeypot' : ($volume !== null && preg_match_all('~https?://|www\.~i', $volume) > 3 ? 'link_heavy' : null);
 
         try {
             $demo = DemoRequest::create([

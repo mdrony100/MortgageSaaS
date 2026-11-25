@@ -111,6 +111,8 @@ class WorkspaceAndSupportTest extends TestCase
         $borrower = Borrower::create(['organization_id' => $this->org->id, 'name' => 'Sample Borrower']);
         $created = $this->postJson('/api/organizations/'.$this->org->id.'/files', ['name' => 'New file', 'borrower_id' => $borrower->id, 'module' => 'bank', 'is_demo' => true])->assertCreated();
         $this->assertSame($this->org->id, $created->json('organization_id'));
+        $created->assertJsonPath('is_demo', false);
+        $this->assertFalse((bool) LoanFile::find($created->json('id'))->is_demo);
         $viewer = User::factory()->create();
         Membership::create(['organization_id' => $this->org->id, 'user_id' => $viewer->id, 'role' => 'viewer', 'org_wide_access' => false]);
         $this->actingAs($viewer)->postJson('/api/organizations/'.$this->org->id.'/files', ['name' => 'Nope', 'borrower_id' => $borrower->id, 'module' => 'bank', 'is_demo' => true])->assertForbidden();

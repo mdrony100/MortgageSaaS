@@ -61,51 +61,85 @@ class ConsoleController extends Controller
 
     public function plans()
     {
-        $catalog = config('billing.catalog');
         $counts = Organization::query()->selectRaw('plan_id, count(*) as n')->groupBy('plan_id')->pluck('n', 'plan_id');
 
         return [
-            'plans' => Plan::orderBy('id')->get()->map(fn (Plan $p) => app(PageCredits::class)->planPayload($p) + ['organizations' => (int) ($counts[$p->id] ?? 0), 'approved_price' => $catalog[$p->id]['monthly_price'] ?? null, 'pricing_status' => isset($catalog[$p->id]) ? 'Approved configuration' : 'Placeholder price — edit it here. Payment is arranged offline.']),
+            'plans' => Plan::orderBy('id')->get()->map(fn (Plan $p) => app(PageCredits::class)->planPayload($p) + ['organizations' => (int) ($counts[$p->id] ?? 0), 'pricing_status' => 'Monthly price used for offline payment requests.']),
             'billing' => $this->billingStatus(),
-            'notice' => 'Prices are placeholders for display and for offline payment requests. No card is charged from this screen.',
+            'notice' => 'These prices are what customers see and what payment requests use. No card is charged from this screen.',
         ];
     }
 
     private function billingStatus(): array
     {
-        $provider = (string) config('billing.provider');
+        return [
+            'label' => $this->billingLabel(),
+            'notice' => 'Customers request a plan or a page pack. An administrator records the offline payment and approves the request. No card is charged in the product.',
+        ];
+    }
 
-        return ['provider' => $provider, 'test_only' => $provider === 'fake', 'fake_enabled' => (bool) config('billing.fake_enabled'), 'webhook_secret_configured' => filled(config('billing.webhook_secret')), 'live_provider_configured' => ! in_array($provider, ['fake', 'disabled', ''], true), 'notice' => $provider === 'fake' ? 'Test provider only. No real charges are made and no real revenue exists.' : 'No live billing provider is configured.'];
+    private function billingLabel(): string
+    {
+        return (string) config('billing.provider') === 'stripe'
+            ? 'Stripe'
+            : 'Offline payments (manual approval)';
     }
 
     public function revenue()
     {
-        $catalog = config('billing.catalog');
-        $active = Organization::where('subscription_status', 'active')->whereNull('suspended_at')->get(['id', 'plan_id']);
-        $priced = $active->every(fn ($o) => isset($catalog[$o->plan_id]['monthly_price']));
-        $mrr = null;
-        if ($catalog !== [] && $priced) {
-            $mrr = round($active->sum(fn ($o) => (float) $catalog[$o->plan_id]['monthly_price']), 2);
-        }
-        $subs = DB::table('billing_subscriptions as s')->join('organizations as o', 'o.id', '=', 's.organization_id')->orderByDesc('s.id')->limit(100)->get(['s.id', 'o.id as organization_id', 'o.name as organization', 's.provider', 's.status', 's.created_at', 's.updated_at']);
-        $events = DB::table('billing_events as e')->join('organizations as o', 'o.id', '=', 'e.organization_id')->orderByDesc('e.id')->limit(100)->get(['e.id', 'o.name as organization', 'e.operation_key', 'e.status', 'e.data', 'e.created_at'])->map(function ($e) {
-            $d = json_decode($e->data, true) ?: [];
+        $plans = Plan::query()->get()->keyBy('id');
+        $active = Organization::query()->where('subscription_status', 'active')->whereNull('suspended_at')->get(['id', 'plan_id']);
+        $mrr = round($active->sum(fn ($org) => (float) ($plans[$org->plan_id]->provisional_monthly_price ?? 0)), 2);
+        $breakdown = $active->groupBy('plan_id')->map(function ($orgs, $planId) use ($plans) {
+            $plan = $plans[$planId] ?? null;
+            $price = round((float) ($plan->provisional_monthly_price ?? 0), 2);
 
-            return ['id' => $e->id, 'organization' => $e->organization, 'kind' => str_starts_with($e->operation_key, 'request:') ? 'Change request' : 'Provider event', 'status' => $e->status, 'action' => $d['action'] ?? ($d['type'] ?? null), 'plan_id' => $d['plan_id'] ?? null, 'created_at' => $e->created_at];
+            return [
+                'plan' => $plan->name ?? 'Plan',
+                'organizations' => $orgs->count(),
+                'monthly_price' => $price,
+                'mrr' => round($price * $orgs->count(), 2),
+            ];
+        })->sortBy('plan')->values();
+        $monthStart = now()->startOfMonth();
+        $collected = PaymentRequest::query()->where('status', 'approved')->where(function ($q) use ($monthStart) {
+            $q->where('paid_offline_at', '>=', $monthStart)
+                ->orWhere(fn ($q) => $q->whereNull('paid_offline_at')->where('decided_at', '>=', $monthStart));
         });
+        $collectedPlans = round((float) (clone $collected)->where('kind', 'plan')->sum('amount'), 2);
+        $collectedPacks = round((float) (clone $collected)->where('kind', 'pack')->sum('amount'), 2);
+        $payments = PaymentRequest::with(['organization:id,name', 'plan:id,name'])
+            ->whereIn('status', ['pending', 'approved'])
+            ->latest('id')
+            ->limit(100)
+            ->get()
+            ->map(fn (PaymentRequest $row) => [
+                'id' => $row->id,
+                'organization_id' => $row->organization_id,
+                'organization' => $row->organization?->name,
+                'kind' => PaymentRequest::KINDS[$row->kind] ?? $row->kind,
+                'detail' => $row->kind === 'plan'
+                    ? ($row->plan?->name ?? 'Plan change')
+                    : ($row->pack_label ?: (($row->pack_pages ?? 0).' pages')),
+                'amount' => number_format((float) $row->amount, 2, '.', ''),
+                'status' => $row->status,
+                'created_at' => $row->created_at,
+                'decided_at' => $row->decided_at,
+            ]);
 
         return [
             'billing' => $this->billingStatus(),
-            'pricing_configured' => $catalog !== [] && $priced,
             'mrr' => $mrr,
-            'arr' => $mrr === null ? null : round($mrr * 12, 2),
+            'arr' => round($mrr * 12, 2),
             'active_subscriptions' => $active->count(),
-            'message' => $mrr === null ? 'Pricing not configured. Revenue cannot be calculated until approved plan prices are added to config/billing.php.' : null,
-            'subscriptions' => $subs,
-            'events' => $events,
-            'test_data' => config('billing.provider') === 'fake' || $subs->contains(fn ($s) => $s->provider === 'fake'),
-            'invoices_available' => false,
-            'invoices_notice' => 'Invoices and payments are not stored by the current billing integration.',
+            'active_plans' => $active->pluck('plan_id')->unique()->count(),
+            'pending_payment_requests' => PaymentRequest::where('status', 'pending')->count(),
+            'collected_this_month' => round($collectedPlans + $collectedPacks, 2),
+            'collected_plans_this_month' => $collectedPlans,
+            'collected_packs_this_month' => $collectedPacks,
+            'month_label' => now()->format('F Y'),
+            'plan_breakdown' => $breakdown,
+            'payments' => $payments,
         ];
     }
 
@@ -128,13 +162,13 @@ class ConsoleController extends Controller
             ['group' => 'Email', 'label' => 'Mail transport', 'value' => $mailer],
             ['group' => 'Email', 'label' => 'Inquiry notification inbox set', 'value' => filled(config('website.inquiry_notify_email')) ? 'Yes' : 'No'],
             ['group' => 'Document processing', 'label' => 'Malware scanner command set', 'value' => filled(config('bank.clamav')) ? 'Yes' : 'No'],
-            ['group' => 'Document processing', 'label' => 'Fictional scan bypass', 'value' => config('bank.fictional_scan_bypass') ? 'On' : 'Off', 'warn' => (bool) config('bank.fictional_scan_bypass')],
+            ['group' => 'Document processing', 'label' => 'Practice-file scan bypass', 'value' => config('bank.fictional_scan_bypass') ? 'On' : 'Off', 'warn' => (bool) config('bank.fictional_scan_bypass')],
             ['group' => 'Document processing', 'label' => 'Bank extractor mode', 'value' => (string) config('bank.extractor')],
             ['group' => 'Providers', 'label' => 'OpenAI extraction approved', 'value' => config('bank.openai.approved') ? 'Yes' : 'No'],
             ['group' => 'Providers', 'label' => 'OpenAI key present', 'value' => filled(config('bank.openai.key')) ? 'Yes' : 'No'],
             ['group' => 'Providers', 'label' => 'Appraisal vision approved', 'value' => config('review.vision_approved') ? 'Yes' : 'No'],
             ['group' => 'Providers', 'label' => 'Integrity provider approved', 'value' => config('bank.integrity.approved') ? 'Yes' : 'No'],
-            ['group' => 'Providers', 'label' => 'Billing provider', 'value' => (string) config('billing.provider')],
+            ['group' => 'Providers', 'label' => 'Billing', 'value' => $this->billingLabel()],
             ['group' => 'Owner console', 'label' => 'Two-factor required for console', 'value' => config('platform.console_require_2fa') ? 'Yes' : 'No', 'warn' => ! config('platform.console_require_2fa') && app()->environment('production')],
             ['group' => 'Owner console', 'label' => 'Signup approval required', 'value' => config('platform.signup_approval') ? 'Yes' : 'No'],
             ['group' => 'Owner console', 'label' => 'Support sessions enabled', 'value' => config('platform.impersonation.enabled') ? 'Yes' : 'No'],
@@ -197,7 +231,7 @@ class ConsoleController extends Controller
             'analyses' => [
                 ['module' => 'Bank statement runs', 'series' => $series('bank_runs')],
                 ['module' => 'Appraisal review runs', 'series' => $series('review_runs')],
-                ['module' => 'Sample analyses (fictional)', 'series' => $series('analysis_runs')],
+                ['module' => 'Practice sample analyses', 'series' => $series('analysis_runs')],
             ],
             'active_organizations' => $active,
             'active_definition' => 'Organizations with at least one signed-in user action recorded in the audit log during this range.',

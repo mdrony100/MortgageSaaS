@@ -12,7 +12,7 @@
         <div class="max-w-3xl" data-reveal>
             <p class="site-eyebrow"><span class="site-badge site-badge-amber">Interactive sample walkthrough</span></p>
             <h2 id="walkthrough-heading" class="site-h2 mt-4">From uploaded documents to a clear report.</h2>
-            <p class="site-lead mt-4">Click through the four steps your team follows on every file. This demo uses fictional data and doesn’t upload anything.</p>
+            <p class="site-lead mt-4">Click through the four steps your team follows on every file. This walkthrough uses sample figures and doesn’t upload anything.</p>
         </div>
 
         <div class="mt-12 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start" data-tabs="walkthrough">
@@ -52,7 +52,7 @@
                         @foreach ([['Bank statement — January.pdf', '2 pages', 'Ready', 'teal'], ['Bank statement — February.pdf', '3 pages', 'Ready', 'teal'], ['Appraisal — Form 1025.pdf', '38 pages', 'Ready', 'teal'], ['Lease — Unit 2.pdf', '6 pages', 'Scanning', 'slate']] as $i => [$name, $pages, $state, $tone])
                             <li class="site-file-card" style="--i: {{ $i }}">
                                 <span class="site-file-icon" aria-hidden="true">PDF</span>
-                                <span class="min-w-0 flex-1"><span class="block break-words font-semibold leading-snug text-ink">{{ $name }}</span><span class="site-caption">{{ $pages }} · fictional</span></span>
+                                <span class="min-w-0 flex-1"><span class="block break-words font-semibold leading-snug text-ink">{{ $name }}</span><span class="site-caption">{{ $pages }} · sample</span></span>
                                 <span class="site-badge site-badge-{{ $tone }}">{{ $state }}</span>
                             </li>
                         @endforeach

@@ -24,7 +24,7 @@ class Site
             'site.pricing' => ['/pricing', 'Pricing — '.$p, 'Plans and page allowances for '.$p.'. Request a demo to talk through pricing. Payment is arranged offline.'],
             'site.security' => ['/security', 'Security — '.$p, 'How '.$p.' protects documents with private storage, role and file permissions, organization isolation and append-only audit history.'],
             'site.faq' => ['/faq', 'FAQ — '.$p, 'Answers about supported documents, statement periods, appraisal forms, rental income, DSCR, exports, permissions and lending decisions.'],
-            'site.demo' => ['/request-demo', 'Request a Demo — '.$p, 'Request a demo of '.$p.'. Tell us your name, company, and monthly volume.'],
+            'site.demo' => ['/request-demo', 'Request a Demo — '.$p, 'Request a demo of '.$p.'. Tell us your name, company, and phone number.'],
             'site.contact' => ['/contact', 'Contact and Demo Requests — '.$p, 'Request a demo of '.$p.' or send a question to the team.'],
             'site.privacy' => ['/privacy', 'Privacy Policy — '.$p, 'Privacy Policy for '.$p.'.'],
             'site.terms' => ['/terms', 'Terms of Service — '.$p, 'Terms of Service for '.$p.'.'],
@@ -110,11 +110,9 @@ class Site
 
     /**
      * Customer reviews for the public site. Only entries explicitly marked approved in
-     * config/website.php are ever shown. When none are approved, non-production
-     * environments show clearly labelled placeholders for design review, and production
-     * hides the section entirely.
+     * config/website.php are shown. With none approved, the section is omitted.
      *
-     * @return array{mode: 'approved'|'placeholder'|'none', items: array<int, array<string, mixed>>}
+     * @return array{mode: 'approved'|'none', items: array<int, array<string, mixed>>}
      */
     public static function reviews(): array
     {
@@ -124,14 +122,8 @@ class Site
         if ($approved) {
             return ['mode' => 'approved', 'items' => $approved];
         }
-        if (app()->environment('production')) {
-            return ['mode' => 'none', 'items' => []];
-        }
 
-        return ['mode' => 'placeholder', 'items' => [
-            ['quote' => 'Approved quote goes here.', 'name' => 'Approved customer name', 'role' => 'Role, Company (approved)'],
-            ['quote' => 'Approved quote goes here.', 'name' => 'Approved customer name', 'role' => 'Role, Company (approved)'],
-        ]];
+        return ['mode' => 'none', 'items' => []];
     }
 
     public static function faq(): array

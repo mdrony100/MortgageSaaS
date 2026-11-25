@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Mail\BrandedMessage;
+use App\Services\NotificationMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -10,7 +12,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
-/** Plain-text owner-console notifications (approvals, invitations). Failures never undo the action. */
+/** Queued workspace email on the shared branded layout. Failures never undo the action. */
 class SendPlatformEmail implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable;
@@ -19,11 +21,19 @@ class SendPlatformEmail implements ShouldQueue
 
     public array $backoff = [60, 300];
 
-    public function __construct(public string $to, public string $subject, public string $body) {}
+    public function __construct(
+        public string $to,
+        public string $subject,
+        public string $body,
+        public ?string $group = null,
+    ) {}
 
     public function handle(): void
     {
-        Mail::raw($this->body, fn ($m) => $m->to($this->to)->subject($this->subject));
+        if ($this->group && ! NotificationMail::enabled($this->group)) {
+            return;
+        }
+        Mail::to($this->to)->send(BrandedMessage::fromPlain($this->subject, $this->body));
     }
 
     public function failed(\Throwable $e): void
@@ -31,11 +41,21 @@ class SendPlatformEmail implements ShouldQueue
         Log::warning('Owner console email failed', ['exception_type' => get_class($e)]);
     }
 
-    /** Queue the email; any dispatch or synchronous delivery failure is logged, never thrown. */
-    public static function safely(string $to, string $subject, string $body): bool
+    /**
+     * Queue the email. A dispatch or synchronous delivery failure is logged, never thrown.
+     * Invitations pass $afterCommit false so a rejected message can be reported on the response.
+     */
+    public static function safely(string $to, string $subject, string $body, ?string $group = null, bool $afterCommit = true): bool
     {
+        if ($group && ! NotificationMail::enabled($group)) {
+            return false;
+        }
         try {
-            app(Dispatcher::class)->dispatch((new self($to, $subject, $body))->afterCommit());
+            $job = new self($to, $subject, $body, $group);
+            if ($afterCommit) {
+                $job->afterCommit();
+            }
+            app(Dispatcher::class)->dispatch($job);
 
             return true;
         } catch (\Throwable $e) {

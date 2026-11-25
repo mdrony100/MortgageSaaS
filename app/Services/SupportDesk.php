@@ -65,11 +65,14 @@ class SupportDesk
     }
 
     /** @param  list<string|null>  $emails */
-    public static function notify(array $emails, string $subject, string $body): void
+    public static function notify(array $emails, string $subject, string $body, ?string $group = null): void
     {
+        if ($group && ! NotificationMail::enabled($group)) {
+            return;
+        }
         foreach (array_unique(array_filter($emails)) as $to) {
             try {
-                (new SendPlatformEmail($to, $subject, $body))->handle();
+                dispatch(new SendPlatformEmail($to, $subject, $body, $group));
             } catch (\Throwable $e) {
                 Log::warning('Support ticket email failed', ['exception_type' => $e::class]);
             }

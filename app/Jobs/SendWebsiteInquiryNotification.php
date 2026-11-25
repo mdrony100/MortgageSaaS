@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Mail\WebsiteInquiryReceived;
 use App\Models\WebsiteInquiry;
+use App\Services\NotificationMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -30,6 +31,11 @@ class SendWebsiteInquiryNotification implements ShouldQueue
         $to = config('website.inquiry_notify_email');
         if (! $to) {
             $inquiry->update(['notification_status' => 'not_configured']);
+
+            return;
+        }
+        if (! NotificationMail::enabled('admin_website')) {
+            $inquiry->update(['notification_status' => 'skipped']);
 
             return;
         }

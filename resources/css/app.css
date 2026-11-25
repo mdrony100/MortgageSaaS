@@ -217,9 +217,9 @@ table{font-size:16px}
 th,td{padding:10px 12px}
 th{font-size:14px;letter-spacing:.04em}
 td{overflow-wrap:anywhere}
-.share-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:end;max-width:720px}
-.share-form label{min-width:0}
-.share-form select,.share-form button{min-height:44px}
+.share-form{display:flex;align-items:flex-end;gap:8px;max-width:720px}
+.share-form label{flex:1 1 auto;min-width:0}
+.share-form select,.share-form button{height:44px;min-height:44px;max-height:44px;padding-top:0;padding-bottom:0;box-sizing:border-box}
 .sharing-card h2{display:flex;align-items:center;gap:8px}
 .sharing-card p{margin-bottom:12px}
 a.button.primary,.button.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent,#102840);text-decoration:none}
@@ -255,7 +255,8 @@ a.button.primary:hover{filter:brightness(.94);text-decoration:none}
  .dash-grid,.stat-grid,.module-grid{grid-template-columns:1fr}
  .guide-card{flex-direction:column;align-items:stretch}
  .guide-card .primary,.share-form{width:100%}
- .share-form{grid-template-columns:1fr}
+ .share-form{flex-direction:column;align-items:stretch;max-width:none}
+ .share-form label,.share-form select,.share-form button{width:100%;flex:none}
  .module-card{display:flex;flex-direction:column}
  .app-shell main{padding:16px}
  .page-heading h1,.app-shell h1{font-size:26px}
@@ -282,6 +283,9 @@ a.button.primary:hover{filter:brightness(.94);text-decoration:none}
 .file-page .badge{font-size:14px;text-transform:none}
 .guided-review .guide-card{align-items:center}
 .guided-review .guide-card .primary,.guided-review .fold-body .primary,.file-page .sharing-card .primary{width:auto;align-self:center;background:#0e7c71;border-color:#0e7c71;color:#fff}
+.file-page .sharing-card .share-form button.primary{align-self:flex-end;width:auto;flex:0 0 auto;white-space:nowrap}
+.file-page .sharing-card .share-form button.primary:disabled{background:#e6edf4;border-color:#c5d0dc;color:#5c6b7e;opacity:1;cursor:not-allowed;filter:none}
+.file-page .sharing-card .share-form button.primary:disabled:hover,.file-page .sharing-card .share-form button.primary:disabled:focus{background:#e6edf4;filter:none}
 .guide-actions{display:flex;align-items:center;gap:12px;flex:none}
 .guide-actions .text-button{width:auto;padding:0}
 .step-row{list-style:none;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);gap:8px;margin:0 0 12px;padding:0;align-items:stretch;overflow-wrap:normal;word-break:normal}
@@ -347,6 +351,9 @@ button.quiet{background:#fff}
 @media(max-width:800px){
  .guided-review .guide-card{align-items:flex-start}
  .guided-review .guide-card .primary,.file-page .guide-card .primary{width:auto}
+ .file-page .sharing-card .share-form{flex-direction:column;align-items:stretch;width:100%;max-width:none}
+ .file-page .sharing-card .share-form label{flex:none;width:100%}
+ .file-page .sharing-card .share-form button.primary{align-self:stretch;width:100%;flex:none}
  .step-row{grid-template-columns:1fr;gap:4px}
  .step-arrow-right{display:none}
  .step-arrow-down{display:block}
@@ -475,4 +482,28 @@ button.quiet{background:#fff}
  .file-page .analysis-tabs .module-switch::-webkit-scrollbar{height:0;display:none}
  .file-page .module-tab{flex:0 0 auto;scroll-snap-align:start}
  .module-status{align-self:stretch;justify-content:flex-start;padding:8px 0 10px}
+}
+
+.audit-card{width:100%}
+.audit-card h2{margin-bottom:4px}
+.audit-card>.micro{margin:0 0 14px}
+.audit-empty{margin:4px 0 0;color:#52657d}
+.audit-columns,.audit-row{display:grid;grid-template-columns:minmax(140px,1.4fr) minmax(96px,.7fr) minmax(190px,1.3fr) minmax(72px,.45fr);column-gap:18px;align-items:baseline}
+.audit-columns{padding:0 2px 8px;border-bottom:1px solid #d5e0ec;color:#5c7088;font-size:13px;font-weight:700;letter-spacing:.02em}
+.audit-list{list-style:none;margin:0;padding:0}
+.audit-row{padding:11px 2px;border-bottom:1px solid #eef2f6;font-size:15px}
+.audit-row strong{font-weight:650;color:#172b43}
+.audit-row span,.audit-row time{color:#3e5168}
+.audit-pager{display:flex;align-items:center;justify-content:space-between;gap:12px 16px;flex-wrap:wrap;margin-top:14px}
+.audit-range{margin:0;color:#3e5168;font-size:14px;font-variant-numeric:tabular-nums}
+.audit-pages{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.audit-pages button{width:auto;flex:none;min-width:40px;min-height:40px;padding:6px 12px}
+.audit-pages button.current{background:#0e7c71;border-color:#0e7c71;color:#fff;opacity:1;cursor:default}
+.audit-ellipsis{min-width:24px;text-align:center;color:#5c7088}
+@media(max-width:800px){
+ .audit-columns{display:none}
+ .audit-columns,.audit-row{grid-template-columns:1fr;row-gap:2px}
+ .audit-row{padding:12px 0}
+ .audit-pager{align-items:flex-start}
+ .audit-pages{width:100%}
 }

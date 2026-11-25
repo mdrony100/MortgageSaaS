@@ -7,29 +7,31 @@ class DemoCaptcha
 {
     public const KEY = 'demo_captcha';
 
+    public const CONTACT_KEY = 'contact_captcha';
+
     /** @return array{a: int, b: int} */
-    public static function current(): array
+    public static function current(string $key = self::KEY): array
     {
-        $stored = session(self::KEY);
+        $stored = session($key);
         if (is_array($stored) && isset($stored['a'], $stored['b'])) {
             return ['a' => (int) $stored['a'], 'b' => (int) $stored['b']];
         }
 
-        return self::refresh();
+        return self::refresh($key);
     }
 
     /** @return array{a: int, b: int} */
-    public static function refresh(): array
+    public static function refresh(string $key = self::KEY): array
     {
         $question = ['a' => random_int(2, 9), 'b' => random_int(2, 9)];
-        session([self::KEY => $question]);
+        session([$key => $question]);
 
         return $question;
     }
 
-    public static function matches(mixed $answer): bool
+    public static function matches(mixed $answer, string $key = self::KEY): bool
     {
-        $stored = session(self::KEY);
+        $stored = session($key);
         if (! is_array($stored) || ! isset($stored['a'], $stored['b'])) {
             return false;
         }
@@ -40,8 +42,8 @@ class DemoCaptcha
         return (int) $answer === ((int) $stored['a'] + (int) $stored['b']);
     }
 
-    public static function forget(): void
+    public static function forget(string $key = self::KEY): void
     {
-        session()->forget(self::KEY);
+        session()->forget($key);
     }
 }
