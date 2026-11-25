@@ -9,7 +9,7 @@ const router = useRouter()
 const borrowers = ref<any[]>([])
 const error = ref('')
 const busy = ref(false)
-const form = ref({ name: '', reference: '', borrower_id: '', module: 'bank', is_demo: false, new_borrower: '' })
+const form = ref({ name: '', reference: '', borrower_id: '', module: 'bank', new_borrower: '' })
 const editable = ['owner', 'admin', 'underwriter', 'processor'].includes(auth.membership?.role || '')
 
 onMounted(async () => {
@@ -55,7 +55,7 @@ async function create() {
     <RouterLink class="button" to="/files">Back to loan files</RouterLink>
   </section>
   <form v-else class="card form-stack create-file" @submit.prevent="create">
-    <label>Loan file name<input v-model="form.name" required maxlength="150" placeholder="For example, Sample Street refinance"/></label>
+    <label>Loan file name<input v-model="form.name" required maxlength="150" placeholder="e.g. 123 Main St refinance"/></label>
     <label>Your reference number (optional)<input v-model="form.reference" maxlength="80"/></label>
     <label>Borrower already in this company
       <select v-model="form.borrower_id">
@@ -63,7 +63,7 @@ async function create() {
         <option v-for="borrower in borrowers" :key="borrower.id" :value="borrower.id">{{ borrower.name }}</option>
       </select>
     </label>
-    <label>Or type a new borrower name<input v-model="form.new_borrower" placeholder="Fictional borrower name" maxlength="120"/></label>
+    <label>Or type a new borrower name<input v-model="form.new_borrower" placeholder="Borrower full name" maxlength="120"/></label>
     <label>What are you reviewing?
       <select v-model="form.module">
         <option value="bank">Bank statements</option>
@@ -71,8 +71,6 @@ async function create() {
         <option value="dscr">Rental income</option>
       </select>
     </label>
-    <label class="check"><input type="checkbox" v-model="form.is_demo"/>This is a practice file with fictional documents</label>
-    <p class="micro">Do not upload a real borrower’s documents in a practice file.</p>
     <p v-if="error" class="alert error" role="alert">{{ error }}</p>
     <div class="actions">
       <button type="button" @click="cancel">Cancel</button>

@@ -23,9 +23,9 @@ const groups:Group[]=[
   {key:'integrity_provider',label:'Provider',kind:'select',options:[{value:'disabled',label:'Disabled'},{value:'ocrolus',label:'Ocrolus'}]},
   {key:'ocrolus_token',label:'Ocrolus access token',secret:true},
  ]},
- {id:'billing',title:'Billing',lead:'Test mode uses the sandbox provider and does not charge cards. Live mode stores the provider and keys for an approved adapter.',fields:[
-  {key:'billing_provider',label:'Provider',kind:'select',options:[{value:'disabled',label:'Disabled'},{value:'fake',label:'Test provider'},{value:'stripe',label:'Stripe'}]},
-  {key:'billing_mode',label:'Mode',kind:'select',options:[{value:'test',label:'Test'},{value:'live',label:'Live'}]},
+ {id:'billing',title:'Billing',lead:'Payments are collected offline and approved manually. Stripe is stored here only when a card provider is connected. No card is charged from this screen.',fields:[
+  {key:'billing_provider',label:'Billing',kind:'select',options:[{value:'disabled',label:'Offline payments (manual approval)'},{value:'fake',label:'Offline payments (manual approval)'},{value:'stripe',label:'Stripe'}]},
+  {key:'billing_mode',label:'Mode',kind:'select',options:[{value:'test',label:'Manual approval'},{value:'live',label:'Card provider'}]},
   {key:'billing_secret',label:'Billing secret key',secret:true},
   {key:'billing_webhook_secret',label:'Webhook secret',secret:true},
  ]},
@@ -41,8 +41,8 @@ const groups:Group[]=[
   {key:'notify_customer_support',label:'Customer: support replies and status changes',kind:'bool'},
   {key:'notify_customer_processing',label:'Customer: loan file processing finished or failed',kind:'bool'},
  ]},
- {id:'mail',title:'Email',lead:'SMTP settings override the server environment. The test email goes only to your sign-in address.',check:'smtp',email:true,fields:[
-  {key:'mail_mailer',label:'Mailer',kind:'select',options:[{value:'smtp',label:'SMTP'},{value:'log',label:'Log'},{value:'sendmail',label:'Sendmail'},{value:'array',label:'Array (tests)'}]},
+ {id:'mail',title:'Email',lead:'SMTP settings override the server environment. A check message is sent only to your sign-in address.',check:'smtp',email:true,fields:[
+  {key:'mail_mailer',label:'Mailer',kind:'select',options:[{value:'smtp',label:'SMTP'},{value:'log',label:'Log'},{value:'sendmail',label:'Sendmail'},{value:'array',label:'Array (does not send)'}]},
   {key:'mail_host',label:'Host',kind:'text'},
   {key:'mail_port',label:'Port',kind:'number'},
   {key:'mail_scheme',label:'Scheme',kind:'text',hint:'Leave blank to use the server environment. Common values are smtp and smtps.'},

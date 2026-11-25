@@ -11,6 +11,7 @@ use App\Models\Invitation;
 use App\Models\LoanFile;
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Models\PaymentRequest;
 use App\Models\Plan;
 use App\Models\PlatformRequest;
 use App\Models\User;
@@ -353,23 +354,49 @@ class OwnerConsoleTest extends TestCase
         WebsiteInquiry::create(['name' => '=HYPERLINK("x")', 'email' => 'f@example.test', 'company' => 'Formula Co', 'inquiry_type' => 'demo', 'message' => 'x']);
         $this->assertStringContainsString("'=HYPERLINK", $this->get($this->url('reports/inquiries?format=csv'))->streamedContent());
         $rev = $this->get($this->url('reports/revenue?format=csv'))->streamedContent();
-        $this->assertStringContainsString('Pricing not configured', $rev);
+        $this->assertStringContainsString('Monthly recurring revenue', $rev);
+        $this->assertStringNotContainsString('Pricing not configured', $rev);
+        $this->assertStringNotContainsString('Test provider data', $rev);
         $this->get($this->url('reports/bogus?format=csv'))->assertNotFound();
         $this->getJson($this->url('reports/users?format=pdf'))->assertUnprocessable();
         $this->assertSame(5, AuditEvent::where('action', 'admin.report.exported')->where('actor_id', $admin->id)->count());
     }
 
-    public function test_revenue_shows_pricing_not_configured_until_approved_prices_exist(): void
+    public function test_revenue_uses_database_plan_prices_and_approved_payments(): void
     {
         $this->actingAs($this->admin());
-        $this->org->update(['subscription_status' => 'active']);
-        $this->getJson($this->url('revenue'))->assertOk()->assertJsonPath('pricing_configured', false)->assertJsonPath('mrr', null)->assertJsonPath('arr', null)->assertJsonPath('message', fn ($m) => str_starts_with($m, 'Pricing not configured'));
-        $starter = Plan::where('name', 'Starter')->first();
-        $other = Organization::create(['name' => 'Second Fictional Org', 'plan_id' => $starter->id, 'subscription_status' => 'active']);
+        $starter = Plan::where('name', 'Starter')->firstOrFail();
+        $pro = Plan::where('name', 'Pro')->firstOrFail();
+        $this->org->update(['subscription_status' => 'active', 'plan_id' => $starter->id]);
+        $other = Organization::create(['name' => 'Second Org', 'plan_id' => $pro->id, 'subscription_status' => 'active']);
         Organization::create(['name' => 'Trial Org', 'plan_id' => $starter->id, 'subscription_status' => 'trial']);
+        Organization::create(['name' => 'Suspended Org', 'plan_id' => $pro->id, 'subscription_status' => 'active', 'suspended_at' => now()]);
         config(['billing.catalog' => [$starter->id => ['monthly_price' => '100.00']], 'billing.provider' => 'fake']);
-        DB::table('billing_subscriptions')->insert(['organization_id' => $other->id, 'provider' => 'fake', 'provider_reference' => (string) Str::uuid(), 'status' => 'active', 'data' => '{}', 'created_at' => now(), 'updated_at' => now()]);
-        $this->getJson($this->url('revenue'))->assertOk()->assertJsonPath('pricing_configured', true)->assertJsonPath('mrr', 200)->assertJsonPath('arr', 2400)->assertJsonPath('test_data', true)->assertJsonPath('subscriptions.0.provider', 'fake');
+        PaymentRequest::create(['organization_id' => $this->org->id, 'requested_by' => $this->owner->id, 'kind' => 'plan', 'plan_id' => $pro->id, 'amount' => '199.00', 'status' => 'approved', 'paid_offline_at' => now(), 'decided_at' => now()]);
+        PaymentRequest::create(['organization_id' => $other->id, 'requested_by' => $this->owner->id, 'kind' => 'pack', 'pack_pages' => 500, 'pack_label' => '500 pages', 'amount' => '79.00', 'status' => 'approved', 'paid_offline_at' => now()->subMonth(), 'decided_at' => now()->subMonth()]);
+        PaymentRequest::create(['organization_id' => $this->org->id, 'requested_by' => $this->owner->id, 'kind' => 'pack', 'pack_pages' => 500, 'pack_label' => '500 pages', 'amount' => '79.00', 'status' => 'pending']);
+
+        $json = $this->getJson($this->url('revenue'))->assertOk();
+        $json->assertJsonPath('mrr', 248);
+        $json->assertJsonPath('arr', 2976);
+        $json->assertJsonPath('active_subscriptions', 2);
+        $json->assertJsonPath('active_plans', 2);
+        $json->assertJsonPath('pending_payment_requests', 1);
+        $json->assertJsonPath('collected_this_month', 199);
+        $json->assertJsonPath('collected_plans_this_month', 199);
+        $json->assertJsonPath('collected_packs_this_month', 0);
+        $json->assertJsonPath('billing.label', 'Offline payments (manual approval)');
+        $json->assertJsonPath('plan_breakdown', [
+            ['plan' => 'Pro', 'organizations' => 1, 'monthly_price' => 199, 'mrr' => 199],
+            ['plan' => 'Starter', 'organizations' => 1, 'monthly_price' => 49, 'mrr' => 49],
+        ]);
+        $json->assertJsonCount(3, 'payments');
+        $body = $json->getContent();
+        $this->assertStringNotContainsString('Pricing not configured', $body);
+        $this->assertStringNotContainsString('Test provider', $body);
+        $this->assertStringNotContainsString('config/billing.php', $body);
+        $this->assertStringNotContainsString('provisional_monthly_price', $body);
+        $this->assertStringNotContainsString('Invoices and payments are not stored', $body);
     }
 
     public function test_analytics_uses_real_seeded_counts(): void

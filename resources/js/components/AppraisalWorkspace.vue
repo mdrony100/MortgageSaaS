@@ -215,7 +215,7 @@ onUnmounted(() => clearInterval(timer))
               <option v-for="d in file.documents.filter((d: any) => d.category !== 'fixture')" :key="d.id" :value="d.id">New version of {{ d.title }}</option>
             </select>
           </label>
-          <label v-if="file.is_demo" class="check"><input type="checkbox" v-model="fictional" /> This upload is fictional</label>
+          <label v-if="file.is_demo" class="check"><input type="checkbox" v-model="fictional" /> This upload is a practice document</label>
           <button :disabled="busy">Preserve original in quarantine</button>
         </details>
       </form>

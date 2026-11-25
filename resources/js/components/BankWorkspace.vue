@@ -62,7 +62,7 @@ async function saveRule(){await act(()=>api(root.value+'/rules','POST',{name:rul
     <button class="primary" :disabled="busy">Upload bank statements</button>
     <p class="field-help">If a file says not virus-scanned, no malware check ran. It is stored, and it is not certified clean. A password-protected PDF needs an unlocked copy.</p>
     <details class="advanced"><summary>Advanced</summary>
-      <label class="check"><input type="checkbox" v-model="fictional"/>This is a fictional fixture (only explicit local/test scanner bypass can apply).</label>
+      <label class="check"><input type="checkbox" v-model="fictional"/>This upload is a practice document.</label>
     </details>
   </form>
   <ul v-if="versions.length" class="doc-rows">

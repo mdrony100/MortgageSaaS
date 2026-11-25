@@ -156,6 +156,6 @@ class OrganizationController extends Controller
 
     public function plans()
     {
-        return ['plans' => Plan::all()->makeHidden('provisional_monthly_price'), 'pricing_notice' => 'Client-approved prices and live provider selection pending; legacy sample prices are not offered.'];
+        return ['plans' => Plan::all()->makeHidden('provisional_monthly_price'), 'pricing_notice' => 'Payment is arranged offline and applied after approval.'];
     }
 }

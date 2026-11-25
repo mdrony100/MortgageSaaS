@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Organization;
+use App\Models\PaymentRequest;
 use App\Models\PlatformRequest;
 use App\Models\User;
 use App\Models\WebsiteInquiry;
@@ -20,7 +21,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 /** Owner-level exports (CSV/XLSX). Account and operational metadata only; never secrets or document data. */
 class ReportController extends Controller
 {
-    public const TYPES = ['organizations' => 'Organizations & subscriptions', 'users' => 'Users', 'usage' => 'Usage by organization', 'inquiries' => 'Website inquiries', 'approvals' => 'Approval requests', 'audit' => 'Platform audit events', 'revenue' => 'Revenue & billing events'];
+    public const TYPES = ['organizations' => 'Organizations & subscriptions', 'users' => 'Users', 'usage' => 'Usage by organization', 'inquiries' => 'Website inquiries', 'approvals' => 'Approval requests', 'audit' => 'Platform audit events', 'revenue' => 'Revenue and offline payments'];
 
     public function index()
     {
@@ -67,7 +68,7 @@ class ReportController extends Controller
 
     private function usage($from, $to): array
     {
-        $rows = [['Organization ID', 'Organization', 'Plan', 'Members', 'Member limit', 'Loan files (in range)', 'Loan files (total)', 'File limit', 'Storage used (bytes)', 'Storage limit (bytes)', 'Bank statement runs (in range)', 'Appraisal review runs (in range)', 'Sample analyses (in range)']];
+        $rows = [['Organization ID', 'Organization', 'Plan', 'Members', 'Member limit', 'Loan files (in range)', 'Loan files (total)', 'File limit', 'Storage used (bytes)', 'Storage limit (bytes)', 'Bank statement runs (in range)', 'Appraisal review runs (in range)', 'Practice analyses (in range)']];
         foreach (Organization::with('plan')->withCount('memberships')->orderBy('id')->get() as $o) {
             $count = fn ($t) => $this->range(DB::table($t)->where('organization_id', $o->id), $from, $to)->count();
             $rows[] = [$o->id, $o->name, $o->plan?->name, $o->memberships_count, $o->memberLimit(), $count('loan_files'), DB::table('loan_files')->where('organization_id', $o->id)->count(), $o->fileLimit(), Entitlements::storageUsed($o->id), $o->storageLimitBytes(), $count('bank_runs'), $count('review_runs'), $count('analysis_runs')];
@@ -109,16 +110,14 @@ class ReportController extends Controller
 
     private function revenue($from, $to): array
     {
-        $test = config('billing.provider') === 'fake';
-        $catalog = config('billing.catalog');
-        $rows = [['Record', 'Organization', 'Provider', 'Status', 'Detail', 'When', 'Data label']];
-        $rows[] = ['Pricing', '', (string) config('billing.provider'), $catalog === [] ? 'Pricing not configured' : 'Approved catalog configured', $catalog === [] ? 'MRR/ARR not calculated: no approved plan prices' : '', now()->toDateTimeString(), ''];
-        foreach ($this->range(DB::table('billing_subscriptions as s')->join('organizations as o', 'o.id', '=', 's.organization_id')->orderBy('s.id'), $from, $to, 's.created_at')->get(['o.name', 's.provider', 's.status', 's.created_at']) as $s) {
-            $rows[] = ['Subscription', $s->name, $s->provider, $s->status, '', (string) $s->created_at, $s->provider === 'fake' ? 'Test provider data' : ''];
-        }
-        foreach ($this->range(DB::table('billing_events as e')->join('organizations as o', 'o.id', '=', 'e.organization_id')->orderBy('e.id'), $from, $to, 'e.created_at')->get(['o.name', 'e.operation_key', 'e.status', 'e.data', 'e.created_at']) as $e) {
-            $data = json_decode($e->data, true) ?: [];
-            $rows[] = ['Billing event', $e->name, (string) config('billing.provider'), $e->status, trim(($data['action'] ?? '').' '.(isset($data['plan_id']) ? 'plan '.$data['plan_id'] : '')), (string) $e->created_at, $test ? 'Test provider data' : ''];
+        $metrics = app(ConsoleController::class)->revenue();
+        $rows = [['Record', 'Organization', 'Kind', 'Status', 'Amount', 'When', 'Detail']];
+        $rows[] = ['Monthly recurring revenue', '', '', 'Active plans', $metrics['mrr'], now()->toDateTimeString(), 'Active organizations × database plan price'];
+        $rows[] = ['Revenue collected this month', '', 'Plans and page packs', 'Approved', $metrics['collected_this_month'], now()->toDateTimeString(), $metrics['month_label']];
+        $query = PaymentRequest::with(['organization:id,name', 'plan:id,name'])->whereIn('status', ['pending', 'approved'])->orderBy('id');
+        foreach ($this->range($query, $from, $to)->get() as $row) {
+            $detail = $row->kind === 'plan' ? ($row->plan?->name ?? 'Plan change') : ($row->pack_label ?: (($row->pack_pages ?? 0).' pages'));
+            $rows[] = [PaymentRequest::KINDS[$row->kind] ?? $row->kind, $row->organization?->name, $detail, PaymentRequest::STATUSES[$row->status] ?? $row->status, $row->amount, $row->created_at?->toDateTimeString(), $row->payment_reference];
         }
 
         return $rows;

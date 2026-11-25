@@ -29,7 +29,7 @@
             <span class="site-badge site-badge-amber"><span class="site-dot" aria-hidden="true"></span>Needs review</span>
         </div>
         <table class="site-table mt-4">
-            <caption class="sr-only">Sample statement totals (fictional)</caption>
+            <caption class="sr-only">Sample statement totals</caption>
             <tbody>
                 <tr><td>Beginning balance</td><td class="site-num">$10,250.00</td></tr>
                 <tr><td>Deposits</td><td class="site-num">+ $6,830.00</td></tr>
@@ -50,7 +50,7 @@
             <span class="site-badge site-badge-teal"><span class="site-dot" aria-hidden="true"></span>Inputs confirmed</span>
         </div>
         <table class="site-table mt-4">
-            <caption class="sr-only">Sample unit rents (fictional)</caption>
+            <caption class="sr-only">Sample unit rents</caption>
             <thead><tr><th scope="col">Unit</th><th scope="col" class="site-num">Lease rent</th><th scope="col" class="site-num">Market rent</th></tr></thead>
             <tbody>
                 <tr><td>Unit 1</td><td class="site-num">$1,650</td><td class="site-num">$1,700</td></tr>
@@ -63,5 +63,5 @@
             <div class="site-stat bg-accent-tint"><dt>DSCR</dt><dd class="text-accent-dark">1.10</dd></div>
         </dl>
     </div>
-    <p class="border-t border-slate-200 px-5 py-3 text-[0.875rem] text-muted">Fictional sample data for illustration — not real customer results.</p>
+    <p class="border-t border-slate-200 px-5 py-3 text-[0.875rem] text-muted">Sample illustration of the review workspace.</p>
 </div>

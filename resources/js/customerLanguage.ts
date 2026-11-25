@@ -102,7 +102,7 @@ export function failureGuide(code?: string | null): { body: string; cta: Failure
     return { body: 'The security scan could not finish. Try again with an unlocked PDF, PNG, or JPG.', cta: 'retry', button: 'Try again' }
   }
   if (/scanner unavailable|malware scan unavailable|unscanned/i.test(raw)) {
-    return { body: 'The virus scan could not run, so this file is not certified clean. Processing stopped. Ask an administrator about scanning, or use a practice file for a fictional sample.', cta: 'admin', button: 'Contact support' }
+    return { body: 'The virus scan could not run, so this file is not certified clean. Processing stopped. Ask an administrator about scanning, or open a practice file and load the sample analysis.', cta: 'admin', button: 'Contact support' }
   }
   if (/password|encrypted|locked pdf/i.test(raw)) {
     return { body: 'This file looks locked. Upload an unlocked PDF, PNG, or JPG, then try again.', cta: 'replace', button: 'Replace the file' }

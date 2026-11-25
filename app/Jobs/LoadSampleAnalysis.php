@@ -36,21 +36,21 @@ class LoadSampleAnalysis implements ShouldQueue
                 return;
             } $file = LoanFile::findOrFail($run->loan_file_id);
             if (! $file->is_demo) {
-                throw new \LogicException('Sample analysis only applies to explicitly fictional files.');
+                throw new \LogicException('Sample analysis only applies to a practice file.');
             } $run->update(['status' => 'running', 'attempts' => $run->attempts + 1]);
-            $doc = Document::firstOrCreate(['organization_id' => $file->organization_id, 'loan_file_id' => $file->id, 'category' => 'fixture'], ['title' => 'Fictional source evidence']);
+            $doc = Document::firstOrCreate(['organization_id' => $file->organization_id, 'loan_file_id' => $file->id, 'category' => 'fixture'], ['title' => 'Practice sample evidence']);
             $version = $doc->versions()->first();
             if (! $version) {
                 $pdf = SampleData::pdf();
                 $storage = app(PrivateStorage::class);
                 $key = 'fixtures/'.Str::uuid();
                 $storage->put($key, $pdf);
-                $version = DocumentVersion::create(['organization_id' => $file->organization_id, 'document_id' => $doc->id, 'uploaded_by' => $this->actorId, 'version' => 1, 'disk' => $storage->disk(), 'storage_key' => $key, 'original_name' => 'fictional-evidence.pdf', 'mime' => 'application/pdf', 'bytes' => strlen($pdf), 'sha256' => hash('sha256', $pdf), 'scan_status' => 'not_configured', 'validation_status' => 'generated_fictional_fixture', 'status' => 'Fictional sample source — not extracted']);
+                $version = DocumentVersion::create(['organization_id' => $file->organization_id, 'document_id' => $doc->id, 'uploaded_by' => $this->actorId, 'version' => 1, 'disk' => $storage->disk(), 'storage_key' => $key, 'original_name' => 'practice-evidence.pdf', 'mime' => 'application/pdf', 'bytes' => strlen($pdf), 'sha256' => hash('sha256', $pdf), 'scan_status' => 'not_configured', 'validation_status' => 'generated_fictional_fixture', 'status' => 'Practice sample source — not extracted']);
             }
-            $rules = Ruleset::firstOrCreate(['organization_id' => $file->organization_id, 'name' => 'Fictional demonstration rules', 'version' => 1], ['status' => 'fictional_draft', 'rules' => ['notice' => 'Not investor-approved; no lender rules configured.']]);
+            $rules = Ruleset::firstOrCreate(['organization_id' => $file->organization_id, 'name' => 'Practice sample rules', 'version' => 1], ['status' => 'draft', 'rules' => ['notice' => 'Not investor-approved; no lender rules configured.']]);
             $data = SampleData::all($version->id);
             AnalysisSnapshot::firstOrCreate(['analysis_run_id' => $run->id], ['organization_id' => $file->organization_id, 'ruleset_id' => $rules->id, 'data' => $data, 'is_demo' => true]);
-            foreach (['source_evidence' => ['evidence-1', $data['source']], 'classification_suggestions' => ['tx-1', $data['bank']['transactions'][0]], 'report_snapshots' => ['sample-report', ['title' => 'Fictional report', 'run_id' => $run->id, 'notice' => 'Preview only; no lending decision']]] as $table => [$key,$value]) {
+            foreach (['source_evidence' => ['evidence-1', $data['source']], 'classification_suggestions' => ['tx-1', $data['bank']['transactions'][0]], 'report_snapshots' => ['sample-report', ['title' => 'Practice sample report', 'run_id' => $run->id, 'notice' => 'Preview only; no lending decision']]] as $table => [$key,$value]) {
                 DB::table($table)->updateOrInsert(['analysis_run_id' => $run->id, 'external_key' => $key], ['organization_id' => $file->organization_id, 'loan_file_id' => $file->id, 'data' => json_encode($value), 'is_demo' => true, 'created_at' => now(), 'updated_at' => now()]);
             }
             $run->update(['status' => 'completed', 'stage' => 'sample_ready', 'completed_at' => now(), 'error' => null]);

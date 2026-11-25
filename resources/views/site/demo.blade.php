@@ -60,7 +60,7 @@
                 <ol class="mt-4 list-decimal space-y-2 pl-5 text-body">
                     <li>Your request is saved for our team to review.</li>
                     <li>We reply by email or phone to arrange a time.</li>
-                    <li>Demos use fictional sample files only.</li>
+                    <li>A demo walks through the product with sample files.</li>
                 </ol>
             </div>
             <div class="site-card">

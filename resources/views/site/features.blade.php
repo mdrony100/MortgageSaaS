@@ -88,7 +88,7 @@ $sections = [
                     </ul>
                 @endif
             </div>
-            <p class="site-caption mt-4">Illustration with fictional data.</p>
+            <p class="site-caption mt-4">Illustration with sample data.</p>
         </figure>
     </div>
 </section>

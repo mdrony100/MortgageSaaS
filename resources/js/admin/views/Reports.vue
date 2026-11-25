@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {ref,reactive,onMounted} from 'vue';import {api,qs,download} from '../util';import {FileSpreadsheet,FileText} from 'lucide-vue-next';
 const types=ref<Record<string,string>>({}),f=reactive({from:'',to:''}),error=ref(''),success=ref(''),busy=ref('');
-const notes:Record<string,string>={organizations:'Plan, subscription status, approval, members and file counts.',users:'Verification, two-factor, admin flag, disabled state and organizations. No passwords.',usage:'Files, members, storage and analysis runs per organization.',inquiries:'Website contact and demo requests with status.',approvals:'Signup and plan change decisions.',audit:'Platform-level audit events (no file-level activity).',revenue:'Billing subscriptions and events. Test provider rows are labeled.'};
+const notes:Record<string,string>={organizations:'Plan, subscription status, approval, members and file counts.',users:'Verification, two-factor, admin flag, disabled state and organizations. No passwords.',usage:'Files, members, storage and analysis runs per organization.',inquiries:'Website contact and demo requests with status.',approvals:'Signup and plan change decisions.',audit:'Platform-level audit events (no file-level activity).',revenue:'Monthly recurring revenue from active plans, and approved or pending offline payments.'};
 async function go(type:string,format:'csv'|'xlsx'){busy.value=type+format;error.value='';success.value='';try{const name=await download('/api/admin/reports/'+type+qs({format,...f}));success.value='Downloaded '+name}catch(e:any){error.value=e.message}finally{busy.value=''}}
 onMounted(async()=>{try{types.value=(await api('/api/admin/reports')).types}catch(e:any){error.value=e.message}});
 </script>

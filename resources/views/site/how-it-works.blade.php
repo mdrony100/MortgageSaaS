@@ -5,7 +5,7 @@
 @php
 $steps = [
     ['Create an organization and invite your team', 'Set up your organization, invite colleagues by email and give each person a role. People only see the files their role and file access allow.', 'Example: “Sample Lending Group” invites a processor and an underwriter.'],
-    ['Create a file and securely upload supported documents', 'Create a loan file and upload bank statements, appraisal reports, leases or supporting documents as PDF, PNG or JPG. Originals are kept unchanged and held until a malware scan passes.', 'Example: a fictional file with 24 monthly statements and a Form 1025 appraisal.'],
+    ['Create a file and securely upload supported documents', 'Create a loan file and upload bank statements, appraisal reports, leases or supporting documents as PDF, PNG or JPG. Originals are kept unchanged and held until a malware scan passes.', 'Example: a practice file with 24 monthly statements and a Form 1025 appraisal.'],
     ['Run document analysis', 'Start bank statement or appraisal analysis. Documents are read, totals are checked, and anything that needs a closer look is listed as a finding.', 'Example: the analysis notices that printed page 4 of 6 is missing.'],
     ['Review extracted information, calculations and flagged issues', 'Reviewers confirm deposit types, transfers, rents and other inputs, and record a decision with a reason on each finding. Calculations use only confirmed inputs and stay provisional while information is missing.', 'Example: an underwriter confirms a transfer between the borrower’s own accounts and leaves it out of income.'],
     ['Export and share authorized reports', 'Issue versioned Excel and PDF reports. Report access follows each person’s role; broker reports leave out restricted internal findings.', 'Example: an internal report for the underwriting team and a separate broker report.'],
@@ -22,7 +22,7 @@ $steps = [
                     <div class="site-card site-card-hover">
                         <h3 class="site-h3"><span class="sr-only">Step {{ $i + 1 }}: </span>{{ $t }}</h3>
                         <p class="site-copy mt-3">{{ $d }}</p>
-                        <p class="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-tint px-4 py-3 text-body"><span class="site-badge site-badge-amber">Fictional</span>{{ $example }}</p>
+                        <p class="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-tint px-4 py-3 text-body"><span class="site-badge site-badge-amber">Example</span>{{ $example }}</p>
                     </div>
                 </li>
             @endforeach

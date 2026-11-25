@@ -18,7 +18,7 @@ class CreditNotifier
         $what = $request->kind === 'plan'
             ? 'a plan change to '.($request->plan->name ?? 'another plan')
             : 'a top-up of '.number_format((int) $request->pack_pages).' pages';
-        $body = "A customer requested {$what}.\n\nOrganization: {$request->organization->name}\nAmount shown: \${$request->amount} (placeholder, not charged)\nNote: ".($request->note ?: 'None')."\n\nReview it in the owner console: ".rtrim((string) config('app.url'), '/')."/admin/payment-requests\n";
+        $body = "A customer requested {$what}.\n\nOrganization: {$request->organization->name}\nAmount: \${$request->amount} (offline payment, applied after approval)\nNote: ".($request->note ?: 'None')."\n\nReview it in the owner console: ".rtrim((string) config('app.url'), '/')."/admin/payment-requests\n";
         foreach (self::ownerAdmins() as $email) {
             SendPlatformEmail::safely($email, 'Non-QM Doc AI: new page or plan request', $body, 'admin_billing');
         }
