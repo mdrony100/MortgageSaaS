@@ -24,7 +24,7 @@ class Site
             'site.pricing' => ['/pricing', 'Pricing — '.$p, 'Plans and page allowances for '.$p.'. Request a demo to talk through pricing. Payment is arranged offline.'],
             'site.security' => ['/security', 'Security — '.$p, 'How '.$p.' protects documents with private storage, role and file permissions, organization isolation and append-only audit history.'],
             'site.faq' => ['/faq', 'FAQ — '.$p, 'Answers about supported documents, statement periods, appraisal forms, rental income, DSCR, exports, permissions and lending decisions.'],
-            'site.demo' => ['/request-demo', 'Request a Demo — '.$p, 'Request a demo of '.$p.'. Tell us your name, company, and monthly volume.'],
+            'site.demo' => ['/request-demo', 'Request a Demo — '.$p, 'Request a demo of '.$p.'. Tell us your name, company, and phone number.'],
             'site.contact' => ['/contact', 'Contact and Demo Requests — '.$p, 'Request a demo of '.$p.' or send a question to the team.'],
             'site.privacy' => ['/privacy', 'Privacy Policy — '.$p, 'Privacy Policy for '.$p.'.'],
             'site.terms' => ['/terms', 'Terms of Service — '.$p, 'Terms of Service for '.$p.'.'],

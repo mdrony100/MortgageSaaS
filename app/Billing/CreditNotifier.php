@@ -48,7 +48,8 @@ class CreditNotifier
 
     public static function demoReceived(DemoRequest $demo): void
     {
-        $body = "A new demo request was submitted.\n\nName: {$demo->name}\nCompany: {$demo->company}\nEmail: {$demo->email}\nPhone: {$demo->phone}\nMonthly volume: {$demo->monthly_volume}\n\nReview it in the owner console: ".rtrim((string) config('app.url'), '/')."/admin/demo-requests\n";
+        $volume = filled($demo->monthly_volume) ? "\nMonthly volume: {$demo->monthly_volume}" : '';
+        $body = "A new demo request was submitted.\n\nName: {$demo->name}\nCompany: {$demo->company}\nEmail: {$demo->email}\nPhone: {$demo->phone}{$volume}\n\nReview it in the owner console: ".rtrim((string) config('app.url'), '/')."/admin/demo-requests\n";
         $sent = false;
         foreach (self::ownerAdmins() as $email) {
             $sent = SendPlatformEmail::safely($email, 'Non-QM Doc AI: new demo request', $body) || $sent;

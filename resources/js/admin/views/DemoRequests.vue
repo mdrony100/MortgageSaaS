@@ -20,12 +20,12 @@ onMounted(async()=>{await load();const id=Number(route.query?.id);if(id)await op
 </div>
 <div class="c-split">
 <div class="c-card c-flush"><div class="c-table-wrap"><table><caption class="sr-only">Demo requests</caption><thead><tr><th scope="col">From</th><th scope="col">Volume</th><th scope="col">Status</th><th scope="col">Received</th></tr></thead><tbody>
-<tr v-for="row in list" :key="row.id" :class="{selected:selected?.id===row.id}"><td><button class="c-link-btn" @click="open(row.id)">{{row.name}}</button><span class="c-sub">{{row.company}} · {{row.email}}</span><Badge v-if="row.is_spam" value="past_due" label="Spam"/></td><td>{{row.monthly_volume}}</td><td><Badge :value="row.status" :label="statuses[row.status]"/></td><td>{{when(row.created_at)}}</td></tr>
+<tr v-for="row in list" :key="row.id" :class="{selected:selected?.id===row.id}"><td><button class="c-link-btn" @click="open(row.id)">{{row.name}}</button><span class="c-sub">{{row.company}} · {{row.email}}</span><Badge v-if="row.is_spam" value="past_due" label="Spam"/></td><td>{{row.monthly_volume && String(row.monthly_volume).trim() ? row.monthly_volume : '—'}}</td><td><Badge :value="row.status" :label="statuses[row.status]"/></td><td>{{when(row.created_at)}}</td></tr>
 <tr v-if="loaded&&!list.length"><td colspan="4" class="c-empty">No demo requests match these filters.</td></tr>
 </tbody></table></div><Pager :page="page" @go="(p:number)=>{filters.page=p;load()}"/></div>
 <article v-if="selected" class="c-card" aria-labelledby="demo-heading">
 <h2 id="demo-heading" tabindex="-1">{{selected.name}} · {{selected.company}}</h2>
-<p class="c-muted">{{selected.email}} · {{selected.phone}} · {{selected.monthly_volume}} · {{when(selected.created_at)}}</p>
+<p class="c-muted">{{[selected.email, selected.phone, selected.monthly_volume && String(selected.monthly_volume).trim() ? selected.monthly_volume : '', when(selected.created_at)].filter(Boolean).join(' · ')}}</p>
 <label>Status<select :value="selected.status" @change="update({status:($event.target as HTMLSelectElement).value},'Status updated.')"><option v-for="(label,key) in statuses" :key="key" :value="key">{{label}}</option></select></label>
 <div class="c-actions"><button class="c-btn ghost" type="button" @click="update({is_spam:!selected.is_spam}, selected.is_spam?'Marked as not spam.':'Marked as spam.')">{{selected.is_spam?'Not spam':'Mark as spam'}}</button></div>
 <h3>Notes</h3>
