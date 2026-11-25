@@ -6,6 +6,7 @@ use App\Contracts\DocumentExtraction;
 use App\Contracts\MalwareScanner;
 use App\Jobs\LoadSampleAnalysis;
 use App\Models\AnalysisRun;
+use App\Models\AuditEvent;
 use App\Models\Borrower;
 use App\Models\DocumentVersion;
 use App\Models\FileShare;
@@ -15,12 +16,14 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\User;
+use App\Services\Audit;
 use App\Services\SampleData;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -499,7 +502,7 @@ class PhaseOneTest extends TestCase
     {
         $this->upload();
         $u = $this->member('admin');
-        $this->actingAs($u)->getJson('/api/organizations/'.$this->org->id.'/audit')->assertOk()->assertJsonCount(0);
+        $this->actingAs($u)->getJson('/api/organizations/'.$this->org->id.'/audit')->assertOk()->assertJsonCount(0, 'data')->assertJsonPath('total', 0)->assertJsonPath('per_page', 15);
         $this->share($u);
         $this->getJson('/api/organizations/'.$this->org->id.'/audit')->assertOk()->assertJsonFragment(['action' => 'document.uploaded']);
         $this->getJson('/api/organizations/'.$this->org->id.'/usage')->assertOk()->assertJsonPath('files', 1);
@@ -507,6 +510,67 @@ class PhaseOneTest extends TestCase
         $this->share($broker);
         $this->actingAs($broker)->getJson('/api/organizations/'.$this->org->id.'/audit')->assertForbidden();
         $this->getJson('/api/organizations/'.$this->org->id.'/usage')->assertForbidden();
+    }
+
+    public function test_organization_audit_history_is_paginated_without_loosening_file_grants(): void
+    {
+        $this->upload();
+        $hidden = LoanFile::create(['organization_id' => $this->org->id, 'borrower_id' => $this->file->borrower_id, 'created_by' => $this->owner->id, 'name' => 'Not shared', 'is_demo' => true]);
+        $this->actingAs($this->owner);
+        Audit::record('document.previewed', $this->org->id, $hidden->id);
+        $orgLevelBefore = AuditEvent::where('organization_id', $this->org->id)->whereNull('loan_file_id')->count();
+        for ($i = 0; $i < 16; $i++) {
+            Audit::record('organization.updated', $this->org->id);
+        }
+
+        $first = $this->getJson('/api/organizations/'.$this->org->id.'/audit')
+            ->assertOk()
+            ->assertJsonPath('current_page', 1)
+            ->assertJsonPath('per_page', 15)
+            ->assertJsonPath('from', 1)
+            ->assertJsonPath('to', 15)
+            ->assertJsonCount(15, 'data');
+        $this->assertGreaterThan(15, $first->json('total'));
+        $this->assertArrayNotHasKey('metadata', $first->json('data.0'));
+        $this->getJson('/api/organizations/'.$this->org->id.'/audit?per_page=500')->assertOk()->assertJsonPath('per_page', 15)->assertJsonCount(15, 'data');
+        $this->getJson('/api/organizations/'.$this->org->id.'/audit?page=0')->assertUnprocessable();
+
+        $seen = $this->auditPages();
+        $this->assertCount($first->json('total'), $seen);
+        $this->assertSame($seen->pluck('id')->all(), $seen->sortByDesc('id')->pluck('id')->values()->all());
+        $this->assertTrue($seen->contains(fn ($e) => $e['action'] === 'document.uploaded' && $e['loan_file_id'] === $this->file->id));
+        $this->assertTrue($seen->contains(fn ($e) => $e['action'] === 'document.previewed' && $e['loan_file_id'] === $hidden->id));
+
+        $limited = $this->member('admin');
+        $this->actingAs($limited);
+        $hiddenFromLimited = $this->auditPages();
+        $this->assertSame($orgLevelBefore + 16, $hiddenFromLimited->count());
+        $this->assertFalse($hiddenFromLimited->contains(fn ($e) => $e['loan_file_id'] !== null));
+        $this->share($limited);
+        $afterShare = $this->auditPages();
+        $this->assertTrue($afterShare->contains(fn ($e) => $e['action'] === 'document.uploaded' && $e['loan_file_id'] === $this->file->id));
+        $this->assertFalse($afterShare->contains(fn ($e) => $e['loan_file_id'] === $hidden->id));
+
+        $stored = AuditEvent::count();
+        $this->auditPages();
+        $this->assertSame($stored, AuditEvent::count());
+        $this->actingAs($this->member())->getJson('/api/organizations/'.$this->org->id.'/audit')->assertForbidden();
+    }
+
+    private function auditPages(): Collection
+    {
+        $rows = collect();
+        $page = 1;
+        $last = 1;
+        do {
+            $response = $this->getJson('/api/organizations/'.$this->org->id.'/audit?page='.$page)->assertOk();
+            $this->assertLessThanOrEqual(15, count($response->json('data')));
+            $rows = $rows->merge($response->json('data'));
+            $last = $response->json('last_page');
+            $page++;
+        } while ($page <= $last);
+
+        return $rows;
     }
 
     public function test_pending_invitations_reserve_member_entitlement_seats(): void

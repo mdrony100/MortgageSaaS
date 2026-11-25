@@ -135,9 +135,13 @@ class OrganizationController extends Controller
     public function audit(Request $r, Organization $organization)
     {
         abort_unless(Access::admin($r->user(), $organization->id), 403);
+        $r->validate(['page' => 'nullable|integer|min:1|max:10000']);
         $files = Access::visible($r->user())->where('organization_id', $organization->id)->pluck('id');
 
-        return AuditEvent::where('organization_id', $organization->id)->where(fn ($q) => $q->whereNull('loan_file_id')->orWhereIn('loan_file_id', $files))->latest('id')->limit(200)->get(['id', 'loan_file_id', 'actor_id', 'action', 'created_at']);
+        return AuditEvent::where('organization_id', $organization->id)
+            ->where(fn ($q) => $q->whereNull('loan_file_id')->orWhereIn('loan_file_id', $files))
+            ->latest('id')
+            ->paginate(15, ['id', 'loan_file_id', 'actor_id', 'action', 'created_at']);
     }
 
     public function usage(Request $r, Organization $organization)
