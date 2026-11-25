@@ -46,13 +46,13 @@ async function saveRule(){await act(()=>api(root.value+'/rules','POST',{name:rul
 <p class="alert" v-if="error" role="alert">{{error}}</p>
 <p class="alert success" v-if="notice" role="status">{{notice}}</p>
 <div class="review-title"><h2>Bank statement review</h2><HowItWorks /></div>
-<p class="compliance">A person makes the decision. The tool only flags potential issues. This is not lending advice.</p>
+<GuidedSteps :steps="steps" />
 <NextStep :guide="guide" @act="onGuideAction"/>
+<p class="compliance">A person makes the decision. The tool only flags potential issues. This is not lending advice.</p>
 <details v-if="!internal" class="fold">
   <summary><span><strong>Qualifying income</strong><small>{{ state.final_income?.income_usd ? '$'+state.final_income.income_usd : 'No final figure yet' }}</small></span></summary>
   <div class="fold-body"><HelpNote :text="helpText.income"/><DataPanel :data="state.final_income||{notice:'No final income report issued.'}"/></div>
 </details>
-<GuidedSteps :steps="steps" />
 <details class="fold" :open="openSection===1" @toggle="syncFold(1,$event)">
   <summary><span><strong>Documents &amp; details</strong><small>{{ steps[0]?.summary }}</small></span></summary>
   <div class="fold-body">

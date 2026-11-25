@@ -193,13 +193,13 @@ onUnmounted(() => clearInterval(timer))
 <template>
 <section class="card guided-review" role="tabpanel">
   <div class="review-title"><h2>{{ module === 'dscr' ? 'Rental income review' : 'Appraisal / Rental Income Review' }}</h2><HowItWorks /></div>
-  <p class="compliance">A person makes the decision. The tool only flags potential issues. This is not lending advice.</p>
-  <NextStep :guide="guide" @act="onGuideAction" />
   <p v-if="busy" role="status">Saving…</p>
   <p v-if="error" role="alert" class="alert error">{{ error }}</p>
   <p v-if="state.audience === 'restricted'">{{ state.notice }}</p>
   <template v-else>
   <GuidedSteps :steps="steps" />
+  <NextStep :guide="guide" @act="onGuideAction" />
+  <p class="compliance">A person makes the decision. The tool only flags potential issues. This is not lending advice.</p>
   <details class="fold" :open="openSection === 1" @toggle="syncFold(1, $event)">
     <summary><span><strong>Documents &amp; details</strong><small>{{ steps[0]?.summary }}</small></span></summary>
     <div class="fold-body">
