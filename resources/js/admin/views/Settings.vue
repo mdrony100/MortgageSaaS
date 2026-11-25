@@ -29,6 +29,18 @@ const groups:Group[]=[
   {key:'billing_secret',label:'Billing secret key',secret:true},
   {key:'billing_webhook_secret',label:'Webhook secret',secret:true},
  ]},
+ {id:'notifications',title:'Email notifications',lead:'Each group is on unless you turn it off. Password reset and email verification always send. Messages are queued, and a failure to send does not undo the action the person just took.',fields:[
+  {key:'notify_admin_signups',label:'Admin: new organization signups',kind:'bool'},
+  {key:'notify_admin_website',label:'Admin: website inquiries and demo requests',kind:'bool'},
+  {key:'notify_admin_billing',label:'Admin: payment and plan requests',kind:'bool'},
+  {key:'notify_admin_support',label:'Admin: new support tickets and customer replies',kind:'bool'},
+  {key:'notify_admin_credits',label:'Admin: page credits low or used up',kind:'bool'},
+  {key:'notify_customer_account',label:'Customer: welcome and demo confirmation',kind:'bool'},
+  {key:'notify_customer_team',label:'Customer: team invites, membership, and file sharing',kind:'bool'},
+  {key:'notify_customer_billing',label:'Customer: payment requests, credits, and trial or period reminders',kind:'bool'},
+  {key:'notify_customer_support',label:'Customer: support replies and status changes',kind:'bool'},
+  {key:'notify_customer_processing',label:'Customer: loan file processing finished or failed',kind:'bool'},
+ ]},
  {id:'mail',title:'Email',lead:'SMTP settings override the server environment. The test email goes only to your sign-in address.',check:'smtp',email:true,fields:[
   {key:'mail_mailer',label:'Mailer',kind:'select',options:[{value:'smtp',label:'SMTP'},{value:'log',label:'Log'},{value:'sendmail',label:'Sendmail'},{value:'array',label:'Array (tests)'}]},
   {key:'mail_host',label:'Host',kind:'text'},

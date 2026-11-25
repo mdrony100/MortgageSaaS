@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Exceptions\MailDeliveryException;
-use Illuminate\Auth\Notifications\VerifyEmail;
+use App\Jobs\SendAuthNotification;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -45,7 +45,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function sendEmailVerificationNotification(): void
     {
         try {
-            $this->notify(new VerifyEmail);
+            dispatch(new SendAuthNotification('verify', $this->id));
             $this->verificationEmailFailed = false;
         } catch (\Throwable $e) {
             $this->verificationEmailFailed = true;
@@ -56,5 +56,10 @@ class User extends Authenticatable implements MustVerifyEmail
             ]);
             throw new MailDeliveryException('The verification email could not be delivered. Your account is saved. Use “Send verification link” to try again, or ask an administrator to resend it.');
         }
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        dispatch(new SendAuthNotification('reset', $this->id, $token));
     }
 }

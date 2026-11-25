@@ -33,7 +33,7 @@ class SupportTicketController extends Controller
 
             return $ticket;
         });
-        SupportDesk::notify(SupportDesk::staffEmails($request->user()->email), 'Support ticket opened: '.$ticket->subject, "A support ticket was opened for {$organization->name}.\n\nSubject: {$ticket->subject}\nCategory: {$ticket->category}\nPriority: {$ticket->priority}\nTicket #{$ticket->id}\n\nSign in to the owner console to reply. The message is not included in this email.");
+        SupportDesk::notify(SupportDesk::staffEmails($request->user()->email), 'Support ticket opened: '.$ticket->subject, "A support ticket was opened for {$organization->name}.\n\nSubject: {$ticket->subject}\nCategory: {$ticket->category}\nPriority: {$ticket->priority}\nTicket #{$ticket->id}\n\nSign in to the owner console to reply. The message is not included in this email.\n\n".rtrim((string) config('app.url'), '/').'/admin/support-tickets', 'admin_support');
 
         return response()->json(['ticket' => SupportDesk::detail($ticket->fresh())], 201);
     }
@@ -57,7 +57,7 @@ class SupportTicketController extends Controller
             Audit::record('support_ticket.replied', $ticket->organization_id, null, ['ticket_id' => $ticket->id, 'staff' => false]);
         });
         $ticket->refresh();
-        SupportDesk::notify(SupportDesk::staffEmails($request->user()->email), 'Support ticket reply: '.$ticket->subject, "{$request->user()->name} replied on ticket #{$ticket->id} ({$ticket->subject}) for {$ticket->organization->name}.\n\nSign in to the owner console to read it.");
+        SupportDesk::notify(SupportDesk::staffEmails($request->user()->email), 'Support ticket reply: '.$ticket->subject, "{$request->user()->name} replied on ticket #{$ticket->id} ({$ticket->subject}) for {$ticket->organization->name}.\n\nSign in to the owner console to read it.\n\n".rtrim((string) config('app.url'), '/').'/admin/support-tickets', 'admin_support');
 
         return response()->json(['ticket' => SupportDesk::detail($ticket)], 201);
     }
