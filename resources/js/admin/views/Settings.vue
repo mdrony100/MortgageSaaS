@@ -10,7 +10,7 @@ const groups:Group[]=[
   {key:'impersonation_minutes',label:'Session length (minutes)',kind:'number',hint:'5 to 240. Leave blank to use the server environment.'},
   {key:'impersonation_allow_document_download',label:'Allow original document downloads during a support session',kind:'bool'},
  ]},
- {id:'openai',title:'OpenAI',lead:'Bank statement and appraisal vision models. Approval must be on before a run may call the provider.',check:'openai',fields:[
+ {id:'openai',title:'OpenAI',lead:'Bank statement and appraisal vision models. Turn on approval and set a model before a run calls OpenAI. Page credits are the only usage limit.',check:'openai',fields:[
   {key:'openai_approved',label:'Approve OpenAI for bank statements',kind:'bool'},
   {key:'openai_api_key',label:'OpenAI API key',secret:true},
   {key:'openai_model',label:'Bank model',kind:'text'},

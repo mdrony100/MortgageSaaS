@@ -96,7 +96,7 @@ class OcrolusDetect implements IntegrityProvider
 
             return $result;
         } catch (\Throwable) {
-            return ['status' => 'Unavailable', 'provider' => 'ocrolus', 'reason' => 'Budget, credentials or provider unavailable; review required'];
+            return ['status' => 'Unavailable', 'provider' => 'ocrolus', 'reason' => 'Credentials or provider unavailable; review required'];
         }
     }
 }

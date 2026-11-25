@@ -434,7 +434,7 @@ class PhaseTwoTest extends TestCase
         }$this->assertSame('ordinary text', Export::csvSafe('ordinary text'));
     }
 
-    public function test_provider_budget_is_atomic_and_unknown_submission_is_not_recharged(): void
+    public function test_provider_call_is_recorded_once_and_unknown_submission_is_not_recharged(): void
     {
         $r = $this->normalized();
         DB::table('bank_limits')->insert(['organization_id' => $this->org->id, 'limit_micro_usd' => 100, 'reserved_micro_usd' => 0, 'per_run_limit_micro_usd' => 100]);
@@ -443,8 +443,10 @@ class PhaseTwoTest extends TestCase
         $b = Budget::reserve($r, str_repeat('a', 64), 'test', 'v1', 60);
         $this->assertSame($a['id'], $b['id']);
         $this->assertSame(60, DB::table('bank_limits')->value('reserved_micro_usd'));
-        $this->expectException(\RuntimeException::class);
-        Budget::reserve($r, str_repeat('b', 64), 'test', 'v1', 60);
+        $c = Budget::reserve($r, str_repeat('b', 64), 'test', 'v1', 60);
+        $this->assertNotSame($a['id'], $c['id']);
+        $this->assertSame('reserved', $c['status']);
+        $this->assertSame(120, DB::table('bank_limits')->value('reserved_micro_usd'));
     }
 
     public function test_findings_governance_reason_history_and_preliminary_export_with_open_findings(): void

@@ -92,9 +92,6 @@ export function failureGuide(code?: string | null): { body: string; cta: Failure
   if (/page credits are used up|more pages than your plan allows/i.test(raw)) {
     return { body: /more pages than your plan allows/i.test(raw) ? 'This file has more pages than your plan allows for one loan file. Request a plan change from Plan.' : 'Your page credits are used up. Request more pages from Plan.', cta: 'admin', button: 'Contact support' }
   }
-  if (/budget unavailable|budget .*exhausted/i.test(raw)) {
-    return { body: "Processing budget isn't set up or is used up — ask an administrator.", cta: 'admin', button: 'Contact support' }
-  }
   if (/rejected|infected|quarantined/i.test(raw) && !/scanner unavailable|malware scan unavailable|unscanned/i.test(raw)) {
     return { body: 'The security scan stopped this file. Upload a different copy, then start processing again.', cta: 'replace', button: 'Replace the file' }
   }

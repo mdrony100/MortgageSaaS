@@ -533,17 +533,29 @@ class PhaseThreeTest extends TestCase
         }
     }
 
-    public function test_vision_requires_approved_budget_and_does_not_fallback_as_vision_success(): void
+    public function test_vision_calls_openai_without_a_dollar_budget_and_does_not_fallback_as_vision_success(): void
     {
-        $r = $this->reviewRun();
-        Http::fake();
-        config(['review.vision_approved' => true, 'review.model' => 'TEST-MOCK', 'bank.openai.key' => 'TEST-MOCK', 'review.reservation_micro_usd' => 1]);
+        $r = Run::create(['id' => (string) Str::uuid(), 'organization_id' => $this->org->id, 'loan_file_id' => $this->file->id, 'requested_by' => $this->owner->id, 'idempotency_key' => (string) Str::uuid(), 'inputs' => [], 'context' => [], 'checklist' => []]);
+        $dir = sys_get_temp_dir().'/vision-nobudget-'.uniqid();
+        mkdir($dir);
+        file_put_contents($dir.'/page.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6H0IAAAAASUVORK5CYII='));
+        Http::preventStrayRequests();
+        Http::fake(['api.openai.com/*' => Http::response(['status' => 'completed', 'output' => [['content' => [['type' => 'output_text', 'text' => '{not-json']]]]], 200)]);
+        config(['review.vision_approved' => true, 'review.model' => 'TEST-MOCK', 'bank.openai.key' => 'TEST-MOCK', 'review.reservation_micro_usd' => 0]);
+        $this->assertSame(0, DB::table('bank_limits')->count());
         try {
-            app(VisionExtractor::class)->extract(['pages' => [['number' => 1, 'text' => '', 'render' => 'not-opened.png']]], $r, 999, '/not-used');
-            $this->fail('Budget must fail closed');
-        } catch (ProcessingException $e) {
-            $this->assertStringContainsString('budget', $e->getMessage());
-        }Http::assertNothingSent();
+            try {
+                app(VisionExtractor::class)->extract(['pages' => [['number' => 1, 'text' => '', 'render' => 'page.png']]], $r, 999, $dir);
+                $this->fail('Invalid provider output must not become a native success');
+            } catch (ProcessingException $e) {
+                $this->assertStringNotContainsString('budget', strtolower($e->getMessage()));
+                $this->assertStringContainsString('invalid', strtolower($e->getMessage()));
+            }
+            Http::assertSentCount(1);
+        } finally {
+            unlink($dir.'/page.png');
+            rmdir($dir);
+        }
     }
 
     public function test_component_payment_precision_explicit_zero_adu_and_approved_overlay(): void

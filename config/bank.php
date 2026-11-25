@@ -25,7 +25,7 @@ return [
         'secondary_model' => env('BANK_OPENAI_SECONDARY_MODEL'),
         'pages_per_group' => 3,
         'max_output_tokens' => 12000,
-        // Conservative, operator-approved reservation, not a claimed provider price.
+        // Recorded on the provider call for reporting. Not a usage limit; 0 does not block.
         'reservation_micro_usd_per_group' => (int) env('BANK_OPENAI_RESERVATION_MICRO_USD', 0),
         'timeout' => 90,
     ],
